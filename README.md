@@ -49,6 +49,6 @@ Philips Hue and DreamScreen are trademarks of their respective owners. This proj
 
 ## License
 
-Copyright (C) 2019-2026 André Lorbach
+Copyright (C) 2019-2026 Andre Lorbach
 
 This program is free software under the [GNU General Public License version 3](LICENSE). It comes with no warranty. Third-party code keeps its own license, see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
