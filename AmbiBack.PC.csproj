@@ -1,0 +1,317 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{1D6478CE-10EE-4169-AB60-8F4435577FC9}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>AmbiBack</RootNamespace>
+    <AssemblyName>AmbiBack</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <TargetFrameworkProfile />
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>AmbiBack.Program</StartupObject>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>AmbiBack.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|Win32'">
+    <PlatformTarget>x86</PlatformTarget>
+    <DefineConstants>
+    </DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|Win32'">
+    <PlatformTarget>x86</PlatformTarget>
+    <DefineConstants>
+    </DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed">
+      <HintPath>packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
+      <HintPath>packages\SharpDX.4.2.0\lib\net45\SharpDX.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.Direct2D1, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
+      <HintPath>packages\SharpDX.Direct2D1.4.2.0\lib\net45\SharpDX.Direct2D1.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.Direct3D11, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
+      <HintPath>packages\SharpDX.Direct3D11.4.2.0\lib\net45\SharpDX.Direct3D11.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.DXGI, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
+      <HintPath>packages\SharpDX.DXGI.4.2.0\lib\net45\SharpDX.DXGI.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.Mathematics, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
+      <HintPath>packages\SharpDX.Mathematics.4.2.0\lib\net45\SharpDX.Mathematics.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="frmConnectWifi.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmConnectWifi.Designer.cs">
+      <DependentUpon>frmConnectWifi.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmConnectHue.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmConnectHue.Designer.cs">
+      <DependentUpon>frmConnectHue.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmAddDevice.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmAddDevice.Designer.cs">
+      <DependentUpon>frmAddDevice.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AmbiMonitor.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="AmbiMonitor.Designer.cs">
+      <DependentUpon>AmbiMonitor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="CConfiguration.cs" />
+    <Compile Include="CDevice.cs" />
+    <Compile Include="CDeviceDreamScreen.cs" />
+    <Compile Include="CDeviceAmbiBack.cs" />
+    <Compile Include="CDevicePhilipsHueLight.cs" />
+    <Compile Include="CDevicesController.cs" />
+    <Compile Include="CDevicesList.cs" />
+    <Compile Include="CGlobals.cs" />
+    <Compile Include="CLanguage.cs" />
+    <Compile Include="CPingHelper.cs" />
+    <Compile Include="CScreenHelper.cs" />
+    <Compile Include="frmAbout.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmAbout.Designer.cs">
+      <DependentUpon>frmAbout.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmDeviceAmbiBack.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmDeviceAmbiBack.Designer.cs">
+      <DependentUpon>frmDeviceAmbiBack.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmDeviceDreamScreen.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmDeviceDreamScreen.Designer.cs">
+      <DependentUpon>frmDeviceDreamScreen.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmMain.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmMain.Designer.cs">
+      <DependentUpon>frmMain.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmMessageBox.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmMessageBox.designer.cs">
+      <DependentUpon>frmMessageBox.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmOptions.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmOptions.Designer.cs">
+      <DependentUpon>frmOptions.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmSplash.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmSplash.Designer.cs">
+      <DependentUpon>frmSplash.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmWeb.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmWeb.Designer.cs">
+      <DependentUpon>frmWeb.cs</DependentUpon>
+    </Compile>
+    <Compile Include="HueClient.cs" />
+    <Compile Include="json.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Settings.cs" />
+    <Compile Include="UdpClientBroadcast.cs" />
+    <EmbeddedResource Include="frmConnectWifi.resx">
+      <DependentUpon>frmConnectWifi.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmConnectHue.resx">
+      <DependentUpon>frmConnectHue.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmAddDevice.resx">
+      <DependentUpon>frmAddDevice.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="AmbiMonitor.resx">
+      <DependentUpon>AmbiMonitor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmAbout.resx">
+      <DependentUpon>frmAbout.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmDeviceAmbiBack.resx">
+      <DependentUpon>frmDeviceAmbiBack.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmDeviceDreamScreen.resx">
+      <DependentUpon>frmDeviceDreamScreen.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmMain.resx">
+      <DependentUpon>frmMain.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmMessageBox.en-US.resx">
+      <DependentUpon>frmMessageBox.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmMessageBox.resx">
+      <DependentUpon>frmMessageBox.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmOptions.resx">
+      <DependentUpon>frmOptions.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmSplash.resx">
+      <DependentUpon>frmSplash.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmWeb.resx">
+      <DependentUpon>frmWeb.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>PublicSettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\media_stop.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\media_play.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\view_add.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\colorwheel.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\information.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\preferences.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\exit.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\help2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\gear_information.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\replace2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\selection.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\selection_ok.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="_gfx\brightness16.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="_gfx\colorboost16.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="_gfx\luminosity16.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="_gfx\nav_plain_red.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="_gfx\nav_plain_green.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="_gfx\nav_plain_blue.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="_gfx\contrast16.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="_gfx\devicesBridgesV2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="AmbiBack.ico" />
+    <None Include="Resources\movie_run.png" />
+    <None Include="Resources\navigate_close1.png" />
+    <None Include="Resources\earth_add.png" />
+    <None Include="Resources\delete2.png" />
+    <None Include="Resources\earth_network.png" />
+    <None Include="Resources\save_as.png" />
+    <None Include="_gfx\AmbiBack_Logo_Icon_COLOR.png" />
+    <None Include="Resources\navigate_open.png" />
+    <None Include="Resources\navigate_close.png" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
