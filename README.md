@@ -21,6 +21,10 @@ It is part of the [AmbiBack project](https://github.com/ambiback) and works with
 - Settings for brightness, contrast, color balance and transitions
 - Start with Windows and run from the notification area
 
+## Hardware
+
+The parts for a DIY build are on the [AmbiBack parts page](https://www.ambiback.de/en/diy/parts/).
+
 ## Building
 
 Requires Windows, Visual Studio with .NET desktop development and the .NET Framework 4.7.2 Targeting Pack.

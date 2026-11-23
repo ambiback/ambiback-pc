@@ -21,6 +21,10 @@ Er gehört zum [AmbiBack-Projekt](https://github.com/ambiback) und arbeitet mit 
 - Einstellungen für Helligkeit, Kontrast, Farbanteile und Übergänge
 - Start mit Windows und Betrieb im Infobereich
 
+## Hardware
+
+Die Bauteile für den Selbstbau stehen auf der [AmbiBack-Teileseite](https://www.ambiback.de/selbstbau/teile/).
+
 ## Bauen
 
 Voraussetzungen sind Windows, Visual Studio mit .NET-Desktop-Entwicklung und das .NET Framework 4.7.2 Targeting Pack.
