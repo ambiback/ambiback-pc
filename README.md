@@ -1,45 +1,54 @@
 # AmbiBack PC
 
-Windows-Client für AmbiBack. Er erfasst den Bildschirminhalt und sendet die Farben an AmbiBack-Geräte, DreamScreen und Philips-Hue-Lampen.
+**English** · [Deutsch](README.de.md)
 
-Die AmbiBack-Geräte werden seit rund fünf Jahren nicht mehr verkauft. Dieses Repository stellt den Quellcode für den Eigenbau und die Weiterentwicklung bereit. Mehr zum Projekt steht auf [ambiback.de](https://www.ambiback.de/). Die passende Firmware liegt in [ambiback-firmware](https://github.com/ambiback/ambiback-firmware).
+Windows client for AmbiBack. It captures the screen content and sends the colors to AmbiBack devices, DreamScreen and Philips Hue lights.
 
-## Funktionen
+It is part of the [AmbiBack project](https://github.com/ambiback) and works with the [AmbiBack firmware](https://github.com/ambiback/ambiback-firmware).
 
-- Bildschirmaufnahme über DirectX mit Vorschau und Sektoren je Gerät
-- Geräte im lokalen Netzwerk finden und verwalten
-- Ansteuerung von AmbiBack, DreamScreen und Philips Hue
-- Einstellungen für Helligkeit, Kontrast, Farbanteile und Übergänge
-- Start mit Windows und Betrieb im Infobereich
+## Status
 
-## Bauen
+- Version 0.9.0.180. The PC version remained a prototype and was never a finished product.
+- The Release build passes, and forms and resources load.
+- **The full application has not been started since the migration.** The new Hue client has only been tested against a simulated bridge, not a real one.
+- AmbiBack devices have not been on sale for around five years. This repository is for DIY use and further development, with no product support. More at [ambiback.de](https://www.ambiback.de/).
 
-Voraussetzungen sind Windows, Visual Studio mit .NET-Desktop-Entwicklung und das .NET Framework 4.7.2 Targeting Pack.
+## Features
+
+- Screen capture through DirectX with preview and per-device sectors
+- Find and manage devices on the local network
+- Control of AmbiBack, DreamScreen and Philips Hue
+- Settings for brightness, contrast, color balance and transitions
+- Start with Windows and run from the notification area
+
+## Building
+
+Requires Windows, Visual Studio with .NET desktop development and the .NET Framework 4.7.2 Targeting Pack.
 
 ```powershell
 msbuild AmbiBack.PC.sln -t:Restore -p:RestorePackagesConfig=true
 msbuild AmbiBack.PC.csproj -p:Configuration=Release
 ```
 
-Die fertige Anwendung liegt danach in `bin\Release\`.
+The application is then in `bin\Release\`.
 
-## USB-Treiber
+## USB drivers
 
-Für den Zugriff auf Geräte per USB wird je nach Modul ein Treiber des Chip-Herstellers benötigt. Er ist hier nicht enthalten:
+Depending on the module, USB access needs a driver from the chip manufacturer. It is not included here:
 
 - [FTDI VCP Drivers](https://ftdichip.com/drivers/vcp-drivers/)
 - [Silicon Labs CP210x Drivers](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers)
 
-## Sicherheitshinweis
+## Security
 
-Die Kommunikation mit Geräten und der Hue Bridge läuft unverschlüsselt im lokalen Netz, und die Geräte-API hat keine Anmeldung. Betreibe die Geräte nur in einem vertrauenswürdigen Netz.
+Communication with devices and the Hue Bridge is unencrypted on the local network, and the device API has no login. Run devices only on a trusted network.
 
-## Marken
+## Trademarks
 
-Philips Hue und DreamScreen sind Marken ihrer jeweiligen Inhaber. Dieses Projekt steht in keiner Verbindung zu ihnen.
+Philips Hue and DreamScreen are trademarks of their respective owners. This project is not affiliated with them.
 
-## Lizenz
+## License
 
 Copyright (C) 2019-2026 André Lorbach
 
-Dieses Programm ist freie Software und steht unter der [GNU General Public License Version 3](LICENSE). Es wird ohne jede Gewährleistung bereitgestellt. Drittcode behält seine eigene Lizenz, siehe [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+This program is free software under the [GNU General Public License version 3](LICENSE). It comes with no warranty. Third-party code keeps its own license, see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
