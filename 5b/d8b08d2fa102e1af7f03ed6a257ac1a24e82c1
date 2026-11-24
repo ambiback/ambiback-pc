@@ -1,0 +1,159 @@
+.gitattributes
+  s_ed4f085c6942da::t_88bc9f4239f5b4 1-63
+.gitignore
+  s_ed4f085c6942da::t_63e94107ed903c 1-245
+AmbiBack.PC.csproj
+  s_ed4f085c6942da::t_9cb39b64d1e706 1-317
+AmbiBack.PC.sln
+  s_ed4f085c6942da::t_98f7eca0672d55 1-42
+AmbiMonitor.Designer.cs
+  s_ed4f085c6942da::t_4a1bd0145c6e05 1-568
+AmbiMonitor.cs
+  s_ed4f085c6942da::t_e7039cf7757f5b 1-871
+AmbiMonitor.resx
+  s_ed4f085c6942da::t_ac9806b2d06892 1-123
+App.config
+  s_ed4f085c6942da::t_64f5313393ea2a 1-63
+CConfiguration.cs
+  s_ed4f085c6942da::t_2f9452e907acf0 1-50
+CDevice.cs
+  s_ed4f085c6942da::t_16d51965e75c03 1-804
+CDeviceAmbiBack.cs
+  s_ed4f085c6942da::t_8dcff5c3231318 1-1514
+CDeviceDreamScreen.cs
+  s_ed4f085c6942da::t_7b568057df2386 1-788
+CDevicePhilipsHueLight.cs
+  s_f979a138338d89::t_9792848d4b3dab 1-614
+CDevicesController.cs
+  s_f979a138338d89::t_e78572ca29d699 1-888
+CDevicesList.cs
+  s_ed4f085c6942da::t_7b5b42e445f2d2 1-269
+CGlobals.cs
+  s_f979a138338d89::t_b31b96a533fba1 1-1038
+CLanguage.cs
+  s_ed4f085c6942da::t_9be8ebefcf926c 1-147
+CPingHelper.cs
+  s_ed4f085c6942da::t_eed53c2ce38d90 1-514
+CScreenHelper.cs
+  s_ed4f085c6942da::t_4184c45b35ef9d 1-755
+HueClient.cs
+  s_ed4f085c6942da::t_3fbc2f26ba5a51 1-240
+LICENSE
+  s_ed4f085c6942da::t_4f632524a849a1 1-675
+Program.cs
+  s_ed4f085c6942da::t_a4b141c0f330f1 1-98
+Properties/AssemblyInfo.cs
+  s_ed4f085c6942da::t_fc5c73079d1b27 1-39
+Properties/Resources.Designer.cs
+  s_ed4f085c6942da::t_83c0c575ea16e6 1-353
+Properties/Resources.resx
+  s_ed4f085c6942da::t_09b21dc48907ee 1-208
+Properties/Settings.Designer.cs
+  s_ed4f085c6942da::t_72b0ba6fdc342e 1-229
+Properties/Settings.settings
+  s_ed4f085c6942da::t_c7309e29e19edf 1-57
+Settings.cs
+  s_ed4f085c6942da::t_d7387919c5422a 1-28
+UdpClientBroadcast.cs
+  s_ed4f085c6942da::t_8d510961015864 1-42
+frmAbout.Designer.cs
+  s_f979a138338d89::t_179ef02c6d1074 1-186
+frmAbout.cs
+  s_f979a138338d89::t_5d6fa7f523da05 1-110
+frmAbout.resx
+  s_f979a138338d89::t_c0000d6489b1f5 1-120
+frmAddDevice.Designer.cs
+  s_f979a138338d89::t_c88de3c71dc86b 1-194
+frmAddDevice.cs
+  s_f979a138338d89::t_46c7ed80928c13 1-173
+frmAddDevice.resx
+  s_ed4f085c6942da::t_fe40b3f7736e98 1-177
+frmConnectHue.Designer.cs
+  s_f979a138338d89::t_47ac4e07e7f925 1-155
+frmConnectHue.cs
+  s_f979a138338d89::t_be7813228cd506 1-78
+frmConnectHue.resx
+  s_ed4f085c6942da::t_948732fda77c57 1-148
+frmConnectWifi.Designer.cs
+  s_f979a138338d89::t_2e81f12bffc6a3 1-167
+frmConnectWifi.cs
+  s_f979a138338d89::t_1e70cb3b9e5ab8 1-93
+frmConnectWifi.resx
+  s_f979a138338d89::t_4b0f144ee14789 1-120
+frmDeviceAmbiBack.Designer.cs
+  s_f979a138338d89::t_cd9a683d1e8d24 1-127
+frmDeviceAmbiBack.cs
+  s_f979a138338d89::t_18e7a26ca1ad73 1-104
+frmDeviceAmbiBack.resx
+  s_ed4f085c6942da::t_6468532b1c1579 1-5317
+frmDeviceDreamScreen.Designer.cs
+  s_f979a138338d89::t_85664cab6e8fd2 1-324
+frmDeviceDreamScreen.cs
+  s_f979a138338d89::t_1924ce3afe4baf 1-93
+frmDeviceDreamScreen.resx
+  s_ed4f085c6942da::t_5acb50a0acbc0e 1-5311
+frmMain.Designer.cs
+  s_f979a138338d89::t_54717a18275882 1-1350
+frmMain.cs
+  s_f979a138338d89::t_b654b611499178 1-2205
+frmMain.resx
+  s_ed4f085c6942da::t_3350fac1ab776f 1-20647
+frmMessageBox.Designer.cs
+  s_f979a138338d89::t_76f49bd447647e 1-166
+frmMessageBox.cs
+  s_f979a138338d89::t_8cbb554dca91f8 1-231
+frmMessageBox.en-US.resx
+  s_ed4f085c6942da::t_2e41561a9fda38 1-141
+frmMessageBox.resx
+  s_ed4f085c6942da::t_c011b616cb5cca 1-1159
+frmOptions.Designer.cs
+  s_f979a138338d89::t_6aa42707d02ce7 1-273
+frmOptions.cs
+  s_f979a138338d89::t_ebae4f07838cfb 1-47
+frmOptions.resx
+  s_ed4f085c6942da::t_37956df7c5effe 1-132
+frmSplash.Designer.cs
+  s_f979a138338d89::t_2b47eb42e3fa31 1-68
+frmSplash.cs
+  s_f979a138338d89::t_a5e603232d6332 1-33
+frmSplash.resx
+  s_f979a138338d89::t_7535bd6c844af3 1-120
+frmWeb.Designer.cs
+  s_f979a138338d89::t_6da7a0cda5b2d2 1-112
+frmWeb.cs
+  s_f979a138338d89::t_229a33318f188d 1-79
+frmWeb.resx
+  s_f979a138338d89::t_6ce413662c8ed0 1-120
+json.cs
+  s_f979a138338d89::t_5bbf72c9ca634d 1-1397
+packages.config
+  s_ed4f085c6942da::t_716da326d6eb50 1-10
+README.md
+  s_ed4f085c6942da::t_e1ee50ee6dfc74 1-45
+THIRD_PARTY_NOTICES.md
+  s_ed4f085c6942da::t_35b3582ab73bf0 1-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5bd8b08d2fa102e1af7f03ed6a257ac1a24e82c1",
+  "prompts": {},
+  "sessions": {
+    "s_ed4f085c6942da": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "25338f00-8e49-4247-ba73-a2a50acc53dc",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    },
+    "s_f979a138338d89": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1daad5b8-286e-4d5b-89e0-7a82ee3b6e21",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}

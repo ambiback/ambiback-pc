@@ -1,0 +1,21 @@
+README.de.md
+  s_396ec058602e6f::t_bc6452d75b0931 1-54
+README.md
+  s_396ec058602e6f::t_285e94f3761fba 3,5,7,9,11-14,16-26,33,35,37,42,44,46,48,50,54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9eb5744d996ec3f8705bbcb7032a7fb6e4715118",
+  "prompts": {},
+  "sessions": {
+    "s_396ec058602e6f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4a258a7f-f865-4e85-8da1-7bf02247dffb",
+        "model": "unknown"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
