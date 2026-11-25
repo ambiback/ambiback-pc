@@ -682,7 +682,7 @@ namespace AmbiBack
 
                 btnStart.Enabled = true;
                 btnStop.Enabled = false;
-                btnEnable.Image = global::AmbiBack.Properties.Resources.selection_ok;
+                SetEnableGlyph(true);
             }
             else {
                 // Stop Screenhelper threads
@@ -695,7 +695,7 @@ namespace AmbiBack
                 this._MonitorEnabled = false;
                 btnStart.Enabled = false;
                 btnStop.Enabled = false;
-                btnEnable.Image = global::AmbiBack.Properties.Resources.selection;
+                SetEnableGlyph(false);
             }
         }
         private void cbLedsHori_SelectedIndexChanged(object sender, EventArgs e)

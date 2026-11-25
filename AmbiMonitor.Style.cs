@@ -39,8 +39,32 @@ namespace AmbiBack
                 lblTitel.Width = half;
                 lblStatus.SetBounds(half, lblTitel.Top, Width - half - 2, lblTitel.Height);
             };
+            // Same symbol set as the main window: check box, play in green, stop in red
+            SetGlyph(btnStart, Theme.Glyphs.Play, Theme.Success);
+            SetGlyph(btnStop, Theme.Glyphs.Stop, Theme.Destructive);
+            SetEnableGlyph(btnEnable.CheckState == CheckState.Checked);
             ApplyTexts();
             SetSelected(false);
+        }
+
+        /// <summary>"Use" toggle: empty or ticked check box (designer image when the icon font is missing).</summary>
+        private void SetEnableGlyph(bool enabled)
+        {
+            if (!SetGlyph(btnEnable, enabled ? Theme.Glyphs.CheckboxChecked : Theme.Glyphs.Checkbox, enabled ? Theme.Accent : Theme.SecondaryText))
+                btnEnable.Image = enabled ? Properties.Resources.selection_ok : Properties.Resources.selection;
+        }
+
+        private bool SetGlyph(ToolStripItem item, char glyph, Color color)
+        {
+            Bitmap bmp = Theme.Glyph(glyph, color, DialogStyle.Px(this, 16));
+            if (bmp == null)
+                return false;
+            Image old = item.Image;
+            item.Image = bmp;
+            item.ImageScaling = ToolStripItemImageScaling.None;
+            item.ImageTransparentColor = Color.Empty;
+            old?.Dispose();    // designer and resource images are separate copies
+            return true;
         }
 
         internal void ApplyTexts()

@@ -46,6 +46,7 @@ namespace AmbiBack.PhilipsHue
                 Test("New area: light positions", TestNewAreaPositions),
                 Test("Only color lights are listed", TestColorLight),
                 Test("Light position from screen sectors", TestPositionFromSectors),
+                Test("mDNS query for _hue._tcp.local", TestMdnsQuery),
             };
 
             int failed = 0;
@@ -379,6 +380,12 @@ namespace AmbiBack.PhilipsHue
             Equal(0.5, p[2].X);
             Equal(1.0, p[3].X); Equal(1.0, p[3].Z);
             Equal(1.0, p[3].Y);
+        }
+
+        private static void TestMdnsQuery()
+        {
+            Equal("000000000001000000000000" + "045f687565" + "045f746370" + "056c6f63616c" + "00" + "000c8001",
+                TlsPrf.ToHex(HueDiscovery.BuildMdnsQuery()));
         }
 
         private static void TestPositionFromSectors()

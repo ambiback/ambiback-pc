@@ -27,7 +27,7 @@ namespace AmbiBack
             this.Cursor = Cursors.WaitCursor;
             this.Enabled = false;
 
-            string szHueDeviceIP = txtDevice.Text.Trim();
+            string szHueDeviceIP = BridgeAddress();
 
             try
             {
@@ -57,7 +57,7 @@ namespace AmbiBack
             catch (Exception ex)
             {
                 this.Cursor = Cursors.Default;
-                MessageBox.Show(this, L.F("hue_err", txtDevice.Text, ex.Message), L.T("hue_err_title"),
+                MessageBox.Show(this, L.F("hue_err", cbBridge.Text, ex.Message), L.T("hue_err_title"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
             }
@@ -74,7 +74,10 @@ namespace AmbiBack
 
         private void frmConnectHue_Load(object sender, EventArgs e)
         {
-            txtDevice.Text = Properties.Settings.Default.szHueDeviceIP;
+            cbBridge.Text = Properties.Settings.Default.szHueDeviceIP;
+            // First time: look for bridges right away
+            if (string.IsNullOrWhiteSpace(cbBridge.Text))
+                SearchBridges(true);
             UpdateHueStatus(null);
             ShowAreas(CGlobals.HueEntertainmentAreas);
             if (CanStream())
@@ -84,6 +87,73 @@ namespace AmbiBack
             statusTimer.Tick += (s, a) => UpdateDeviceColumn();
             statusTimer.Start();
             FormClosed += (s, a) => statusTimer.Dispose();
+        }
+
+        /// <summary>Address from the field: a found bridge ("Name (192.168.0.2)") or what was typed.</summary>
+        private string BridgeAddress()
+        {
+            if (cbBridge.SelectedItem is DiscoveredBridge bridge && cbBridge.Text == bridge.ToString())
+                return bridge.Address.ToString();
+            string text = cbBridge.Text.Trim();
+            var m = System.Text.RegularExpressions.Regex.Match(text, @"\(([^()]+)\)\s*$");
+            return m.Success ? m.Groups[1].Value.Trim() : text;
+        }
+
+        private bool searching;
+
+        /// <summary>
+        /// Looks for Hue bridges on the network (mDNS and ARP, no cloud) and puts them into the list.
+        /// With several bridges the list opens so one can be chosen.
+        /// </summary>
+        private void SearchBridges(bool automatic)
+        {
+            if (searching)
+                return;
+            searching = true;
+            cmdSearch.Enabled = false;
+            Theme.StyleHint(label2);
+            label2.Text = L.T("hue_searching");
+            Task.Run(() => HueDiscovery.Discover(alwaysCloud: !automatic)).ContinueWith(t =>
+            {
+                if (IsDisposed)
+                    return;
+                BeginInvoke((Action)(() =>
+                {
+                    searching = false;
+                    cmdSearch.Enabled = true;
+                    List<DiscoveredBridge> found = t.IsFaulted ? new List<DiscoveredBridge>() : t.Result;
+                    if (t.IsFaulted)
+                        CGlobals.DebugOutput("frmConnectHue|Search: " + t.Exception.GetBaseException().Message);
+
+                    string typed = cbBridge.Text;
+                    cbBridge.BeginUpdate();
+                    cbBridge.Items.Clear();
+                    foreach (DiscoveredBridge b in found)
+                        cbBridge.Items.Add(b);
+                    cbBridge.EndUpdate();
+
+                    if (found.Count == 0)
+                    {
+                        label2.Text = L.T("hue_found_none");
+                        cbBridge.Text = typed;
+                        return;
+                    }
+                    label2.Text = found.Count == 1 ? L.F("hue_found_one", found[0]) : L.F("hue_found_many", found.Count);
+                    label2.ForeColor = Theme.Success;
+
+                    // Keep an address the user typed in meanwhile, unless it is one of the found bridges
+                    DiscoveredBridge current = found.Find(b => b.Address.ToString() == typed.Trim());
+                    if (current != null || string.IsNullOrWhiteSpace(typed) || !automatic)
+                        cbBridge.SelectedItem = current ?? found[0];
+                    else
+                        cbBridge.Text = typed;
+                    if (found.Count > 1)
+                    {
+                        cbBridge.Focus();
+                        cbBridge.DroppedDown = true;
+                    }
+                }));
+            }, TaskScheduler.Default);
         }
 
         private static bool CanStream()

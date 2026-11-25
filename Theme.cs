@@ -191,6 +191,9 @@ namespace AmbiBack
             public const char Delete = '';
             public const char Broom = '';
             public const char View = '';
+            public const char Checkbox = '';
+            public const char CheckboxChecked = '';
+            public const char Globe = '';
         }
 
         /// <summary>Small filled circle used as status dot next to a status text.</summary>

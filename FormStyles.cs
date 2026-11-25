@@ -108,6 +108,8 @@ namespace AmbiBack
         private Button cmdAddArea;
         private Button cmdNewArea;
         private Button cmdDeleteArea;
+        private ComboBox cbBridge;
+        private Button cmdSearch;
 
         private void ApplyStyle()
         {
@@ -118,19 +120,33 @@ namespace AmbiBack
             ClientSize = new Size(DialogStyle.Px(this, 560), DialogStyle.Px(this, 520));
             DialogStyle.Header(this, lblTitle, pbIcon, L.T("hue_heading"));
 
-            // Pairing: address and Connect in one row
+            // Pairing: bridge (found ones in the list, or an address typed in), Search and Connect in one row
             DialogStyle.FieldLabel(label1, L.T("hue_prompt"));
             label1.Location = new Point(pad, lblTitle.Bottom + pad);
-            txtDevice.Location = new Point(pad, label1.Bottom + DialogStyle.Px(this, 4));
-            txtDevice.Width = ClientSize.Width - 2 * pad - btnW - gap;
+            int searchW = DialogStyle.Px(this, 90);
+            txtDevice.Visible = false;
+            cbBridge = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDown,
+                Location = new Point(pad, label1.Bottom + DialogStyle.Px(this, 4)),
+                Width = ClientSize.Width - 2 * pad - btnW - searchW - 2 * gap,
+                MaxLength = 256,
+                TabIndex = txtDevice.TabIndex,
+            };
+            Controls.Add(cbBridge);
+            cmdSearch = new Button { Text = L.T("hue_search"), Size = new Size(searchW, btnH) };
+            cmdSearch.Location = new Point(cbBridge.Right + gap, cbBridge.Top + (cbBridge.Height - btnH) / 2);
+            Theme.StyleSecondary(cmdSearch);
+            cmdSearch.Click += (s, e) => SearchBridges(false);
+            Controls.Add(cmdSearch);
             cmdOK.Text = L.T("connect");
             cmdOK.Size = new Size(btnW, btnH);
-            cmdOK.Location = new Point(txtDevice.Right + gap, txtDevice.Top + (txtDevice.Height - btnH) / 2);
+            cmdOK.Location = new Point(cmdSearch.Right + gap, cmdSearch.Top);
             Theme.StylePrimary(cmdOK);
             Theme.StyleHint(label2);
             label2.AutoSize = true;
             label2.Text = L.T("example_host");
-            label2.Location = new Point(pad, txtDevice.Bottom + DialogStyle.Px(this, 4));
+            label2.Location = new Point(pad, cbBridge.Bottom + DialogStyle.Px(this, 4));
             lblHint = new Label
             {
                 Text = L.T("hue_hint"),

@@ -126,6 +126,15 @@ namespace AmbiBack
                 ok = AmbiBack.PhilipsHue.HueSelfTest.RunInterop(args[1], port, args[3], args[4], report);
                 reportFile = args.Length > 5 ? args[5] : null;
             }
+            else if (args[0] == "--hue-discover")
+            {
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                var found = AmbiBack.PhilipsHue.HueDiscovery.Discover();
+                Console.WriteLine(found.Count + " bridge(s) in " + watch.ElapsedMilliseconds + " ms");
+                foreach (var b in found)
+                    Console.WriteLine("  " + b + "  id=" + b.BridgeID + " model=" + b.ModelID);
+                return found.Count > 0 ? 0 : 1;
+            }
             else if (args[0] == "--hue-bridge-info" && args.Length >= 3)
             {
                 return AmbiBack.PhilipsHue.HueSelfTest.RunBridgeInfo(args[1], args[2], line => Console.WriteLine(line)) ? 0 : 1;

@@ -191,6 +191,7 @@
     </Compile>
     <Compile Include="HueClient.cs" />
     <Compile Include="HueCrypto.cs" />
+    <Compile Include="HueDiscovery.cs" />
     <Compile Include="HueDtlsClient.cs" />
     <Compile Include="HueEntertainment.cs" />
     <Compile Include="HueEntertainmentSession.cs" />
