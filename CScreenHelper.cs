@@ -315,11 +315,9 @@ namespace AmbiBack
 
                 try
                 {
-                    // Framerate Control helpers
-                    int iFrameTimeMs = 1000 / CGlobals.SCREENSHOT_MAX_FPS;
-                    int iLastSecond = DateTime.Now.Second;
-                    int iImagesPerSec = 0;
-                    int iLastMilliSec = DateTime.Now.Millisecond;
+                    // Framerate Control helpers (Stopwatch deadlines, see FramePacer)
+                    FramePacer pacer = new FramePacer();
+                    int iSecondsSinceStatus = 0;
 
                     while (true)
                     {
@@ -360,36 +358,14 @@ namespace AmbiBack
                             if (ReceivedScreenshot != null)
                                 ReceivedScreenshot(this, null, bmpScreenshot);
 
-                            // Do Frame time Processing
-                            if (DateTime.Now.Second == iLastSecond)
+                            // Do Frame time Processing: wait for the next frame, report the rate every 5 seconds
+                            int iImagesPerSec = pacer.FrameDone(CGlobals.SCREENSHOT_MAX_FPS);
+                            if (iImagesPerSec >= 0 && ++iSecondsSinceStatus >= 5)
                             {
-                                // Add little sleeptime if necessary!
-                                int iMillSecondsDone = DateTime.Now.Millisecond - iLastMilliSec;
-                                if (iMillSecondsDone < iFrameTimeMs)
-                                    Thread.Sleep(iFrameTimeMs - iMillSecondsDone);
-
-                                // Safe last millsec now
-                                iLastMilliSec = DateTime.Now.Millisecond;
-
-                                // Increment Counter
-                                iImagesPerSec++;
-                            }
-                            else
-                            {
-                                if (DateTime.Now.Second % 5 == 0)
-                                {
-                                    CGlobals.DebugOutput("Screenshot FPS: " + iImagesPerSec + "(" + CGlobals.SCREENSHOT_MAX_FPS + ")");
-                                    if (UpdateStatus != null)
-                                        UpdateStatus(this, null, L.F("mon_fps_max", iImagesPerSec, CGlobals.SCREENSHOT_MAX_FPS));
-                                }
-
-                                    // Reset variables
-                                    iLastSecond = DateTime.Now.Second;
-                                iLastMilliSec = DateTime.Now.Millisecond;
-                                iImagesPerSec = 0;
-
-                                // Reset Frame Sleeptime 
-                                iFrameTimeMs = 1000 / CGlobals.SCREENSHOT_MAX_FPS;
+                                iSecondsSinceStatus = 0;
+                                CGlobals.DebugOutput("Screenshot FPS: " + iImagesPerSec + "(" + CGlobals.SCREENSHOT_MAX_FPS + ")");
+                                if (UpdateStatus != null)
+                                    UpdateStatus(this, null, L.F("mon_fps_max", iImagesPerSec, CGlobals.SCREENSHOT_MAX_FPS));
                             }
 
 /*
@@ -457,7 +433,8 @@ namespace AmbiBack
             if (myThread == null)
             {
                 myThread = new Thread(new ThreadStart(HandleThread));
-                myThread.Priority = ThreadPriority.Lowest;
+                // Lowest starved the capture under game load
+                myThread.Priority = ThreadPriority.BelowNormal;
 
                 // Set ThreadName here
                 myThread.Name = "ScreenHelper";

@@ -24,6 +24,23 @@ namespace AmbiBack
     public class CDeviceAmbiBack : CDevice
     {
         public static readonly int SERIAL_HEADLEN = 14;
+
+        // Packet headers: network 00 FF 13 37; serial = BinaryWriter string "%LEDDATA:" (length byte + ASCII) and 0x00
+        private static readonly byte[] NetworkPacketHeader = { 0x00, 0xFF, 0x13, 0x37 };
+        private static readonly byte[] SerialPacketHeader = BuildSerialPacketHeader();
+        private static byte[] BuildSerialPacketHeader()
+        {
+            byte[] text = Encoding.ASCII.GetBytes("%LEDDATA:");
+            byte[] header = new byte[text.Length + 2];
+            header[0] = (byte)text.Length;
+            Buffer.BlockCopy(text, 0, header, 1, text.Length);
+            header[header.Length - 1] = 0x00;
+            return header;
+        }
+
+        // Reused per frame instead of MemoryStream/BinaryWriter/ToArray
+        private byte[] sendBuffer;
+        private readonly byte[] tcpResponse = new byte[64];
         public static readonly int TCP_HEADLEN = 8;
         public static readonly int TCP_CHUNKSIZE = 4;
 
@@ -358,11 +375,8 @@ namespace AmbiBack
             {
                 try
                 {
-                    // Framerate Control helpers
-                    int iFrameTimeMs = 1000 / (bIsSerial ? SerialFramesPerSecond : FramesPerSecond);
-                    int iLastSecond = DateTime.Now.Second;
-                    int iLastMilliSec = DateTime.Now.Millisecond;
-                    int iFramesPerSec = 0;
+                    // Framerate Control helpers (Stopwatch deadlines, see FramePacer)
+                    FramePacer pacer = new FramePacer();
 
                     while (true)
                     {
@@ -393,32 +407,10 @@ namespace AmbiBack
                         // Finally send calced pixels to DS!
                         this.SendLEDData();
 
-                        // Do Frame time Processing
-                        if (DateTime.Now.Second == iLastSecond)
-                        {
-                            // Add little sleeptime if necessary!
-                            int iMillSecondsDone = DateTime.Now.Millisecond - iLastMilliSec;
-                            if (iMillSecondsDone < iFrameTimeMs)
-                                Thread.Sleep(iFrameTimeMs - iMillSecondsDone);
-
-                            // Safe last millsec now
-                            iLastMilliSec = DateTime.Now.Millisecond;
-
-                            // Increment Counter
-                            iFramesPerSec++;
-                        }
-                        else
-                        {
+                        // Do Frame time Processing: wait for the next frame, report the rate once per second
+                        int iFramesPerSec = pacer.FrameDone(bIsSerial ? SerialFramesPerSecond : FramesPerSecond);
+                        if (iFramesPerSec >= 0)
                             DoUpdateStatus("Framerate send: " + iFramesPerSec + " - Target: " + this.GetDeviceName());
-
-                            // Reset variables
-                            iLastSecond = DateTime.Now.Second;
-                            iLastMilliSec = DateTime.Now.Millisecond;
-                            iFramesPerSec = 0;
-
-                            // Update Frame Sleeptime 
-                            iFrameTimeMs = 1000 / (bIsSerial ? SerialFramesPerSecond : FramesPerSecond);
-                        }
 
                         // Loop to avoid running wenn Monitor is turned off
                         while (!CGlobals.monitorPowerStatus)
@@ -739,48 +731,38 @@ namespace AmbiBack
                 return;
             }
 
-            // Payload helpers 
-            MemoryStream msPacket = new MemoryStream();
-            BinaryWriter bwPacket = new BinaryWriter(msPacket);
             byte bPixelStart = 0x00; // StartIndex is 0x00 (where user configured his start! 
             try
             {
-                int iCrcBytePos = TCP_HEADLEN - 1; // Default is 7!
-                int iCrOoffset = TCP_HEADLEN; // Offset for checksum calc!
+                bool bSerial = (Properties.Settings.Default.bPreferSerialConnection || this.ConnectionType == (byte)ConnectionTypes.USB) && m_clientSerial != null;
+                int iCrcBytePos = bSerial ? SERIAL_HEADLEN : TCP_HEADLEN - 1; // Default is 7!
+                int iCrOoffset = bSerial ? SERIAL_HEADLEN : TCP_HEADLEN;       // Offset for checksum calc!
 
-                if ((Properties.Settings.Default.bPreferSerialConnection || this.ConnectionType == (byte)ConnectionTypes.USB) && m_clientSerial != null) {
-                    iCrcBytePos = SERIAL_HEADLEN;
-                    iCrOoffset = SERIAL_HEADLEN;
+                // Build the packet in a reused buffer (same bytes as the former BinaryWriter output)
+                byte[] bHeader = bSerial ? SerialPacketHeader : NetworkPacketHeader;
+                int iLength = bHeader.Length + 4 + this.PixelTotalPort1 * 4;
+                if (sendBuffer == null || sendBuffer.Length != iLength)
+                    sendBuffer = new byte[iLength];
+                byte[] bData = sendBuffer;
+                Buffer.BlockCopy(bHeader, 0, bData, 0, bHeader.Length);
+                int i = bHeader.Length;
 
-                    // Write Serial Byte Detection Header
-                    bwPacket.Write("%LEDDATA:");
-                    bwPacket.Write((byte)0x00);
-                }
-                else {
-                    // Write 4 Byte Network Detection Header
-                    bwPacket.Write((byte)0x00);
-                    bwPacket.Write((byte)0xFF);
-                    bwPacket.Write((byte)0x13);
-                    bwPacket.Write((byte)0x37);
-                }
+                // 4 Byte Package Header
+                bData[i++] = this.PixelTotalPort1;   // Length
+                bData[i++] = bPixelStart;            // StartIndex
+                bData[i++] = 0x01;                   // If set to 0x01 we use CheckSum Check
+                bData[i++] = 0x00;                   // Set to Checksum later!
 
-                // Write 4 Byte Package Header
-                bwPacket.Write(this.PixelTotalPort1);   // Length
-                bwPacket.Write(bPixelStart);            // StartIndex
-                bwPacket.Write((byte)0x01);             // Îf set to 0x01 we use CheckSum Check
-                bwPacket.Write((byte)0x00);             // Set to Checksum later!
-
-                // add pixels to array!
+                // add pixels to array! (white, red, green, blue)
                 for (byte bPixelCurrent = 0; bPixelCurrent < this.PixelTotalPort1; bPixelCurrent++)
                 {
-                    bwPacket.Write((byte)0x00); // WHITE
-                    bwPacket.Write(brPixels[bPixelCurrent].R); // RED
-                    bwPacket.Write(brPixels[bPixelCurrent].G); // GREEN
-                    bwPacket.Write(brPixels[bPixelCurrent].B); // BLUE
+                    Color c = brPixels[bPixelCurrent];
+                    bData[i++] = 0x00;
+                    bData[i++] = c.R;
+                    bData[i++] = c.G;
+                    bData[i++] = c.B;
                 }
-                
-                // Convert into byte array for Network send
-                byte[] bData = msPacket.ToArray();
+
                 bData[iCrcBytePos] = CGlobals.crc_8(bData, bData.Length, iCrOoffset);
 
                 if ((Properties.Settings.Default.bPreferSerialConnection || this.ConnectionType == (byte)ConnectionTypes.USB) && m_clientSerial != null) {
@@ -801,13 +783,8 @@ namespace AmbiBack
                     // Send pixels to DS as UDP Packet
                     netStream.Write(bData, 0, bData.Length);
 
-                    // Buffer to store the response bytes.
-                    bData = new Byte[64];
-                    Int32 bytesRead = netStream.Read(bData, 0, bData.Length);
-                    String responseData = String.Empty;
-                    responseData = System.Text.Encoding.ASCII.GetString(bData, 0, bytesRead);
-                    // UNCOMMENT VERBOSE
-                    //                DoDebugOutput("CDeviceAmbiBack|SendLEDData: TcpClient received '" + responseData + "'");
+                    // Wait for the controller's answer (reused buffer, content not needed)
+                    netStream.Read(tcpResponse, 0, tcpResponse.Length);
 
                     // Device is ONLINE
                     this.SetIsOnline(true);

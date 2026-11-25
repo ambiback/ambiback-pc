@@ -123,6 +123,7 @@
     <Compile Include="AppPaths.cs" />
     <Compile Include="FormStyles.cs" />
     <Compile Include="FrameBuffer.cs" />
+    <Compile Include="FramePacer.cs" />
     <Compile Include="WebViewHost.cs" />
     <Compile Include="Localization.cs" />
     <Compile Include="Theme.cs" />
