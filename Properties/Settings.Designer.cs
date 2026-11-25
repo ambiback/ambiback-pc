@@ -96,6 +96,18 @@ namespace AmbiBack.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string szHueClientKey {
+            get {
+                return ((string)(this["szHueClientKey"]));
+            }
+            set {
+                this["szHueClientKey"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("127.0.0.1")]
         public string DebugSyslogServer {
             get {

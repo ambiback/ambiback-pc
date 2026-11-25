@@ -28,8 +28,13 @@ namespace AmbiBack.PhilipsHue
         public static IPAddress DeviceIP { get; set; }
         public static string AppID { get; set; }
         public static string Username { get; set; }
+        /// <summary>PSK for the Entertainment API (32 hex characters), null when the bridge gave none. Secret: never log it.</summary>
+        public static string ClientKey { get; set; }
 
-        /// <summary>Registers this app. The link button on the bridge must be pressed first.</summary>
+        /// <summary>
+        /// Registers this app. The link button on the bridge must be pressed first. Also requests the
+        /// client key for entertainment streaming (bridges with API 1.22 and later return it).
+        /// </summary>
         /// <returns>True when the bridge returned a username.</returns>
         public static bool RegisterNewUser()
         {
@@ -37,17 +42,17 @@ namespace AmbiBack.PhilipsHue
             if (deviceType.Length > MaxDeviceTypeLength)
                 deviceType = deviceType.Substring(0, MaxDeviceTypeLength);
 
-            JObject body = new JObject { ["devicetype"] = deviceType };
+            JObject body = new JObject { ["devicetype"] = deviceType, ["generateclientkey"] = true };
             JToken response = HueHttp.Send("POST", "/api", body.ToString(Newtonsoft.Json.Formatting.None));
             HueHttp.ThrowOnError(response);
 
-            string username = response is JArray items && items.Count > 0
-                ? (string)items[0]["success"]?["username"]
-                : null;
+            JToken success = response is JArray items && items.Count > 0 ? items[0]["success"] : null;
+            string username = (string)success?["username"];
             if (string.IsNullOrEmpty(username))
                 return false;
 
             Username = username;
+            ClientKey = (string)success["clientkey"];
             return true;
         }
     }

@@ -120,6 +120,11 @@ namespace AmbiBack
                 CDeviceAmbiBack nodeMcuManagerDevice = (CDeviceAmbiBack)selectedDevice;
                 cbLedsHori.Text = nodeMcuManagerDevice.PixelHori.ToString();
                 cbLedsVert.Text = nodeMcuManagerDevice.PixelVert.ToString();
+            } else if (selectedDevice is CDeviceHueEntertainment) {
+                // Scan regions come from the light positions of the entertainment area
+                bNumControlls = false;
+                bDirectionControls = false;
+                bSectorControls = false;
             } else if (selectedDevice.GetDeviceType() == DeviceType.PhilipsHueColorLight)
             {
                 bNumControlls = false;
@@ -620,6 +625,9 @@ namespace AmbiBack
                         // TODO, check set device settings 
 
                         // Start Device Handling Thread!
+                        myDevice.StartThread();
+                    } else if (myDevice is CDeviceHueEntertainment) {
+                        // Entertainment streaming (DTLS)
                         myDevice.StartThread();
                     }
                 }

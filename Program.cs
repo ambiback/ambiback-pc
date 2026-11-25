@@ -16,8 +16,12 @@ namespace AmbiBack
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
-        static void Main()
+        static int Main(string[] args)
         {
+            // Command line self tests of the Hue streaming code (no UI, no second instance check)
+            if (args.Length > 0 && args[0].StartsWith("--hue-", StringComparison.Ordinal))
+                return RunHueSelfTest(args);
+
             try
             {
                 Application.SetCompatibleTextRenderingDefault(false);
@@ -35,7 +39,7 @@ namespace AmbiBack
                     CGlobals.KillApp();
 
                     // Abort
-                    return;
+                    return 0;
                 }
                 // ---
 
@@ -95,7 +99,43 @@ namespace AmbiBack
                 // Byebye
                 CGlobals.KillApp();
             }
+            return 0;
+        }
 
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        private static extern bool AttachConsole(int dwProcessId);
+
+        /// <summary>
+        /// --hue-selftest [report.txt]
+        /// --hue-dtls-interop host port identity pskhex [report.txt]
+        /// Exit code 0 when all tests passed.
+        /// </summary>
+        private static int RunHueSelfTest(string[] args)
+        {
+            AttachConsole(-1);   // print into the calling console, if any
+            var report = new System.Text.StringBuilder();
+            bool ok;
+            string reportFile = null;
+            if (args[0] == "--hue-selftest")
+            {
+                ok = AmbiBack.PhilipsHue.HueSelfTest.Run(report);
+                reportFile = args.Length > 1 ? args[1] : null;
+            }
+            else if (args[0] == "--hue-dtls-interop" && args.Length >= 5 && int.TryParse(args[2], out int port))
+            {
+                ok = AmbiBack.PhilipsHue.HueSelfTest.RunInterop(args[1], port, args[3], args[4], report);
+                reportFile = args.Length > 5 ? args[5] : null;
+            }
+            else
+            {
+                report.AppendLine("Usage: AmbiBack.exe --hue-selftest [report.txt]");
+                report.AppendLine("       AmbiBack.exe --hue-dtls-interop host port identity pskhex [report.txt]");
+                ok = false;
+            }
+            Console.Write(report.ToString());
+            if (reportFile != null)
+                System.IO.File.WriteAllText(reportFile, report.ToString());
+            return ok ? 0 : 1;
         }
     }
 }

@@ -472,6 +472,31 @@ namespace AmbiBack
                     LVDevices.Items.Add(deviceListItem);
                 }
             }
+            else if (myDevice is CDeviceHueEntertainment hueArea)
+            {
+                string szDetails = L.F("hue_area_channels", hueArea.ChannelCount);
+                if (LVDevices.Items.IndexOfKey(szDeviceId) >= 0)
+                {
+                    deviceListItem = LVDevices.Items[szDeviceId];
+                    deviceListItem.Tag = hueArea;
+                    deviceListItem.ImageKey = CGlobals.GetImageKey(hueArea.GetDeviceType());
+                    deviceListItem.Text = CGlobals.DEVICETYPESDISPLAYNAME[(int)hueArea.GetDeviceType()];
+                    deviceListItem.SubItems[1].Text = hueArea.GetDeviceName();
+                    deviceListItem.SubItems[2].Text = szDetails;
+                }
+                else
+                {
+                    deviceListItem = new ListViewItem();
+                    deviceListItem.Name = szDeviceId;
+                    deviceListItem.Tag = hueArea;
+                    deviceListItem.ImageKey = CGlobals.GetImageKey(hueArea.GetDeviceType());
+                    deviceListItem.Text = CGlobals.DEVICETYPESDISPLAYNAME[(int)hueArea.GetDeviceType()];
+                    deviceListItem.SubItems.Add(hueArea.GetDeviceName());
+                    deviceListItem.SubItems.Add(szDetails);
+                    deviceListItem.SubItems.Add(L.T("st_offline"));
+                    LVDevices.Items.Add(deviceListItem);
+                }
+            }
 
             this.ListviewHandleOnlineState(myDevice, deviceListItem);
 
@@ -1110,6 +1135,10 @@ namespace AmbiBack
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.ColorRedPercent = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.ColorRedPercent = (byte)myTrackBar.Value;
+                    }
 
                     // Set Tooltip Text
                     string szTooltip = myTrackBar.Value.ToString();
@@ -1142,6 +1171,10 @@ namespace AmbiBack
                     {
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.ColorGreenPercent = (byte)myTrackBar.Value;
+                    }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.ColorGreenPercent = (byte)myTrackBar.Value;
                     }
                 }
 
@@ -1176,6 +1209,10 @@ namespace AmbiBack
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.ColorGreenPercent = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.ColorBluePercent = (byte)myTrackBar.Value;
+                    }
                 }
 
                 // Set Tooltip Text
@@ -1209,6 +1246,10 @@ namespace AmbiBack
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.MaxBrightnessPercent = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.MaxBrightnessPercent = (byte)myTrackBar.Value;
+                    }
                 }
 
                 // Set Tooltip Text
@@ -1241,6 +1282,10 @@ namespace AmbiBack
                     {
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.MinimumLuminosityPercent = (byte)myTrackBar.Value;
+                    }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.MinimumLuminosityPercent = (byte)myTrackBar.Value;
                     }
                 }
 
@@ -1309,6 +1354,10 @@ namespace AmbiBack
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.ValueGainPercent = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.ValueGainPercent = (byte)myTrackBar.Value;
+                    }
                 }
 
                 // Set Tooltip Text
@@ -1353,6 +1402,10 @@ namespace AmbiBack
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.ColorBoostPercent = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.ColorBoostPercent = (byte)myTrackBar.Value;
+                    }
                 }
 
                 // Set Tooltip Text
@@ -1395,6 +1448,10 @@ namespace AmbiBack
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.FramesPerSecond = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.FramesPerSecond = (byte)myTrackBar.Value;
+                    }
                 }
 
                 // Set Tooltip Text
@@ -1432,6 +1489,11 @@ namespace AmbiBack
                     {
                         CDeviceAmbiBack nodeMcuManagerDevice = (CDeviceAmbiBack)currentSelectedDevice;
                         nodeMcuManagerDevice.SetInnerSizePercent((byte)myTrackBar.Value);
+                    }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.InnerSizePercent = (byte)myTrackBar.Value;
+                        hueArea.RecalculateScanAreas();
                     }
                 }
 
@@ -1692,6 +1754,20 @@ namespace AmbiBack
 
                         // Set new selected Device 
                         this.currentSelectedDevice = philipsHueLight;
+                        bEnableOptions = true;
+                    }
+                    else if (selectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        tbInnerPicture.Value = Math.Max(tbInnerPicture.Minimum, Math.Min(tbInnerPicture.Maximum, (int)hueArea.InnerSizePercent));
+                        tbFramesPerSecond.Value = Math.Max(tbFramesPerSecond.Minimum, Math.Min(tbFramesPerSecond.Maximum, (int)hueArea.FramesPerSecond));
+                        tbRed.Value = hueArea.ColorRedPercent;
+                        tbGreen.Value = hueArea.ColorGreenPercent;
+                        tbBlue.Value = hueArea.ColorBluePercent;
+                        tbColorBoost.Value = hueArea.ColorBoostPercent;
+                        tbMaxBrightness.Value = hueArea.MaxBrightnessPercent;
+                        tbMinimumLuminosity.Value = hueArea.MinimumLuminosityPercent;
+
+                        this.currentSelectedDevice = hueArea;
                         bEnableOptions = true;
                     }
 

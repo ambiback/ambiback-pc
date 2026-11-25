@@ -82,6 +82,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Security" />
     <Reference Include="System.Deployment" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
@@ -117,6 +118,7 @@
     <Compile Include="CDeviceDreamScreen.cs" />
     <Compile Include="CDeviceAmbiBack.cs" />
     <Compile Include="CDevicePhilipsHueLight.cs" />
+    <Compile Include="CDeviceHueEntertainment.cs" />
     <Compile Include="CDevicesController.cs" />
     <Compile Include="CDevicesList.cs" />
     <Compile Include="CGlobals.cs" />
@@ -185,6 +187,11 @@
       <DependentUpon>frmWeb.cs</DependentUpon>
     </Compile>
     <Compile Include="HueClient.cs" />
+    <Compile Include="HueCrypto.cs" />
+    <Compile Include="HueDtlsClient.cs" />
+    <Compile Include="HueEntertainment.cs" />
+    <Compile Include="HueEntertainmentSession.cs" />
+    <Compile Include="HueSelfTest.cs" />
     <Compile Include="json.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

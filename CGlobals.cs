@@ -276,6 +276,7 @@ namespace AmbiBack
         AmbiBack_Pc_M5AL_Controller = 17,
         AmbiBack_Pc_M5AX_Controller = 18,
         AmbiBack_Led_M5A1_Controller = 19,
+        PhilipsHueEntertainment = 20,
     }
     public enum ConnectionTypes
     {
@@ -409,6 +410,7 @@ namespace AmbiBack
             "AmbiBack_Pc_M5AL_Controller",
             "AmbiBack_Pc_M5AX_Controller",
             "AmbiBack_Led_M5A1_Controller",
+            "PhilipsHueEntertainment",
         };
         public static string[] DEVICETYPESDISPLAYNAME = new string[]
         {
@@ -432,6 +434,7 @@ namespace AmbiBack
             "AmbiBack PC M5 Lite",
             "AmbiBack PC M5 Matrix",
             "AmbiBack PC M5 LED REV1",
+            "Philips Hue Entertainment",
         };
         public static string[] INSTALLATIONTYPES = new string[]
         {
@@ -494,6 +497,7 @@ namespace AmbiBack
         //        static public string szHueDeviceIP = "";
         static public string szHueAppID = string.Format("{0}#{1}#{2}", "AmbiBack.PC", Environment.MachineName, Environment.UserName);
         static public LightCollection HueLights = null;
+        static public List<EntertainmentArea> HueEntertainmentAreas = null;   // null: not loaded (no client key or no bridge)
 
         static public readonly int SerialReadTimeout = 250;
         static public readonly int SerialWriteTimeout = 500;
@@ -777,6 +781,7 @@ namespace AmbiBack
                     szReturn = "DreamScreenSideKick";
                     break;
                 case DeviceType.PhilipsHueColorLight:
+                case DeviceType.PhilipsHueEntertainment:
                     szReturn = "PhilipsHueColorLight";
                     break;
                 case DeviceType.AmbiBack_Bridge_Controller:
@@ -960,9 +965,24 @@ namespace AmbiBack
                 Configuration.DeviceIP = System.Net.IPAddress.Parse(szHueDeviceIP);
                 Configuration.AppID = CGlobals.szHueAppID;
                 Configuration.Username = szHueUsername;
+                Configuration.ClientKey = HueSecrets.Unprotect(Properties.Settings.Default.szHueClientKey);
 
                 // Git list of Hue Lights
                 CGlobals.HueLights = new LightCollection();
+
+                // Entertainment areas need the client key (pairing with generateclientkey)
+                CGlobals.HueEntertainmentAreas = null;
+                if (!string.IsNullOrEmpty(Configuration.ClientKey))
+                {
+                    try
+                    {
+                        CGlobals.HueEntertainmentAreas = HueClipV2.GetEntertainmentAreas();
+                    }
+                    catch (Exception ex)
+                    {
+                        CGlobals.DebugOutput("InitHue|Entertainment areas: " + ex.Message);
+                    }
+                }
 
                 // If we reach this point, we had success
                 bReturn = true; 
