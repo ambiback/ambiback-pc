@@ -81,6 +81,7 @@ namespace AmbiBack
             this.EditColorBoostPercent = true;
             this.EditMaxBrightnessPercent = true;
             this.EditMinimumLuminosityPercent = true;
+            this.EditValueGainPercent = true;      // applied in AdjustColor (UseDeviceValueGainPercent is false)
             this.EditFramesPerSecond = true;
             this.EditFrameDelay = false;
         }
@@ -105,6 +106,7 @@ namespace AmbiBack
                 this.WriteXmlElement(writer, "MaxBrightnessPercent", this.MaxBrightnessPercent);
                 this.WriteXmlElement(writer, "MinimumLuminosityPercent", this.MinimumLuminosityPercent);
                 this.WriteXmlElement(writer, "PcGroup", this.PcGroup);
+                this.WriteXmlElement(writer, "ValueGainPercent", this.ValueGainPercent);
             }
             catch (Exception ex)
             {
@@ -129,6 +131,8 @@ namespace AmbiBack
                 this.MinimumLuminosityPercent = this.ReadXmlElementAsByte(reader, "MinimumLuminosityPercent", 0);
                 if (reader.IsStartElement("PcGroup"))
                     this.PcGroup = this.ReadXmlElementAsBool(reader, "PcGroup");
+                if (reader.IsStartElement("ValueGainPercent"))
+                    this.ValueGainPercent = Math.Max(100, this.ReadXmlElementAsInt(reader, "ValueGainPercent", 100));
                 // An area of this PC added by hand before the PC group existed
                 if (this.HueAreaName == HuePcGroup.AreaName)
                     this.PcGroup = true;
@@ -163,6 +167,7 @@ namespace AmbiBack
             this.ColorBluePercent = other.ColorBluePercent;
             this.MaxBrightnessPercent = other.MaxBrightnessPercent;
             this.MinimumLuminosityPercent = other.MinimumLuminosityPercent;
+            this.ValueGainPercent = other.ValueGainPercent;
         }
 
         public override void SetDeviceID()
@@ -467,15 +472,11 @@ namespace AmbiBack
                     g += brPixels[k].G;
                     b += brPixels[k].B;
                 }
-                if (n > 0)
-                {
-                    // The sliders of the light first, then those of the group
-                    int max = light.MaxBrightnessPercent;
-                    r = r / n * light.ColorRedPercent / 100 * max / 100;
-                    g = g / n * light.ColorGreenPercent / 100 * max / 100;
-                    b = b / n * light.ColorBluePercent / 100 * max / 100;
-                }
-                ToRgb16(Color.FromArgb(255, Math.Min(255, r), Math.Min(255, g), Math.Min(255, b)), rgb16, i * 3);
+                Color c = n > 0 ? Color.FromArgb(255, Math.Min(255, r / n), Math.Min(255, g / n), Math.Min(255, b / n)) : Color.Black;
+                // The sliders of the light first (incl. its value gain), then those of the group
+                c = ApplyLightSettings(c, light.ValueGainPercent, light.MinimumLuminosityPercent, light.ColorRedPercent,
+                    light.ColorGreenPercent, light.ColorBluePercent, light.MaxBrightnessPercent);
+                ToRgb16(c, rgb16, i * 3);
             }
             return count;
         }
@@ -537,10 +538,38 @@ namespace AmbiBack
         /// <summary>Applies the color and brightness sliders and widens 8 bit to 16 bit.</summary>
         private void ToRgb16(Color c, ushort[] target, int offset)
         {
-            int max = this.MaxBrightnessPercent;
-            target[offset] = (ushort)(c.R * 257 * this.ColorRedPercent / 100 * max / 100);
-            target[offset + 1] = (ushort)(c.G * 257 * this.ColorGreenPercent / 100 * max / 100);
-            target[offset + 2] = (ushort)(c.B * 257 * this.ColorBluePercent / 100 * max / 100);
+            // Value gain and color boost were applied with the screen colors (CDevice.AdjustColor)
+            Color o = ApplyLightSettings(c, 100, this.MinimumLuminosityPercent, this.ColorRedPercent,
+                this.ColorGreenPercent, this.ColorBluePercent, this.MaxBrightnessPercent);
+            target[offset] = (ushort)(o.R * 257);
+            target[offset + 1] = (ushort)(o.G * 257);
+            target[offset + 2] = (ushort)(o.B * 257);
+        }
+
+        /// <summary>
+        /// Color pipeline of a Hue channel, in the order of the AmbiBack firmware (LEDHelper): value gain
+        /// (raises the brightness, capped at 255), minimum brightness as lower limit per channel (percent of
+        /// 255), then the red, green and blue shares and the maximum brightness.
+        /// </summary>
+        public static Color ApplyLightSettings(Color c, int valueGainPercent, int minimumPercent,
+            int redPercent, int greenPercent, int bluePercent, int maxBrightnessPercent)
+        {
+            int r = c.R, g = c.G, b = c.B;
+            if (valueGainPercent != 100)
+            {
+                r = r * valueGainPercent / 100;
+                g = g * valueGainPercent / 100;
+                b = b * valueGainPercent / 100;
+            }
+            int floor = Math.Max(0, Math.Min(100, minimumPercent)) * 255 / 100;
+            r = Math.Max(floor, Math.Min(255, r));
+            g = Math.Max(floor, Math.Min(255, g));
+            b = Math.Max(floor, Math.Min(255, b));
+            int max = Math.Max(0, Math.Min(100, maxBrightnessPercent));
+            r = r * redPercent / 100 * max / 100;
+            g = g * greenPercent / 100 * max / 100;
+            b = b * bluePercent / 100 * max / 100;
+            return Color.FromArgb(255, Math.Min(255, r), Math.Min(255, g), Math.Min(255, b));
         }
 
         private void InitHelpers()

@@ -48,6 +48,7 @@ namespace AmbiBack.PhilipsHue
                 Test("Light position from screen sectors", TestPositionFromSectors),
                 Test("mDNS query for _hue._tcp.local", TestMdnsQuery),
                 Test("Light assistant: automatic places", TestAutoPlaces),
+                Test("Hue color pipeline: value gain and minimum brightness", TestLightSettings),
             };
 
             int failed = 0;
@@ -383,6 +384,21 @@ namespace AmbiBack.PhilipsHue
             Equal(1.0, p[3].Y);
         }
 
+        private static void TestLightSettings()
+        {
+            Color dark = Color.FromArgb(40, 30, 20);
+            // Neutral settings keep the color
+            Equal(dark.ToArgb(), CDeviceHueEntertainment.ApplyLightSettings(dark, 100, 0, 100, 100, 100, 100).ToArgb());
+            // Value gain 200 % doubles the brightness
+            Equal(Color.FromArgb(80, 60, 40).ToArgb(), CDeviceHueEntertainment.ApplyLightSettings(dark, 200, 0, 100, 100, 100, 100).ToArgb());
+            // ... and is capped at 255 per channel
+            Equal(Color.FromArgb(255, 255, 100).ToArgb(), CDeviceHueEntertainment.ApplyLightSettings(Color.FromArgb(200, 150, 50), 200, 0, 100, 100, 100, 100).ToArgb());
+            // Minimum brightness 20 % = 51 as lower limit per channel (after the gain, like the firmware)
+            Equal(Color.FromArgb(51, 51, 51).ToArgb(), CDeviceHueEntertainment.ApplyLightSettings(Color.Black, 300, 20, 100, 100, 100, 100).ToArgb());
+            // Maximum brightness and color shares last
+            Equal(Color.FromArgb(40, 15, 0).ToArgb(), CDeviceHueEntertainment.ApplyLightSettings(Color.FromArgb(80, 60, 0), 100, 0, 100, 50, 100, 50).ToArgb());
+        }
+
         private static void TestAutoPlaces()
         {
             Equal("3", string.Join(",", frmHueLamps.AutoPlaces(1)));          // top
@@ -452,7 +468,7 @@ namespace AmbiBack.PhilipsHue
             var area = new EntertainmentArea { ID = "1a8d99cc-967b-44f2-9202-43f976c0fa6b", Name = "TV" };
             area.Channels.Add(new EntertainmentChannel { ID = 0, X = -1, Y = 1, Z = 0.5 });
             area.Channels.Add(new EntertainmentChannel { ID = 1, X = 1, Y = 1, Z = 0.5 });
-            var device = new CDeviceHueEntertainment(area) { FramesPerSecond = 40, InnerSizePercent = 30, ColorBluePercent = 80 };
+            var device = new CDeviceHueEntertainment(area) { FramesPerSecond = 40, InnerSizePercent = 30, ColorBluePercent = 80, ValueGainPercent = 250 };
             var serializer = new System.Xml.Serialization.XmlSerializer(typeof(CDeviceHueEntertainment));
             var writer = new System.IO.StringWriter();
             serializer.Serialize(writer, device);
@@ -465,6 +481,7 @@ namespace AmbiBack.PhilipsHue
             Equal((byte)40, copy.FramesPerSecond);
             Equal((byte)30, copy.InnerSizePercent);
             Equal((byte)80, copy.ColorBluePercent);
+            Equal(250, copy.ValueGainPercent);
         }
 
         private static byte[] Slice(byte[] a, int offset, int length)

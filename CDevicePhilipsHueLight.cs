@@ -84,6 +84,7 @@ namespace AmbiBack
             this.EditColorBoostPercent = true;
             this.EditMaxBrightnessPercent = true;
             this.EditMinimumLuminosityPercent = true;
+            this.EditValueGainPercent = true;      // applied by the PC group for this light
 
             this.EditFrameDelay = false;       // the bridge smooths the stream by itself
             this.EditFramesPerSecond = false;  // the group device sets the frame rate
@@ -148,6 +149,9 @@ namespace AmbiBack
                 this.FrameLength = this.ReadXmlElementAsByte(reader, "FrameLength", 10);
                 this.FrameDelay = this.ReadXmlElementAsInt(reader, "FrameDelay", 60);
                 this.ValueGainPercent = this.ReadXmlElementAsInt(reader, "ValueGainPercent", 100);
+                // Older versions read every number as 0 and saved it back; the slider starts at 100 %
+                if (this.ValueGainPercent < 100)
+                    this.ValueGainPercent = 100;
                 if (reader.IsStartElement("InGroup"))
                     this.InGroup = this.ReadXmlElementAsBool(reader, "InGroup");
 

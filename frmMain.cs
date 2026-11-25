@@ -1394,11 +1394,11 @@ namespace AmbiBack
                     else if (currentSelectedDevice.GetDeviceType() == DeviceType.PhilipsHueColorLight)
                     {
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
-                        philipsHueDevice.ValueGainPercent = (byte)myTrackBar.Value;
+                        philipsHueDevice.ValueGainPercent = myTrackBar.Value;    // 100..300 %, no byte cast
                     }
                     else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
                     {
-                        hueArea.ValueGainPercent = (byte)myTrackBar.Value;
+                        hueArea.ValueGainPercent = myTrackBar.Value;
                     }
                 }
 
@@ -1792,6 +1792,7 @@ namespace AmbiBack
                         tbColorBoost.Value = philipsHueLight.ColorBoostPercent;
                         tbMaxBrightness.Value = philipsHueLight.MaxBrightnessPercent;
                         tbMinimumLuminosity.Value = philipsHueLight.MinimumLuminosityPercent;
+                        tbValueGain.Value = Math.Max(tbValueGain.Minimum, Math.Min(tbValueGain.Maximum, philipsHueLight.ValueGainPercent));
                         tbSmoothing.Value = (philipsHueLight.FrameDelay >= 100 ? (philipsHueLight.FrameDelay <= 1000 ? philipsHueLight.FrameDelay : 1000) : 100);
 
                         // Set new selected Device 
@@ -1808,6 +1809,7 @@ namespace AmbiBack
                         tbColorBoost.Value = hueArea.ColorBoostPercent;
                         tbMaxBrightness.Value = hueArea.MaxBrightnessPercent;
                         tbMinimumLuminosity.Value = hueArea.MinimumLuminosityPercent;
+                        tbValueGain.Value = Math.Max(tbValueGain.Minimum, Math.Min(tbValueGain.Maximum, hueArea.ValueGainPercent));
 
                         this.currentSelectedDevice = hueArea;
                         bEnableOptions = true;
