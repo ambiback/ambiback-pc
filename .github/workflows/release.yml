@@ -205,14 +205,37 @@ jobs:
           New-Item -ItemType Directory -Force -Path $work | Out-Null
           Push-Location $work
           try {
-            $output = & node $loader -p $prompt -s --no-ask-user --no-color --stream off --no-auto-update --no-custom-instructions --disable-builtin-mcps --secret-env-vars COPILOT_GITHUB_TOKEN
+            # JSONL output: the text output is rendered for a terminal (no headings, wrapped lines),
+            # the "assistant.message" events carry the raw Markdown in data.content.
+            $output = & node $loader -p $prompt --output-format json --no-ask-user --no-color --stream off --no-auto-update --no-custom-instructions --disable-builtin-mcps --secret-env-vars COPILOT_GITHUB_TOKEN
             $exitCode = $LASTEXITCODE
           } finally {
             Pop-Location
           }
           if ($exitCode -ne 0) { throw "Copilot CLI exited with code $exitCode." }
 
-          $response = (@($output) -join "`n").Trim()
+          $messages = [System.Collections.Generic.List[string]]::new()
+          $types = [System.Collections.Generic.List[string]]::new()
+          foreach ($line in @($output)) {
+            if ([string]::IsNullOrWhiteSpace($line)) { continue }
+            try { $evt = $line | ConvertFrom-Json -Depth 20 } catch { continue }
+            if (-not $evt.PSObject.Properties['type']) { continue }
+            $types.Add([string]$evt.type)
+            if ($evt.type -ne 'assistant.message' -or -not $evt.data) { continue }
+            $content = $evt.data.content
+            $text = if ($content -is [string]) { $content }
+              elseif ($content -is [array]) { ($content | ForEach-Object { if ($_ -is [string]) { $_ } else { $_.text } }) -join '' }
+              elseif ($content -and $content.PSObject.Properties['text']) { $content.text }
+              else { '' }
+            if (-not [string]::IsNullOrWhiteSpace($text)) { $messages.Add($text) }
+          }
+          Write-Host "Copilot events: $(($types | Group-Object | ForEach-Object { "$($_.Name)=$($_.Count)" }) -join ', ')"
+          if ($messages.Count -eq 0) { throw 'Copilot CLI returned no assistant message.' }
+
+          # The last message is the answer; drop a surrounding ```markdown fence if the model added one.
+          $response = $messages[$messages.Count - 1].Trim()
+          $response = $response -replace '^```(?:markdown|md)?\s*\r?\n', '' -replace '\r?\n```\s*$', ''
+          $response = $response.Trim()
           if (-not $response) { throw 'Copilot CLI returned an empty changelog.' }
           Set-Content -Path notes/ai-changelog.md -Value $response -Encoding utf8
 
