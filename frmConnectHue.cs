@@ -115,10 +115,11 @@ namespace AmbiBack
                 lblHueStatus.ForeColor = Theme.Success;
             }
             cmdRefresh.Enabled = CanStream() && !loadingAreas;
+            cmdNewArea.Enabled = CanStream();
             cmdAddArea.Enabled = CanStream() && lvAreas.SelectedItems.Count > 0;
         }
 
-        private void RefreshAreas()
+        private void RefreshAreas(Action<List<EntertainmentArea>> loaded = null)
         {
             if (loadingAreas)
                 return;
@@ -142,6 +143,7 @@ namespace AmbiBack
                     CGlobals.deviceController.EnumHueEntertainmentAreas();
                     ShowAreas(t.Result);
                     UpdateHueStatus(null);
+                    loaded?.Invoke(t.Result);
                 }));
             }, TaskScheduler.Default);
         }
@@ -182,6 +184,28 @@ namespace AmbiBack
         private void cmdRefresh_Click(object sender, EventArgs e)
         {
             RefreshAreas();
+        }
+
+        /// <summary>Creates an own area from single lights and adds it as device right away.</summary>
+        private void cmdNewArea_Click(object sender, EventArgs e)
+        {
+            using (var dlg = new frmHueCreateArea())
+            {
+                if (dlg.ShowDialog(this) != DialogResult.OK)
+                    return;
+                string id = dlg.CreatedAreaId;
+                loadingAreas = false;
+                RefreshAreas(list =>
+                {
+                    EntertainmentArea area = list.Find(a => a.ID == id);
+                    if (area == null)
+                        return;
+                    CGlobals.deviceController.AddHueEntertainmentArea(area);
+                    foreach (ListViewItem item in lvAreas.Items)
+                        item.Selected = ((EntertainmentArea)item.Tag).ID == id;
+                    UpdateDeviceColumn();
+                });
+            }
         }
 
         private void cmdAddArea_Click(object sender, EventArgs e)

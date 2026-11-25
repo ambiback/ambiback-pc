@@ -139,6 +139,12 @@ namespace AmbiBack.PhilipsHue
         public string ModelID { get; internal set; }
         public string UniqueID { get; internal set; }
 
+        /// <summary>True for lights with a color gamut ("Extended color light", "Color light").</summary>
+        public bool IsColorLight
+        {
+            get { return Type != null && Type.IndexOf("color light", StringComparison.OrdinalIgnoreCase) >= 0; }
+        }
+
         public void SetState(LightStateBuilder state)
         {
             string path = "/api/" + Uri.EscapeDataString(Configuration.Username ?? "") + "/lights/"

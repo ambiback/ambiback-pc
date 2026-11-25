@@ -126,6 +126,10 @@ namespace AmbiBack
                 ok = AmbiBack.PhilipsHue.HueSelfTest.RunInterop(args[1], port, args[3], args[4], report);
                 reportFile = args.Length > 5 ? args[5] : null;
             }
+            else if (args[0] == "--hue-bridge-info" && args.Length >= 3)
+            {
+                return AmbiBack.PhilipsHue.HueSelfTest.RunBridgeInfo(args[1], args[2], line => Console.WriteLine(line)) ? 0 : 1;
+            }
             else if (args[0] == "--hue-bridge-test" && args.Length >= 3)
             {
                 // Live output, the pairing step waits for the link button

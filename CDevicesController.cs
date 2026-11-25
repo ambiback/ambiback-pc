@@ -166,13 +166,16 @@ namespace AmbiBack
             // Loop Through Hue Lights
             foreach (Light hueLight in CGlobals.HueLights)
             {
+                // Only lights that can show colors; plugs, switches and white only lights are left out
+                if (!hueLight.IsColorLight)
+                    continue;
+
                 // Check if device was already added
                 CDevice newDevice = null; 
                 foreach (CDevice myDevice in CGlobals.mainConfig.Devices.GetDeviceList()) {
                     if (myDevice.GetDeviceType() == DeviceType.PhilipsHueColorLight)
                     {
                         CDevicePhilipsHueLight myHueDevice = (CDevicePhilipsHueLight)myDevice;
-                        myHueDevice.SetIsOnline(true); /* Set device online */
                         if (hueLight.UniqueID == myHueDevice.HueUniqueID)
                         {
                             newDevice = myHueDevice;

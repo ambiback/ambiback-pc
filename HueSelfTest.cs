@@ -43,6 +43,8 @@ namespace AmbiBack.PhilipsHue
                 Test("Channel list round trip", TestChannelFormat),
                 Test("Client key DPAPI round trip", TestSecrets),
                 Test("Entertainment device XML round trip", TestDeviceXml),
+                Test("New area: light positions", TestNewAreaPositions),
+                Test("Only color lights are listed", TestColorLight),
             };
 
             int failed = 0;
@@ -352,6 +354,53 @@ namespace AmbiBack.PhilipsHue
             True(stored.StartsWith("dpapi:", StringComparison.Ordinal) && !stored.Contains(secret), "secret stored in plain text");
             Equal(secret, HueSecrets.Unprotect(stored));
             True(HueSecrets.Unprotect(secret) == null, "plain value must not be accepted");
+        }
+
+        private static void TestNewAreaPositions()
+        {
+            // auto, left, auto, top right: the two auto lights spread over the width
+            List<EntertainmentChannel> p = frmHueCreateArea.ResolvePositions(new[] { 0, 1, 0, 4 });
+            Equal(-0.5, p[0].X); Equal(0.0, p[0].Z);
+            Equal(-1.0, p[1].X); Equal(0.0, p[1].Z);
+            Equal(0.5, p[2].X);
+            Equal(1.0, p[3].X); Equal(1.0, p[3].Z);
+            Equal(1.0, p[3].Y);
+        }
+
+        private static void TestColorLight()
+        {
+            True(new Light { Type = "Extended color light" }.IsColorLight, "extended color light");
+            True(new Light { Type = "Color light" }.IsColorLight, "color light");
+            True(!new Light { Type = "On/Off plug-in unit" }.IsColorLight, "plug must be left out");
+            True(!new Light { Type = "Dimmable light" }.IsColorLight, "white only light must be left out");
+            True(!new Light { Type = "Color temperature light" }.IsColorLight, "color temperature light must be left out");
+        }
+
+        /// <summary>Read only: streaming capable lights (CLIP v2) and the v1 light types. Prints no secrets.</summary>
+        public static bool RunBridgeInfo(string ip, string credFile, Action<string> output)
+        {
+            try
+            {
+                Configuration.DeviceIP = IPAddress.Parse(ip);
+                string[] cred = (HueSecrets.Unprotect(System.IO.File.ReadAllText(credFile)) ?? "").Split('\n');
+                if (cred.Length != 2)
+                    throw new Exception("no stored credentials, run --hue-bridge-test first");
+                Configuration.Username = cred[0];
+                Configuration.ClientKey = cred[1];
+                List<StreamingLight> lights = HueClipV2.GetStreamingLights();
+                output("PASS  " + lights.Count + " streaming capable light(s):");
+                foreach (StreamingLight l in lights)
+                    output("      " + l.Name + " (" + l.Product + ")");
+                output("      v1 lights:");
+                foreach (Light l in new LightCollection())
+                    output("      " + l.Name + ": " + l.Type + (l.IsColorLight ? "" : "  -> not listed"));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                output("FAIL  " + ex.GetType().Name + ": " + ex.Message);
+                return false;
+            }
         }
 
         private static void TestDeviceXml()

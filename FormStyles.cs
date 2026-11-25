@@ -106,6 +106,7 @@ namespace AmbiBack
         private ListView lvAreas;
         private Button cmdRefresh;
         private Button cmdAddArea;
+        private Button cmdNewArea;
 
         private void ApplyStyle()
         {
@@ -200,6 +201,11 @@ namespace AmbiBack
             Theme.StyleSecondary(cmdRefresh);
             cmdRefresh.Click += cmdRefresh_Click;
             Controls.Add(cmdRefresh);
+            cmdNewArea = new Button { Text = L.T("hue_new_area"), Size = new Size(btnW + DialogStyle.Px(this, 30), btnH), Enabled = false };
+            cmdNewArea.Location = new Point(ClientSize.Width - pad - cmdNewArea.Width, actionRow);
+            Theme.StyleSecondary(cmdNewArea);
+            cmdNewArea.Click += cmdNewArea_Click;
+            Controls.Add(cmdNewArea);
 
             // Close at the bottom right; Connect is the default button while the address field has focus
             cmdCancel.Text = L.T("close");

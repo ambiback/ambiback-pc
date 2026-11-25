@@ -52,6 +52,20 @@ namespace AmbiBack.PhilipsHue
         }
     }
 
+    /// <summary>A light that can stream (CLIP v2 entertainment service with renderer).</summary>
+    public class StreamingLight
+    {
+        /// <summary>Id of the entertainment service (not the light or device id).</summary>
+        public string ServiceID { get; set; }
+        public string Name { get; set; }
+        public string Product { get; set; }
+
+        public override string ToString()
+        {
+            return Name;
+        }
+    }
+
     /// <summary>Entertainment configuration (area) as reported by CLIP API v2.</summary>
     public class EntertainmentArea
     {
@@ -124,6 +138,72 @@ namespace AmbiBack.PhilipsHue
             if (response["data"] is JArray data && data.Count > 0)
                 return EntertainmentArea.FromJson(data[0]);
             throw new HueException(0, "Entertainment area not found.");
+        }
+
+        /// <summary>
+        /// Lights that can take part in entertainment streaming (entertainment services with renderer = true).
+        /// Plugs, switches and other devices without a color renderer are not included.
+        /// </summary>
+        public static List<StreamingLight> GetStreamingLights()
+        {
+            var devices = new Dictionary<string, JToken>();
+            JToken deviceResponse = Send("GET", "/clip/v2/resource/device", null);
+            if (deviceResponse["data"] is JArray deviceData)
+                foreach (JToken d in deviceData)
+                    if ((string)d["id"] != null)
+                        devices[(string)d["id"]] = d;
+
+            var result = new List<StreamingLight>();
+            JToken response = Send("GET", "/clip/v2/resource/entertainment", null);
+            if (response["data"] is JArray data)
+            {
+                foreach (JToken e in data)
+                {
+                    if ((bool?)e["renderer"] != true)
+                        continue;
+                    string owner = (string)e["owner"]?["rid"];
+                    devices.TryGetValue(owner ?? "", out JToken device);
+                    result.Add(new StreamingLight
+                    {
+                        ServiceID = (string)e["id"],
+                        Name = (string)device?["metadata"]?["name"] ?? (string)e["id"],
+                        Product = (string)device?["product_data"]?["product_name"] ?? "",
+                    });
+                }
+            }
+            result.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase));
+            return result;
+        }
+
+        /// <summary>Creates a screen entertainment area with the given lights and positions; returns its id.</summary>
+        public static string CreateEntertainmentArea(string name, IList<KeyValuePair<StreamingLight, EntertainmentChannel>> lights)
+        {
+            var locations = new JArray();
+            foreach (var entry in lights)
+            {
+                locations.Add(new JObject
+                {
+                    ["service"] = new JObject { ["rid"] = entry.Key.ServiceID, ["rtype"] = "entertainment" },
+                    ["positions"] = new JArray(new JObject
+                    {
+                        ["x"] = Math.Round(entry.Value.X, 3),
+                        ["y"] = Math.Round(entry.Value.Y, 3),
+                        ["z"] = Math.Round(entry.Value.Z, 3),
+                    }),
+                });
+            }
+            JObject body = new JObject
+            {
+                ["type"] = "entertainment_configuration",
+                ["metadata"] = new JObject { ["name"] = name },
+                ["configuration_type"] = "screen",
+                ["locations"] = new JObject { ["service_locations"] = locations },
+            };
+            JToken response = Send("POST", "/clip/v2/resource/entertainment_configuration", body.ToString(Newtonsoft.Json.Formatting.None));
+            string id = response["data"] is JArray data && data.Count > 0 ? (string)data[0]["rid"] : null;
+            if (string.IsNullOrEmpty(id))
+                throw new HueException(0, "Hue bridge did not return the new entertainment area.");
+            return id;
         }
 
         /// <summary>Starts (true) or stops (false) streaming mode of the area.</summary>
