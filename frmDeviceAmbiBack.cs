@@ -20,6 +20,7 @@ namespace AmbiBack
         public frmDeviceAmbiBack()
         {
             InitializeComponent();
+            ApplyStyle();
         }
 
         private void LoadSettingsFromDevice()

@@ -28,7 +28,7 @@ namespace AmbiBack
             // Init stuff
             m_aDevices = null;
             m_szListName = szListName; 
-            m_szFileName = CGlobals.szApplicationPath + "\\config_devices_" + m_szListName + ".xml";
+            m_szFileName = AppPaths.ConfigFile("config_devices_" + m_szListName + ".xml");
             XMLdoc = null;
         }
 

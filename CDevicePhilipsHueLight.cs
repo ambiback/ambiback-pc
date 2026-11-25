@@ -237,10 +237,14 @@ namespace AmbiBack
                             }
                         }
 
-                        if (this.bmpScreenCopy != null)
+                        // The monitor replaces and disposes bmpScreenCopy under bmpLock
+                        lock (CGlobals.bmpLock)
                         {
-                            // Scan Images by each Pixel for Colors
-                            this.CalcColorsRectangles((byte)this.ScreenSectors.Length, this.bmpScreenCopy, brPixels);
+                            if (this.bmpScreenCopy != null)
+                            {
+                                // Scan Images by each Pixel for Colors
+                                this.CalcColorsRectangles((byte)this.ScreenSectors.Length, this.bmpScreenCopy, brPixels);
+                            }
                         }
 
                         // Finally send calced pixels to DS!

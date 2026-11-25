@@ -114,7 +114,18 @@
     <Compile Include="CDevicesController.cs" />
     <Compile Include="CDevicesList.cs" />
     <Compile Include="CGlobals.cs" />
-    <Compile Include="CLanguage.cs" />
+    <Compile Include="AppPaths.cs" />
+    <Compile Include="FormStyles.cs" />
+    <Compile Include="Localization.cs" />
+    <Compile Include="Theme.cs" />
+    <Compile Include="frmMain.Style.cs">
+      <DependentUpon>frmMain.cs</DependentUpon>
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AmbiMonitor.Style.cs">
+      <DependentUpon>AmbiMonitor.cs</DependentUpon>
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="CPingHelper.cs" />
     <Compile Include="CScreenHelper.cs" />
     <Compile Include="frmAbout.cs">

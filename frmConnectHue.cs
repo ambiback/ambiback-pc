@@ -21,6 +21,7 @@ namespace AmbiBack
         public frmConnectHue()
         {
             InitializeComponent();
+            ApplyStyle();
         }
 
         private void cmdOK_Click(object sender, EventArgs e)
@@ -56,7 +57,7 @@ namespace AmbiBack
             catch (Exception ex)
             {
                 this.Cursor = Cursors.Default;
-                DialogResult ds = MessageBox.Show("Could not connect to hue Bridge '" + txtDevice.Text + "' with error: " + ex.ToString(), "Ambient Backlight Manager",
+                DialogResult ds = MessageBox.Show(this, L.F("hue_err", txtDevice.Text, ex.Message), L.T("hue_err_title"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
             }

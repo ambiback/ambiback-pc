@@ -646,7 +646,7 @@ namespace AmbiBack
 #if (DEBUG)
                 if (Properties.Settings.Default.bDebugFileLogging && fwDebug == null)
                 {
-                    string szDebugFileName = (Properties.Settings.Default.szDebugFileLog.Length > 0 ? Properties.Settings.Default.szDebugFileLog : Environment.CurrentDirectory + "\\debug.log");
+                    string szDebugFileName = AppPaths.DebugLog;
 
                     // Need to lock in this case
                     lock (typeof(CGlobals))
@@ -1023,8 +1023,8 @@ namespace AmbiBack
             }
             catch (SecurityException)
             {
-                CGlobals.MyMessageBox(null, "Startup SecurityException occured",
-                    "A SecurityException occured while trying control AmbiBack Startup settings! Please make sure that you have sufficient access rights on your Windows Installation.\r\n",
+                CGlobals.MyMessageBox(null, L.T("msg_startup_title"),
+                    L.T("msg_startup_text"),
                     false, "", MessageBoxIcon.Error, 0, "", "", MessageBoxButtons.OK);
             }
             catch (Exception ex)

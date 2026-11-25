@@ -13,10 +13,6 @@ namespace AmbiBack
 {
     public partial class frmMessageBox : Form
     {
-        #region Language helpers
-        // Create Form Resource manager
-        ComponentResourceManager myResources = new ComponentResourceManager(typeof(frmMessageBox));
-        #endregion
 
         #region Variables for interaction
         public string szTitle = "";
@@ -74,8 +70,8 @@ namespace AmbiBack
                 // Check for AskAgain
                 if (bShowAskAgain && chkAskAgain.Checked)
                 {
-                    // Set to ONE
-                    AmbiBack.Properties.Settings.Default.PropertyValues[szRegValueName].PropertyValue = (System.Int32)1;
+                    // 0 = do not ask again (1 = ask)
+                    AmbiBack.Properties.Settings.Default[szRegValueName] = 0;
                     AmbiBack.Properties.Settings.Default.Save();
                 }
             }
@@ -184,8 +180,6 @@ namespace AmbiBack
             {
                 cmdOK.Visible = true;
                 cmdCancel.Visible = true;
-                cmdOK.Text = CLanguage.GetStringFromRessource("szYes", "szYes", myResources);
-                cmdCancel.Text = CLanguage.GetStringFromRessource("szNo", "szNo", myResources); 
             }
             // ---
 
@@ -203,6 +197,8 @@ namespace AmbiBack
             else
                 pbIcon.Image = ILIcons.Images[0]; // Default = info!
             // ---
+
+            ApplyStyle();
         }
 
         private void lblMoreLink_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
@@ -212,20 +208,7 @@ namespace AmbiBack
 
         private void frmMessageBox_Paint(object sender, PaintEventArgs e)
         {
-            // Draw lines 8; 200
-            Pen myGrayPen = new Pen(Color.Gray, 1);
-            Pen myLightPen = new Pen(Color.White, 1);
-
-            if (chkAskAgain.Visible)
-            {
-                e.Graphics.DrawLine(myGrayPen, 8.0F, 187.0F, 432.0F, 187.0F);
-                e.Graphics.DrawLine(myLightPen, 8.0F, 188.0F, 432.0F, 188.0F);
-            }
-            else
-            {
-                e.Graphics.DrawLine(myGrayPen, 8.0F, 205.0F, 432.0F, 205.0F);
-                e.Graphics.DrawLine(myLightPen, 8.0F, 206.0F, 432.0F, 206.0F);
-            }
+            // Nothing to draw: the plain layout needs no separator lines
         }
     }
 }

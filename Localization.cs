@@ -1,0 +1,438 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+
+namespace AmbiBack
+{
+    /// <summary>
+    /// All user visible texts in English and German. L.T(key) returns the text in the current
+    /// language, L.F(key, args) formats it. The language is the setting szLanguage ("en", "de")
+    /// or, when it is empty, the Windows UI language. Replaces the former CLanguage helper.
+    /// </summary>
+    public static class L
+    {
+        public static string Current { get; private set; } = "en";
+
+        public static event EventHandler LanguageChanged;
+
+        /// <summary>Set the language: "en", "de", or empty for the Windows UI language.</summary>
+        public static void Set(string lang)
+        {
+            string l = string.IsNullOrWhiteSpace(lang) ? CultureInfo.CurrentUICulture.TwoLetterISOLanguageName : lang.Trim().ToLowerInvariant();
+            Current = l == "de" ? "de" : "en";
+            LanguageChanged?.Invoke(null, EventArgs.Empty);
+        }
+
+        public static string T(string key)
+        {
+            string s;
+            if (Current == "de" && De.TryGetValue(key, out s)) return s;
+            if (En.TryGetValue(key, out s)) return s;
+            return key;
+        }
+
+        public static string F(string key, params object[] args)
+        {
+            return string.Format(T(key), args);
+        }
+
+        private static readonly Dictionary<string, string> En = new Dictionary<string, string>
+        {
+            // General
+            { "app", "AmbiBack PC" },
+            { "ok", "OK" },
+            { "cancel", "Cancel" },
+            { "close", "Close" },
+            { "yes", "Yes" },
+            { "no", "No" },
+            { "save", "Save" },
+            { "connect", "Connect" },
+            { "add", "Add" },
+            { "ask_again", "Don't ask again" },
+            { "loading", "Starting AmbiBack …" },
+            { "example_host", "For example 192.168.0.10 or ambiback.local" },
+
+            // Menu
+            { "m_file", "&File" },
+            { "m_options", "&Options…" },
+            { "m_hide", "&Hide Window" },
+            { "m_save", "&Save Settings" },
+            { "m_exit", "E&xit" },
+            { "m_devices", "&Devices" },
+            { "m_find", "&Find Devices" },
+            { "m_add", "&Add Device…" },
+            { "m_details", "Device &Details…" },
+            { "m_wifi", "Connect to &Wi-Fi…" },
+            { "m_cleanup", "&Remove Offline Devices…" },
+            { "m_delete", "&Delete Device…" },
+            { "m_tools", "&Tools" },
+            { "m_hue", "Connect &Hue Bridge…" },
+            { "m_videos", "&Calibration and Demo Videos" },
+            { "m_view", "&View" },
+            { "m_easy", "&Easy" },
+            { "m_advanced", "&Advanced" },
+            { "m_view_details", "Details" },
+            { "m_view_list", "List" },
+            { "m_view_tile", "Tiles" },
+            { "m_view_small", "Small Icons" },
+            { "m_view_large", "Large Icons" },
+            { "m_help", "&Help" },
+            { "m_about", "&About AmbiBack PC" },
+
+            // Tray
+            { "tray_show", "Show AmbiBack" },
+            { "tray_start", "Start All Monitors" },
+            { "tray_stop", "Stop All Monitors" },
+            { "tray_exit", "Exit" },
+            { "tray_running", "Running on {0} of {1} monitors" },
+            { "tray_idle", "Not running" },
+
+            // Mode
+            { "mode_easy", "Easy" },
+            { "mode_advanced", "Advanced" },
+
+            // Device toolbar and list
+            { "tb_find", "Find Devices" },
+            { "tb_add", "Add" },
+            { "tb_details", "Details" },
+            { "tb_cleanup", "Remove Offline" },
+            { "tb_delete", "Delete" },
+            { "tb_view", "Change View" },
+            { "col_type", "Type" },
+            { "col_name", "Name" },
+            { "col_ip", "Address" },
+            { "col_status", "Status" },
+            { "st_online", "Online" },
+            { "st_offline", "Offline" },
+            { "st_usb", "USB ({0})" },
+            { "devices_empty", "No devices yet.\r\nChoose Find Devices to search the network, or Add to enter an address." },
+            { "devices_summary", "{0} devices, {1} online" },
+            { "devices_none", "No devices" },
+            { "running_summary", "running on {0} of {1} monitors" },
+            { "ctx_details", "Details…" },
+            { "ctx_wifi", "Connect to Wi-Fi…" },
+            { "ctx_delete", "Delete…" },
+
+            // Monitor panel
+            { "mon_title", "Monitor {0}" },
+            { "mon_title_gpu", "Monitor {0} (GPU {1})" },
+            { "mon_enable", "Use" },
+            { "mon_enable_tip", "Use this monitor for the selected devices" },
+            { "mon_start", "Start" },
+            { "mon_start_tip", "Start ambient light for this monitor" },
+            { "mon_stop", "Stop" },
+            { "mon_stop_tip", "Stop ambient light for this monitor" },
+            { "mon_vert", "Vertical" },
+            { "mon_hori", "Horizontal" },
+            { "mon_idle", "Stopped" },
+            { "mon_fps", "Capturing at {0} fps" },
+            { "mon_fps_max", "Capturing at {0} fps (max. {1})" },
+
+            // Tabs
+            { "tab_colors", "Colors" },
+            { "tab_device", "Device" },
+            { "tab_expert", "Expert" },
+            { "tab_debug", "Debug" },
+            { "lbl_red", "Red" },
+            { "lbl_green", "Green" },
+            { "lbl_blue", "Blue" },
+            { "lbl_boost", "Color boost" },
+            { "lbl_gain", "Value gain" },
+            { "lbl_maxbright", "Maximum brightness" },
+            { "lbl_minlum", "Minimum brightness" },
+            { "lbl_conntype", "Connection" },
+            { "lbl_devname", "Device name" },
+            { "lbl_smoothing", "Smoothing" },
+            { "lbl_fps", "Frames per second" },
+            { "lbl_inner", "Inner picture area (%)" },
+            { "lbl_syslog_server", "Syslog server" },
+            { "lbl_syslog_port", "Syslog port" },
+            { "btn_debug_start", "Start Debugging" },
+            { "btn_debug_stop", "Stop Debugging" },
+            { "gb_debug_output", "Debug output" },
+            { "chk_debug_serial", "Show serial debug messages" },
+            { "btn_getinfo", "Get Info" },
+            { "btn_reboot", "Restart Device" },
+            { "btn_clear", "Clear" },
+            { "conn_tcp", "TCP (needs a stable Wi-Fi)" },
+            { "conn_udp", "UDP (any Wi-Fi)" },
+            { "conn_usb", "USB (serial)" },
+
+            // Messages
+            { "msg_delete_title", "Delete “{0}”?" },
+            { "msg_delete_text", "The device is removed from the list. If it is still on the network, Find Devices adds it again." },
+            { "msg_cleanup_title", "Remove offline devices?" },
+            { "msg_cleanup_text", "All devices that do not answer right now are removed from the list." },
+            { "msg_cleanup_done_title", "Offline devices removed" },
+            { "msg_cleanup_done", "Removed devices:" },
+            { "msg_cleanup_none", "All devices are online. Nothing was removed." },
+            { "msg_startup_title", "Could not change Windows startup" },
+            { "msg_startup_text", "AmbiBack could not add itself to or remove itself from the Windows startup programs because access was denied. Check the permissions of your Windows user account." },
+            { "msg_serial_title", "USB connection not available" },
+            { "msg_serial_text", "The port {0} is used by another program. Serial communication was turned off for this device. Close the other program and add the device again.\r\n\r\nDetails: {1}" },
+            { "msg_error_title", "Something went wrong" },
+
+            // Options
+            { "opt_title", "Options" },
+            { "opt_general", "General" },
+            { "opt_debug", "Troubleshooting" },
+            { "opt_hide_startup", "Start hidden in the notification area" },
+            { "opt_hide_close", "Keep running in the notification area when the window is closed" },
+            { "opt_autostart", "Start AmbiBack when Windows starts" },
+            { "opt_language", "Language" },
+            { "opt_lang_system", "Windows language" },
+            { "opt_debug_window", "Show debug window" },
+            { "opt_debug_file", "Write a debug log file" },
+            { "opt_debug_delete", "Delete the debug log on every start" },
+            { "opt_debug_path", "Log file" },
+            { "opt_debug_path_hint", "Empty: {0}" },
+
+            // Add device
+            { "add_title", "Add Device" },
+            { "add_heading", "Add a device by address" },
+            { "add_prompt", "IP address, host name or device ID" },
+            { "add_auto", "Detect the device type automatically" },
+            { "add_type", "Device type" },
+            { "add_err_resolve_title", "Address not found" },
+            { "add_err_resolve", "“{0}” could not be found on the network. Check the spelling and that the device is turned on." },
+            { "add_err_ip_title", "Invalid address" },
+            { "add_err_ip", "“{0}” is not a valid IP address. Enter an address like 192.168.0.10." },
+            { "add_err_title", "Device could not be added" },
+            { "add_err", "“{0}” could not be added.\r\n\r\nDetails: {1}" },
+            { "add_err_q", "Add it anyway? Yes adds the address as entered, No closes this window, Cancel lets you change the address." },
+
+            // Hue
+            { "hue_title", "Connect Hue Bridge" },
+            { "hue_heading", "Connect a Philips Hue Bridge" },
+            { "hue_prompt", "IP address of the Hue Bridge" },
+            { "hue_hint", "Press the link button on the bridge, then choose Connect within 30 seconds." },
+            { "hue_err_title", "Hue Bridge not connected" },
+            { "hue_err", "AmbiBack could not connect to “{0}”. Check the address, press the link button on the bridge and try again.\r\n\r\nDetails: {1}" },
+
+            // Wi-Fi
+            { "wifi_title", "Connect to Wi-Fi" },
+            { "wifi_heading", "Send Wi-Fi settings to the device" },
+            { "wifi_ssid", "Network name (SSID)" },
+            { "wifi_key", "Password" },
+            { "wifi_show", "Show password" },
+            { "wifi_ok_title", "Wi-Fi settings sent" },
+            { "wifi_ok", "The Wi-Fi settings were sent to “{0}”. The device restarts and connects to the network." },
+            { "wifi_err_title", "Wi-Fi settings not sent" },
+            { "wifi_err", "The Wi-Fi settings could not be sent to “{0}”. Check the USB connection and try again." },
+
+            // Device windows
+            { "dev_title", "AmbiBack Device" },
+            { "dev_name", "Name" },
+            { "dev_ip", "Address" },
+            { "dev_reload", "Reload" },
+            { "ds_title", "DreamScreen Device" },
+            { "ds_group", "Group" },
+            { "ds_group_header", "DreamScreen group {0}: {1}" },
+            { "ds_install", "Installation" },
+            { "ds_install_type", "Installation type" },
+            { "ds_pix_vert", "LEDs vertical" },
+            { "ds_pix_hori", "LEDs horizontal" },
+            { "ds_port1_pix", "Port 1 LEDs" },
+            { "ds_port2_pix", "Port 2 LEDs" },
+            { "ds_port1_setup", "Port 1 layout" },
+            { "ds_port2_setup", "Port 2 layout" },
+
+            // About
+            { "about_title", "About AmbiBack PC" },
+            { "about_version", "Version {0}" },
+            { "about_desc", "Ambient light for your monitor with AmbiBack controllers, DreamScreen and Philips Hue.\r\n\r\nOpen source, see LICENSE and THIRD_PARTY_NOTICES.md in the program folder." },
+        };
+
+        private static readonly Dictionary<string, string> De = new Dictionary<string, string>
+        {
+            { "ok", "OK" },
+            { "cancel", "Abbrechen" },
+            { "close", "Schließen" },
+            { "yes", "Ja" },
+            { "no", "Nein" },
+            { "save", "Speichern" },
+            { "connect", "Verbinden" },
+            { "add", "Hinzufügen" },
+            { "ask_again", "Nicht mehr fragen" },
+            { "loading", "AmbiBack wird gestartet …" },
+            { "example_host", "Zum Beispiel 192.168.0.10 oder ambiback.local" },
+
+            { "m_file", "&Datei" },
+            { "m_options", "&Optionen…" },
+            { "m_hide", "Fenster &ausblenden" },
+            { "m_save", "Einstellungen &speichern" },
+            { "m_exit", "&Beenden" },
+            { "m_devices", "&Geräte" },
+            { "m_find", "Geräte &suchen" },
+            { "m_add", "Gerät &hinzufügen…" },
+            { "m_details", "Geräte&details…" },
+            { "m_wifi", "Mit &WLAN verbinden…" },
+            { "m_cleanup", "&Offline-Geräte entfernen…" },
+            { "m_delete", "Gerät &löschen…" },
+            { "m_tools", "&Extras" },
+            { "m_hue", "&Hue Bridge verbinden…" },
+            { "m_videos", "&Kalibrier- und Demovideos" },
+            { "m_view", "&Ansicht" },
+            { "m_easy", "&Einfach" },
+            { "m_advanced", "E&rweitert" },
+            { "m_view_details", "Details" },
+            { "m_view_list", "Liste" },
+            { "m_view_tile", "Kacheln" },
+            { "m_view_small", "Kleine Symbole" },
+            { "m_view_large", "Große Symbole" },
+            { "m_help", "&Hilfe" },
+            { "m_about", "&Über AmbiBack PC" },
+
+            { "tray_show", "AmbiBack anzeigen" },
+            { "tray_start", "Alle Monitore starten" },
+            { "tray_stop", "Alle Monitore stoppen" },
+            { "tray_exit", "Beenden" },
+            { "tray_running", "Läuft auf {0} von {1} Monitoren" },
+            { "tray_idle", "Gestoppt" },
+
+            { "mode_easy", "Einfach" },
+            { "mode_advanced", "Erweitert" },
+
+            { "tb_find", "Geräte suchen" },
+            { "tb_add", "Hinzufügen" },
+            { "tb_details", "Details" },
+            { "tb_cleanup", "Offline entfernen" },
+            { "tb_delete", "Löschen" },
+            { "tb_view", "Ansicht wechseln" },
+            { "col_type", "Typ" },
+            { "col_name", "Name" },
+            { "col_ip", "Adresse" },
+            { "col_status", "Status" },
+            { "st_online", "Online" },
+            { "st_offline", "Offline" },
+            { "st_usb", "USB ({0})" },
+            { "devices_empty", "Noch keine Geräte.\r\nWähle „Geräte suchen“, um das Netzwerk zu durchsuchen, oder „Hinzufügen“, um eine Adresse einzugeben." },
+            { "devices_summary", "{0} Geräte, {1} online" },
+            { "devices_none", "Keine Geräte" },
+            { "running_summary", "läuft auf {0} von {1} Monitoren" },
+            { "ctx_details", "Details…" },
+            { "ctx_wifi", "Mit WLAN verbinden…" },
+            { "ctx_delete", "Löschen…" },
+
+            { "mon_title", "Monitor {0}" },
+            { "mon_title_gpu", "Monitor {0} (GPU {1})" },
+            { "mon_enable", "Verwenden" },
+            { "mon_enable_tip", "Diesen Monitor für die ausgewählten Geräte verwenden" },
+            { "mon_start", "Starten" },
+            { "mon_start_tip", "Umgebungslicht für diesen Monitor starten" },
+            { "mon_stop", "Stoppen" },
+            { "mon_stop_tip", "Umgebungslicht für diesen Monitor stoppen" },
+            { "mon_vert", "Vertikal" },
+            { "mon_hori", "Horizontal" },
+            { "mon_idle", "Gestoppt" },
+            { "mon_fps", "Erfasst {0} Bilder/s" },
+            { "mon_fps_max", "Erfasst {0} Bilder/s (max. {1})" },
+
+            { "tab_colors", "Farben" },
+            { "tab_device", "Gerät" },
+            { "tab_expert", "Experte" },
+            { "tab_debug", "Debug" },
+            { "lbl_red", "Rot" },
+            { "lbl_green", "Grün" },
+            { "lbl_blue", "Blau" },
+            { "lbl_boost", "Farbverstärkung" },
+            { "lbl_gain", "Helligkeitsverstärkung" },
+            { "lbl_maxbright", "Maximale Helligkeit" },
+            { "lbl_minlum", "Minimale Helligkeit" },
+            { "lbl_conntype", "Verbindung" },
+            { "lbl_devname", "Gerätename" },
+            { "lbl_smoothing", "Glättung" },
+            { "lbl_fps", "Bilder pro Sekunde" },
+            { "lbl_inner", "Innerer Bildbereich (%)" },
+            { "lbl_syslog_server", "Syslog-Server" },
+            { "lbl_syslog_port", "Syslog-Port" },
+            { "btn_debug_start", "Debugging starten" },
+            { "btn_debug_stop", "Debugging stoppen" },
+            { "gb_debug_output", "Debug-Ausgabe" },
+            { "chk_debug_serial", "Serielle Debug-Meldungen anzeigen" },
+            { "btn_getinfo", "Infos abrufen" },
+            { "btn_reboot", "Gerät neu starten" },
+            { "btn_clear", "Leeren" },
+            { "conn_tcp", "TCP (braucht stabiles WLAN)" },
+            { "conn_udp", "UDP (jedes WLAN)" },
+            { "conn_usb", "USB (seriell)" },
+
+            { "msg_delete_title", "„{0}“ löschen?" },
+            { "msg_delete_text", "Das Gerät wird aus der Liste entfernt. Ist es noch im Netzwerk, fügt „Geräte suchen“ es wieder hinzu." },
+            { "msg_cleanup_title", "Offline-Geräte entfernen?" },
+            { "msg_cleanup_text", "Alle Geräte, die gerade nicht antworten, werden aus der Liste entfernt." },
+            { "msg_cleanup_done_title", "Offline-Geräte entfernt" },
+            { "msg_cleanup_done", "Entfernte Geräte:" },
+            { "msg_cleanup_none", "Alle Geräte sind online. Es wurde nichts entfernt." },
+            { "msg_startup_title", "Windows-Autostart nicht geändert" },
+            { "msg_startup_text", "AmbiBack konnte sich nicht in die Windows-Autostartprogramme eintragen oder daraus entfernen, weil der Zugriff verweigert wurde. Prüfe die Rechte deines Windows-Benutzerkontos." },
+            { "msg_serial_title", "USB-Verbindung nicht verfügbar" },
+            { "msg_serial_text", "Der Port {0} wird von einem anderen Programm benutzt. Die serielle Verbindung wurde für dieses Gerät ausgeschaltet. Schließe das andere Programm und füge das Gerät erneut hinzu.\r\n\r\nDetails: {1}" },
+            { "msg_error_title", "Etwas ist schiefgelaufen" },
+
+            { "opt_title", "Optionen" },
+            { "opt_general", "Allgemein" },
+            { "opt_debug", "Fehlersuche" },
+            { "opt_hide_startup", "Ausgeblendet im Infobereich starten" },
+            { "opt_hide_close", "Beim Schließen des Fensters im Infobereich weiterlaufen" },
+            { "opt_autostart", "AmbiBack mit Windows starten" },
+            { "opt_language", "Sprache" },
+            { "opt_lang_system", "Windows-Sprache" },
+            { "opt_debug_window", "Debug-Fenster anzeigen" },
+            { "opt_debug_file", "Debug-Protokoll in Datei schreiben" },
+            { "opt_debug_delete", "Debug-Protokoll bei jedem Start löschen" },
+            { "opt_debug_path", "Protokolldatei" },
+            { "opt_debug_path_hint", "Leer: {0}" },
+
+            { "add_title", "Gerät hinzufügen" },
+            { "add_heading", "Gerät über die Adresse hinzufügen" },
+            { "add_prompt", "IP-Adresse, Hostname oder Geräte-ID" },
+            { "add_auto", "Gerätetyp automatisch erkennen" },
+            { "add_type", "Gerätetyp" },
+            { "add_err_resolve_title", "Adresse nicht gefunden" },
+            { "add_err_resolve", "„{0}“ wurde im Netzwerk nicht gefunden. Prüfe die Schreibweise und ob das Gerät eingeschaltet ist." },
+            { "add_err_ip_title", "Ungültige Adresse" },
+            { "add_err_ip", "„{0}“ ist keine gültige IP-Adresse. Gib eine Adresse wie 192.168.0.10 ein." },
+            { "add_err_title", "Gerät nicht hinzugefügt" },
+            { "add_err", "„{0}“ konnte nicht hinzugefügt werden.\r\n\r\nDetails: {1}" },
+            { "add_err_q", "Trotzdem hinzufügen? Ja fügt die Adresse wie eingegeben hinzu, Nein schließt dieses Fenster, Abbrechen lässt dich die Adresse ändern." },
+
+            { "hue_title", "Hue Bridge verbinden" },
+            { "hue_heading", "Philips Hue Bridge verbinden" },
+            { "hue_prompt", "IP-Adresse der Hue Bridge" },
+            { "hue_hint", "Drücke den Link-Knopf an der Bridge und wähle danach innerhalb von 30 Sekunden „Verbinden“." },
+            { "hue_err_title", "Hue Bridge nicht verbunden" },
+            { "hue_err", "AmbiBack konnte keine Verbindung zu „{0}“ herstellen. Prüfe die Adresse, drücke den Link-Knopf an der Bridge und versuche es erneut.\r\n\r\nDetails: {1}" },
+
+            { "wifi_title", "Mit WLAN verbinden" },
+            { "wifi_heading", "WLAN-Daten an das Gerät senden" },
+            { "wifi_ssid", "Netzwerkname (SSID)" },
+            { "wifi_key", "Passwort" },
+            { "wifi_show", "Passwort anzeigen" },
+            { "wifi_ok_title", "WLAN-Daten gesendet" },
+            { "wifi_ok", "Die WLAN-Daten wurden an „{0}“ gesendet. Das Gerät startet neu und verbindet sich mit dem Netzwerk." },
+            { "wifi_err_title", "WLAN-Daten nicht gesendet" },
+            { "wifi_err", "Die WLAN-Daten konnten nicht an „{0}“ gesendet werden. Prüfe die USB-Verbindung und versuche es erneut." },
+
+            { "dev_title", "AmbiBack-Gerät" },
+            { "dev_name", "Name" },
+            { "dev_ip", "Adresse" },
+            { "dev_reload", "Neu laden" },
+            { "ds_title", "DreamScreen-Gerät" },
+            { "ds_group", "Gruppe" },
+            { "ds_group_header", "DreamScreen-Gruppe {0}: {1}" },
+            { "ds_install", "Installation" },
+            { "ds_install_type", "Installationsart" },
+            { "ds_pix_vert", "LEDs vertikal" },
+            { "ds_pix_hori", "LEDs horizontal" },
+            { "ds_port1_pix", "LEDs Port 1" },
+            { "ds_port2_pix", "LEDs Port 2" },
+            { "ds_port1_setup", "Anordnung Port 1" },
+            { "ds_port2_setup", "Anordnung Port 2" },
+
+            { "about_title", "Über AmbiBack PC" },
+            { "about_version", "Version {0}" },
+            { "about_desc", "Umgebungslicht für deinen Monitor mit AmbiBack-Controllern, DreamScreen und Philips Hue.\r\n\r\nOpen Source, siehe LICENSE und THIRD_PARTY_NOTICES.md im Programmordner." },
+        };
+    }
+}

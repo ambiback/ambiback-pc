@@ -225,5 +225,29 @@ namespace AmbiBack.Properties {
                 this["szWifiSSID"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string szLanguage {
+            get {
+                return ((string)(this["szLanguage"]));
+            }
+            set {
+                this["szLanguage"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool bAdvancedMode {
+            get {
+                return ((bool)(this["bAdvancedMode"]));
+            }
+            set {
+                this["bAdvancedMode"] = value;
+            }
+        }
     }
 }
