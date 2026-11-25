@@ -45,6 +45,7 @@ namespace AmbiBack.PhilipsHue
                 Test("Entertainment device XML round trip", TestDeviceXml),
                 Test("New area: light positions", TestNewAreaPositions),
                 Test("Only color lights are listed", TestColorLight),
+                Test("REST light brightness follows the picture", TestRestBrightness),
             };
 
             int failed = 0;
@@ -378,6 +379,14 @@ namespace AmbiBack.PhilipsHue
             Equal(0.5, p[2].X);
             Equal(1.0, p[3].X); Equal(1.0, p[3].Z);
             Equal(1.0, p[3].Y);
+        }
+
+        private static void TestRestBrightness()
+        {
+            Equal((byte)35, CDevicePhilipsHueLight.HueBrightness(35, 35, 35, 100));     // dark grey stays dark
+            Equal((byte)255, CDevicePhilipsHueLight.HueBrightness(255, 10, 0, 100));
+            Equal((byte)127, CDevicePhilipsHueLight.HueBrightness(255, 255, 255, 50));
+            Equal((byte)0, CDevicePhilipsHueLight.HueBrightness(0, 0, 0, 100));
         }
 
         private static void TestColorLight()

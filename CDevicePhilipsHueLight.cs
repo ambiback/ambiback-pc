@@ -487,10 +487,9 @@ namespace AmbiBack
                      * 	For example, setting transitiontime:10 will make the transition last 1 second.
                      * */
                     lightStateBuilder.Color(myColor);
-                    if (iRed == 0 && iGreen == 0 && iBlue == 0)
-                        lightStateBuilder.Brightness(0);
-                    else
-                        lightStateBuilder.Brightness((byte)((this.MaxBrightnessPercent * 255) / 100));
+                    // xy carries only the hue; the brightness has to follow the picture, otherwise a dark
+                    // grey screen shows as full white
+                    lightStateBuilder.Brightness(HueBrightness(iRed, iGreen, iBlue, this.MaxBrightnessPercent));
 
                     HueLight.SetState(lightStateBuilder);
                 }
@@ -520,6 +519,14 @@ namespace AmbiBack
         #endregion
 
         #region public functions
+        /// <summary>Hue brightness (0..255, the builder clamps to 1..254) from the brightest channel and the slider.</summary>
+        public static byte HueBrightness(int red, int green, int blue, int maxBrightnessPercent)
+        {
+            int value = Math.Max(red, Math.Max(green, blue));
+            value = Math.Max(0, Math.Min(255, value)) * Math.Max(0, Math.Min(100, maxBrightnessPercent)) / 100;
+            return (byte)value;
+        }
+
         public void InitScreenSectors()
         {
             // Create sectors byte array if NULL
