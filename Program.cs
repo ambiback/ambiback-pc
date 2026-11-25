@@ -46,6 +46,10 @@ namespace AmbiBack
                 // Copy the Startup Path
                 CGlobals.szApplicationPath = Application.StartupPath;
 
+                // Settings of the previous version, and choices made in the setup
+                UpgradeSettings();
+                ApplySetupChoices();
+
                 // Language from the settings, empty = Windows language
                 L.Set(Properties.Settings.Default.szLanguage);
 
@@ -100,6 +104,54 @@ namespace AmbiBack
                 CGlobals.KillApp();
             }
             return 0;
+        }
+
+        /// <summary>
+        /// User settings are stored per version. After an update the settings of the previous
+        /// version are taken over once.
+        /// </summary>
+        private static void UpgradeSettings()
+        {
+            try
+            {
+                var settings = Properties.Settings.Default;
+                if (!settings.bSettingsUpgradeRequired)
+                    return;
+                settings.Upgrade();
+                settings.bSettingsUpgradeRequired = false;
+                settings.Save();
+            }
+            catch (Exception ex)
+            {
+                CGlobals.DebugOutput(ex);
+            }
+        }
+
+        /// <summary>Registry key the setup writes its choices to.</summary>
+        private const string SetupKey = @"Software\AmbiBack\PC";
+
+        /// <summary>
+        /// The setup stores the autostart choice as SetupAutostart (DWORD 0/1). It is taken over
+        /// into the settings once and then removed, later changes are made in the options.
+        /// </summary>
+        private static void ApplySetupChoices()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(SetupKey, true))
+                {
+                    object value = key?.GetValue("SetupAutostart");
+                    if (value == null)
+                        return;
+                    Properties.Settings.Default.bLoadAmbiBackOnWindowsStartup = Convert.ToInt32(value) != 0;
+                    Properties.Settings.Default.Save();
+                    key.DeleteValue("SetupAutostart", false);
+                }
+            }
+            catch (Exception ex)
+            {
+                CGlobals.DebugOutput(ex);
+            }
         }
 
         [System.Runtime.InteropServices.DllImport("kernel32.dll")]

@@ -261,5 +261,17 @@ namespace AmbiBack.Properties {
                 this["bAdvancedMode"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool bSettingsUpgradeRequired {
+            get {
+                return ((bool)(this["bSettingsUpgradeRequired"]));
+            }
+            set {
+                this["bSettingsUpgradeRequired"] = value;
+            }
+        }
     }
 }

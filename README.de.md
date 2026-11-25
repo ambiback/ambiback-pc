@@ -39,6 +39,31 @@ msbuild AmbiBack.PC.csproj -p:Configuration=Release
 
 Die fertige Anwendung liegt danach in `bin\Release\`.
 
+### Setup und portables ZIP
+
+`installer\build-installer.ps1` baut das Release (Warnungen gelten als Fehler), führt `AmbiBack.exe --hue-selftest` aus und erstellt das Setup ([Inno Setup 6](https://jrsoftware.org/isinfo.php), Skript `installer\AmbiBack.iss`) und ein portables ZIP:
+
+```powershell
+.\installer\build-installer.ps1 -Version 1.2.0 -BuildNumber 1
+```
+
+Ohne `-Version` wird die Version aus `Properties\AssemblyInfo.cs` verwendet. Die Ausgabe landet in `D:\.build\ambiback-pc\release\dist` (änderbar mit `-OutRoot`). Die Version wird nur für den Build in `AssemblyInfo.cs` eingetragen.
+
+Das Setup installiert ohne Administratorrechte für den aktuellen Benutzer (`%LOCALAPPDATA%\Programs\AmbiBack`) oder wahlweise für alle Benutzer. Fehlen das .NET Framework (4.8.1, auf älterem Windows 4.8) oder die WebView2 Runtime, installiert es sie nach; der WebView2-Bootstrapper liegt in `installer\redist\`.
+
+## Releases
+
+1. Tag pushen: `git tag v1.2.0` und `git push origin v1.2.0`. Mit Bindestrich wird es ein Prerelease (`v1.2.0-beta1`).
+2. Der Workflow `.github/workflows/release.yml` baut mit Version `1.2.0.<Run-Nummer>`, führt den Selbsttest aus und legt ein **Draft**-Release mit `AmbiBack-PC-<Version>-setup.exe` und `AmbiBack-PC-<Version>.zip` an. Selbsttest-Bericht und Dateien bleiben zusätzlich als Workflow-Artefakt erhalten.
+3. Den Entwurf auf GitHub prüfen und veröffentlichen.
+
+Der Release-Text (Deutsch und Englisch) enthält Downloads, Voraussetzungen und einen Changelog. Optionale Repository-Secrets:
+
+| Secret | Zweck |
+| --- | --- |
+| `COPILOT_GITHUB_TOKEN` | Fine-grained PAT mit der Berechtigung „Copilot Requests“. Dann schreibt GitHub Copilot CLI den Changelog aus den Commits seit dem letzten Tag; ohne Token werden die von GitHub erzeugten Notes verwendet. |
+| `SIGN_PFX_BASE64`, `SIGN_PFX_PASSWORD` | Code-Signing-Zertifikat (PFX als Base64) und Passwort. Dann werden AmbiBack.exe, Setup und Uninstaller signiert; ohne sie bleiben die Dateien unsigniert. |
+
 ## USB-Treiber
 
 Für den Zugriff auf Geräte per USB wird je nach Modul ein Treiber des Chip-Herstellers benötigt. Er ist hier nicht enthalten:

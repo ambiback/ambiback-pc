@@ -1,0 +1,331 @@
+name: Release
+
+# Pushing a tag like v1.2.3 builds AmbiBack PC, runs the Hue self test and creates a draft
+# GitHub release with the setup and the portable ZIP. Tags with a hyphen (v1.2.3-beta1)
+# become prereleases. The release is published by hand on GitHub after checking it.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check tag
+        id: vars
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if ($tag -notmatch '^v(\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?)$') {
+            throw "Tag '$tag' must look like v1.2.3 or v1.2.3-beta1."
+          }
+          $version = $Matches[1]
+          $prerelease = if ($version.Contains('-')) { 'true' } else { 'false' }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "prerelease=$prerelease" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "setup_name=AmbiBack-PC-$version-setup.exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "zip_name=AmbiBack-PC-$version.zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Find previous release tag
+        id: prev_tag
+        shell: pwsh
+        run: |
+          $tags = @(git tag --list "v*" --sort=-v:refname)
+          $current = "${{ github.ref_name }}"
+          $currentIndex = [Array]::IndexOf($tags, $current)
+          $previousTag = ''
+          if ($currentIndex -ge 0 -and ($currentIndex + 1) -lt $tags.Count) {
+            $previousTag = $tags[$currentIndex + 1]
+          }
+          Write-Host "Current tag: $current"
+          Write-Host "Previous tag: $previousTag"
+          "previous_tag=$previousTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Collect commit log between tags
+        id: commit_log
+        shell: pwsh
+        run: |
+          $previousTag = "${{ steps.prev_tag.outputs.previous_tag }}"
+          $current = "${{ github.ref_name }}"
+          $range = if ($previousTag) { "$previousTag..$current" } else { "$current" }
+          Write-Host "Commit range: $range"
+          $commits = git log $range --no-merges --pretty=format:"- %s (%h)"
+          New-Item -ItemType Directory -Force -Path notes | Out-Null
+          $commitLines = @($commits -split "`n" | Where-Object { $_.Trim() -ne '' })
+          if ($commitLines.Count -eq 0) {
+            Set-Content -Path notes/commit-log.txt -Value "No commits were found in range $range." -Encoding utf8
+          } else {
+            Set-Content -Path notes/commit-log.txt -Value $commitLines -Encoding utf8
+          }
+          "commit_count=$($commitLines.Count)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") |
+            Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) {
+            choco install innosetup -y --no-progress
+            if ($LASTEXITCODE -ne 0) { throw "Inno Setup install failed with exit code $LASTEXITCODE." }
+          }
+
+      # Optional code signing: set the secrets SIGN_PFX_BASE64 (PFX file as Base64) and
+      # SIGN_PFX_PASSWORD. Without them the release is built unsigned.
+      - name: Prepare code signing certificate
+        id: sign
+        shell: pwsh
+        env:
+          SIGN_PFX_BASE64: ${{ secrets.SIGN_PFX_BASE64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:SIGN_PFX_BASE64)) {
+            Write-Host "::notice title=Unsigned build::SIGN_PFX_BASE64 secret is not set; AmbiBack.exe and the setup are not signed."
+            "pfx=" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0
+          }
+          $pfx = Join-Path $env:RUNNER_TEMP 'codesign.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGN_PFX_BASE64))
+          "pfx=$pfx" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Build, self test and package
+        id: build
+        shell: pwsh
+        env:
+          SIGN_PFX_PASSWORD: ${{ secrets.SIGN_PFX_PASSWORD }}
+        run: |
+          ./installer/build-installer.ps1 `
+            -Version "${{ steps.vars.outputs.version }}" `
+            -BuildNumber $env:GITHUB_RUN_NUMBER `
+            -OutRoot (Join-Path $env:RUNNER_TEMP 'build') `
+            -SignPfx "${{ steps.sign.outputs.pfx }}"
+
+      - name: Remove code signing certificate
+        if: always() && steps.sign.outputs.pfx != ''
+        shell: pwsh
+        run: Remove-Item -Force -ErrorAction SilentlyContinue "${{ steps.sign.outputs.pfx }}"
+
+      - name: Upload self test report and packages
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ambiback-pc-${{ steps.vars.outputs.version }}
+          path: |
+            ${{ steps.build.outputs.selftest_report || format('{0}/build/hue-selftest.txt', runner.temp) }}
+            ${{ runner.temp }}/build/dist/*
+          if-no-files-found: warn
+
+      # The changelog is written by GitHub Copilot CLI. It needs a fine-grained PAT with the
+      # "Copilot Requests" permission in the COPILOT_GITHUB_TOKEN secret; without it the release
+      # falls back to GitHub's generated notes.
+      - name: Check Copilot token
+        id: copilot_token
+        shell: pwsh
+        env:
+          HAS_COPILOT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN != '' }}
+        run: |
+          "available=$env:HAS_COPILOT_TOKEN" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          if ($env:HAS_COPILOT_TOKEN -ne 'true') {
+            Write-Host "::notice title=AI changelog skipped::COPILOT_GITHUB_TOKEN secret is not set; using GitHub auto-generated release notes."
+          }
+
+      - name: Setup Node
+        if: steps.commit_log.outputs.commit_count != '0' && steps.copilot_token.outputs.available == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate AI changelog
+        id: ai_changelog
+        if: steps.commit_log.outputs.commit_count != '0' && steps.copilot_token.outputs.available == 'true'
+        continue-on-error: true
+        timeout-minutes: 10
+        shell: pwsh
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
+
+          npm install -g @github/copilot
+          if ($LASTEXITCODE -ne 0) { throw "Copilot CLI install failed with exit code $LASTEXITCODE." }
+          # Run the loader through node.exe: the npm .cmd shim cannot pass a multi-line prompt argument.
+          $loader = Join-Path (npm root -g) '@github/copilot/npm-loader.js'
+
+          $instructions = @'
+          You are a precise release-notes writer for AmbiBack PC, a Windows program that
+          captures the screen and drives ambient lighting: AmbiBack LED controllers, Philips Hue
+          lights through Hue Entertainment streaming, and optionally DreamScreen devices.
+
+          You will receive a list of git commit subjects, one per line, each formatted
+          as "- subject (short-hash)". Turn that list into a concise, user-facing
+          changelog in Markdown, once in German and once in English. Do not use any tools;
+          answer from the list alone.
+
+          Output layout, exactly in this order:
+          ### Deutsch
+          (German changelog)
+          ### English
+          (English changelog)
+
+          Rules:
+          - In each language, group entries under bold labels: "**Neu**", "**Geändert**",
+            "**Behoben**", "**Entfernt**" in German and "**Added**", "**Changed**",
+            "**Fixed**", "**Removed**" in English. Only include a label if it has at least
+            one entry. Both languages contain the same entries.
+          - Write German with real umlauts (ä, ö, ü, ß) and address the user informally (du).
+          - Summarize related or duplicate commits into a single bullet instead of
+            listing every commit separately.
+          - Skip routine chores that are not user-relevant, such as version bumps,
+            formatting-only changes, documentation-only or CI-only tweaks, unless nothing
+            else is available.
+          - Do not include commit hashes or author names in the output.
+          - Do not invent features or fixes that are not implied by the commit subjects.
+          - Keep bullets short, factual, and written for an end user, not a developer.
+          - Respond with Markdown only, no surrounding commentary.
+          '@
+          $commits = Get-Content -Raw -Path notes/commit-log.txt
+          $prompt = "$instructions`nCommit subjects:`n$commits"
+
+          # Run from an empty directory so the agent sees no repository files or instructions.
+          $work = Join-Path $env:RUNNER_TEMP 'copilot-changelog'
+          New-Item -ItemType Directory -Force -Path $work | Out-Null
+          Push-Location $work
+          try {
+            $output = & node $loader -p $prompt -s --no-ask-user --no-color --stream off --no-auto-update --no-custom-instructions --disable-builtin-mcps --secret-env-vars COPILOT_GITHUB_TOKEN
+            $exitCode = $LASTEXITCODE
+          } finally {
+            Pop-Location
+          }
+          if ($exitCode -ne 0) { throw "Copilot CLI exited with code $exitCode." }
+
+          $response = (@($output) -join "`n").Trim()
+          if (-not $response) { throw 'Copilot CLI returned an empty changelog.' }
+          Set-Content -Path notes/ai-changelog.md -Value $response -Encoding utf8
+
+          $delimiter = "AI_CHANGELOG_$([guid]::NewGuid().ToString('N'))"
+          "response<<$delimiter" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          $response | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          $delimiter | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Generate release description
+        uses: actions/github-script@v7
+        env:
+          RELEASE_VERSION: ${{ steps.vars.outputs.version }}
+          RELEASE_FILE_VERSION: ${{ steps.build.outputs.file_version }}
+          RELEASE_SETUP_NAME: ${{ steps.vars.outputs.setup_name }}
+          RELEASE_ZIP_NAME: ${{ steps.vars.outputs.zip_name }}
+          RELEASE_SIGNED: ${{ steps.sign.outputs.pfx != '' }}
+          PREVIOUS_TAG: ${{ steps.prev_tag.outputs.previous_tag }}
+          AI_CHANGELOG: ${{ steps.ai_changelog.outputs.response }}
+          AI_CHANGELOG_OUTCOME: ${{ steps.ai_changelog.outcome }}
+          COPILOT_TOKEN_AVAILABLE: ${{ steps.copilot_token.outputs.available }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const tagName = context.ref.replace('refs/tags/', '');
+            const version = process.env.RELEASE_VERSION;
+            const fileVersion = process.env.RELEASE_FILE_VERSION;
+            const setupName = process.env.RELEASE_SETUP_NAME;
+            const zipName = process.env.RELEASE_ZIP_NAME;
+            const signed = process.env.RELEASE_SIGNED === 'true';
+            const previousTag = String(process.env.PREVIOUS_TAG || '').trim();
+            const aiChangelog = String(process.env.AI_CHANGELOG || '').trim();
+            const aiSucceeded = process.env.AI_CHANGELOG_OUTCOME === 'success' && aiChangelog.length > 0;
+
+            let changelog;
+            let sourceDe;
+            let sourceEn;
+            if (aiSucceeded) {
+              changelog = aiChangelog;
+              sourceDe = 'KI-Zusammenfassung von GitHub Copilot';
+              sourceEn = 'AI-generated summary by GitHub Copilot';
+            } else {
+              const notes = await github.rest.repos.generateReleaseNotes({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: tagName,
+                target_commitish: context.sha,
+                previous_tag_name: previousTag || undefined,
+              });
+              const generatedBody = String(notes.data.body || '').trim();
+              changelog = generatedBody || 'No changelog entries were generated for this tag.';
+              const reason = process.env.COPILOT_TOKEN_AVAILABLE !== 'true'
+                ? ['COPILOT_GITHUB_TOKEN ist nicht eingerichtet', 'COPILOT_GITHUB_TOKEN is not configured']
+                : process.env.AI_CHANGELOG_OUTCOME === 'skipped'
+                  ? ['keine Commits seit dem letzten Tag', 'no commits since the previous tag']
+                  : ['der KI-Schritt ist fehlgeschlagen', 'the AI changelog step failed'];
+              sourceDe = `automatisch von GitHub erzeugt, nur Englisch; ${reason[0]}`;
+              sourceEn = `GitHub auto-generated notes; ${reason[1]}`;
+            }
+
+            const signNoteDe = signed ? '' : ' Die Dateien sind nicht signiert, Windows SmartScreen kann deshalb beim ersten Start warnen („Weitere Informationen“ → „Trotzdem ausführen“).';
+            const signNoteEn = signed ? '' : ' The files are not code-signed, so Windows SmartScreen may warn on first start ("More info" → "Run anyway").';
+
+            const body = [
+              `# AmbiBack PC ${tagName}`,
+              '',
+              'Windows-Programm für Ambilight mit AmbiBack-Controllern und Philips-Hue-Lampen (Hue Entertainment).',
+              '',
+              '*Windows program for ambient lighting with AmbiBack controllers and Philips Hue lights (Hue Entertainment).*',
+              '',
+              '## Downloads',
+              '',
+              `- **${setupName}** – Setup (Deutsch/Englisch). Installiert ohne Administratorrechte für den aktuellen Benutzer oder wahlweise für alle Benutzer. / *Installs for the current user without administrator rights, or for all users.*`,
+              `- **${zipName}** – Portable Version zum Entpacken. / *Portable version, just unzip.*`,
+              '',
+              `Version ${version} (Datei-/file version ${fileVersion}).${signNoteDe}`,
+              '',
+              signed ? '' : `*${signNoteEn.trim()}*`,
+              '',
+              '## Systemvoraussetzungen / System requirements',
+              '',
+              '- Windows 10 oder 11 / *Windows 10 or 11*',
+              '- .NET Framework 4.7.2 oder neuer – das Setup bietet die Installation an, falls es fehlt / *.NET Framework 4.7.2 or later – the setup offers to install it if missing*',
+              '- Microsoft Edge WebView2 Runtime – wird vom Setup bei Bedarf installiert / *installed by the setup if missing*',
+              '- Für USB-Module ggf. Treiber von [FTDI](https://ftdichip.com/drivers/vcp-drivers/) oder [Silicon Labs CP210x](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers) / *USB modules may need a driver from FTDI or Silicon Labs*',
+              '',
+              '## Prüfung / Validation',
+              '',
+              'Von GitHub Actions gebaut: Release-Build ohne Warnungen, Hue-Selbsttest (`AmbiBack.exe --hue-selftest`) bestanden, danach paketiert.',
+              '',
+              '*Built by GitHub Actions: warning-free release build, Hue self test passed, then packaged.*',
+              '',
+              `## Änderungen / Changes`,
+              '',
+              `*Quelle: ${sourceDe} / Source: ${sourceEn}*`,
+              '',
+              changelog,
+              '',
+            ].join('\n').replace(/\n{3,}/g, '\n\n');
+
+            fs.mkdirSync('notes', { recursive: true });
+            fs.writeFileSync(path.join('notes', 'release-notes.md'), body);
+
+      - name: Create draft GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: AmbiBack PC ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          body_path: notes/release-notes.md
+          draft: true
+          prerelease: ${{ steps.vars.outputs.prerelease == 'true' }}
+          overwrite_files: true
+          fail_on_unmatched_files: true
+          files: |
+            ${{ steps.build.outputs.setup_path }}
+            ${{ steps.build.outputs.zip_path }}
