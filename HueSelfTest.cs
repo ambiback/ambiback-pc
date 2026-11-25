@@ -384,14 +384,14 @@ namespace AmbiBack.PhilipsHue
         private static void TestPositionFromSectors()
         {
             // Sectors 0-2: right edge -> x = 1, z = 0
-            EntertainmentChannel right = HueLampStreamer.PositionFromSectors(new byte[] { 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
+            EntertainmentChannel right = HuePcGroup.PositionFromSectors(new byte[] { 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
             Equal(1.0, right.X); Equal(0.0, Math.Round(right.Z, 3));
             // Sector 4: top center
-            EntertainmentChannel top = HueLampStreamer.PositionFromSectors(new byte[] { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 });
+            EntertainmentChannel top = HuePcGroup.PositionFromSectors(new byte[] { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 });
             Equal(0.0, top.X); Equal(1.0, top.Z);
             // Sectors 6-8: left edge
-            Equal(-1.0, HueLampStreamer.PositionFromSectors(new byte[] { 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0 }).X);
-            True(HueLampStreamer.AreaName.StartsWith("AmbiBack PC ") && HueLampStreamer.AreaName.Length <= 32, "area name");
+            Equal(-1.0, HuePcGroup.PositionFromSectors(new byte[] { 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0 }).X);
+            True(HuePcGroup.AreaName.StartsWith("AmbiBack PC ") && HuePcGroup.AreaName.Length <= 32, "area name");
         }
 
         private static void TestColorLight()

@@ -39,6 +39,12 @@ namespace AmbiBack
         public string StreamStatus { get; private set; } = "";
 
         public bool IsStreaming { get { return session != null && session.State == HueEntertainmentSession.SessionState.Streaming; } }
+
+        /// <summary>
+        /// The area of this PC (<see cref="HuePcGroup"/>): its lights are the single light devices with
+        /// the checkbox set, each one reads its own screen sectors.
+        /// </summary>
+        public bool PcGroup { get; set; } = false;
         #endregion
 
         public CDeviceHueEntertainment()
@@ -98,6 +104,7 @@ namespace AmbiBack
                 this.WriteXmlElement(writer, "ColorBluePercent", this.ColorBluePercent);
                 this.WriteXmlElement(writer, "MaxBrightnessPercent", this.MaxBrightnessPercent);
                 this.WriteXmlElement(writer, "MinimumLuminosityPercent", this.MinimumLuminosityPercent);
+                this.WriteXmlElement(writer, "PcGroup", this.PcGroup);
             }
             catch (Exception ex)
             {
@@ -120,6 +127,11 @@ namespace AmbiBack
                 this.ColorBluePercent = this.ReadXmlElementAsByte(reader, "ColorBluePercent", 100);
                 this.MaxBrightnessPercent = this.ReadXmlElementAsByte(reader, "MaxBrightnessPercent", 100);
                 this.MinimumLuminosityPercent = this.ReadXmlElementAsByte(reader, "MinimumLuminosityPercent", 0);
+                if (reader.IsStartElement("PcGroup"))
+                    this.PcGroup = this.ReadXmlElementAsBool(reader, "PcGroup");
+                // An area of this PC added by hand before the PC group existed
+                if (this.HueAreaName == HuePcGroup.AreaName)
+                    this.PcGroup = true;
                 if (this.FramesPerSecond < 1 || this.FramesPerSecond > this.MaxFramesPerSecond)
                     this.FramesPerSecond = 25;
             }
@@ -135,6 +147,7 @@ namespace AmbiBack
             this.HueConfigID = other.HueConfigID;
             this.HueAreaName = other.HueAreaName;
             this.HueChannels = other.HueChannels;
+            this.PcGroup = other.PcGroup;
         }
 
         public override void CopyFrom(CDevice devCopyFrom)
@@ -155,7 +168,8 @@ namespace AmbiBack
         public override void SetDeviceID()
         {
             // The configuration id is stable; the name may be renamed in the Hue app
-            szDeviceID = CGlobals.DEVICETYPES[(int)this.GetDeviceType()] + "_" + (this.HueConfigID ?? "");
+            // The PC group keeps its id even when the area is created again on the bridge
+            szDeviceID = CGlobals.DEVICETYPES[(int)this.GetDeviceType()] + "_" + (this.PcGroup ? "PCGROUP" : (this.HueConfigID ?? ""));
         }
         #endregion
 
@@ -169,11 +183,16 @@ namespace AmbiBack
             Stopwatch fpsClock = Stopwatch.StartNew();
             int framesSent = 0;
             string lastStatus = null;
+            int pcVersion = -1;
+            Stopwatch pcRetry = new Stopwatch();
 
             try
             {
-                session = new HueEntertainmentSession(this.HueConfigID, this.DoDebugOutput);
-                session.AreaLoaded += OnAreaLoaded;
+                if (!PcGroup)
+                {
+                    session = new HueEntertainmentSession(this.HueConfigID, this.DoDebugOutput);
+                    session.AreaLoaded += OnAreaLoaded;
+                }
 
                 while (!bAbortThread)
                 {
@@ -184,10 +203,51 @@ namespace AmbiBack
                         if (!CGlobals.monitorPowerStatus)
                         {
                             // Monitor off: release the area so the lights return to normal
-                            if (session.State != HueEntertainmentSession.SessionState.Idle)
+                            if (session != null && session.State != HueEntertainmentSession.SessionState.Idle)
                                 session.Stop();
                             SetStatus(L.T("hue_st_monitor_off"));
                             Thread.Sleep(1000);
+                            continue;
+                        }
+
+                        // PC group: set the area up for the current members (again after every change)
+                        if (PcGroup && HuePcGroup.MembershipVersion != pcVersion)
+                        {
+                            if (pcRetry.IsRunning && pcRetry.ElapsedMilliseconds < 5000)
+                            {
+                                Thread.Sleep(200);
+                                continue;
+                            }
+                            pcVersion = HuePcGroup.MembershipVersion;
+                            List<CDevicePhilipsHueLight> members = HuePcGroup.Members();
+                            session?.Stop(turnOff: members.Count == 0);
+                            session = null;
+                            pcLayout = null;
+                            if (members.Count > 0)
+                            {
+                                try
+                                {
+                                    HuePcGroup.Layout layout = HuePcGroup.Configure(members, true);
+                                    this.HueConfigID = layout.AreaID;
+                                    OnAreaLoaded(layout.Area);
+                                    pcLayout = layout;
+                                    session = new HueEntertainmentSession(layout.AreaID, this.DoDebugOutput);
+                                    session.AreaLoaded += OnAreaLoaded;
+                                    pcRetry.Reset();
+                                }
+                                catch (Exception ex) when (!(ex is ThreadInterruptedException) && !(ex is ThreadAbortException))
+                                {
+                                    SetStatus(HueClipV2.IsAreaLimitError(ex) ? L.T("hue_area_limit") : L.F("hue_area_err", ex.Message));
+                                    pcVersion = -1;
+                                    pcRetry.Restart();
+                                    continue;
+                                }
+                            }
+                        }
+                        if (session == null)
+                        {
+                            SetStatus(L.T("hue_st_no_members"));
+                            Thread.Sleep(500);
                             continue;
                         }
 
@@ -198,23 +258,30 @@ namespace AmbiBack
                             continue;
                         }
 
-                        if (!this.bInitDone)
-                            InitHelpers();
-
                         // New colors only when the monitor delivered a new frame; otherwise repeat the last
                         // ones (the bridge ends the session after about 10 s without data)
-                        int count = Math.Min(brPixels.Length, HueStreamMessage.MaxChannels);
-                        if (this.rectScanPixels != null)
-                            this.CalcColorsFromFrame(count, this.brPixels, this.UpdateScanAreas);
-
-                        lock (channelsLock)
+                        int count;
+                        if (PcGroup)
                         {
-                            count = Math.Min(count, channels.Count);
-                            for (int i = 0; i < count; i++)
-                                channelIds[i] = channels[i].ID;
+                            count = ComputePcGroupColors(channelIds, rgb16);
                         }
-                        for (int i = 0; i < count; i++)
-                            ToRgb16(brPixels[i], rgb16, i * 3);
+                        else
+                        {
+                            if (!this.bInitDone)
+                                InitHelpers();
+                            count = Math.Min(brPixels.Length, HueStreamMessage.MaxChannels);
+                            if (this.rectScanPixels != null)
+                                this.CalcColorsFromFrame(count, this.brPixels, this.UpdateScanAreas);
+
+                            lock (channelsLock)
+                            {
+                                count = Math.Min(count, channels.Count);
+                                for (int i = 0; i < count; i++)
+                                    channelIds[i] = channels[i].ID;
+                            }
+                            for (int i = 0; i < count; i++)
+                                ToRgb16(brPixels[i], rgb16, i * 3);
+                        }
                         session.Send(channelIds, rgb16, count);
                         framesSent++;
 
@@ -234,7 +301,12 @@ namespace AmbiBack
                     catch (ThreadInterruptedException)
                     {
                         DoDebugOutput("CDeviceHueEntertainment|HandleThread|Interrupted");
-                        session.Stop();
+                        session?.Stop();
+                        if (PcGroup)
+                        {
+                            session = null;
+                            pcVersion = -1;     // set the area up again on Start
+                        }
                         while (bSleepThread && !bAbortThread)
                             Thread.Sleep(10);
                     }
@@ -268,6 +340,7 @@ namespace AmbiBack
                     CGlobals.DebugOutput(ex);
                 }
                 session = null;
+                pcLayout = null;
                 bInitDone = false;
                 SetStatus(L.T("hue_st_stopped"));
             }
@@ -346,6 +419,117 @@ namespace AmbiBack
         private void SetStatus(string status)
         {
             StreamStatus = status;
+        }
+        #endregion
+
+        #region PC group
+        private HuePcGroup.Layout pcLayout;
+        private int[] pcRangeStart;
+        private int[] pcRangeCount;
+        private readonly Stopwatch pcRectsAge = new Stopwatch();
+
+        /// <summary>
+        /// Colors of the PC group: every channel averages the selected screen sectors of its light device
+        /// (a light without sectors uses the region around its position). Returns the channel count.
+        /// </summary>
+        private int ComputePcGroupColors(byte[] channelIds, ushort[] rgb16)
+        {
+            HuePcGroup.Layout layout = pcLayout;
+            if (layout == null)
+                return 0;
+            int count = Math.Min(layout.Channels.Count, HueStreamMessage.MaxChannels);
+
+            // Rebuild the rectangles now and then: the sectors can be changed while streaming
+            if (!bInitDone || pcRangeStart == null || pcRangeStart.Length != count || pcRectsAge.ElapsedMilliseconds > 500)
+            {
+                if (!WaitForFrame())
+                    return 0;
+                int width, height;
+                lock (this.Frame.Sync)
+                {
+                    width = this.Frame.Width;
+                    height = this.Frame.Height;
+                }
+                BuildPcGroupRectangles(width, height);
+                bInitDone = true;
+            }
+
+            this.CalcColorsFromFrame(rectScanPixels.Length, brPixels, BuildPcGroupRectangles);
+
+            for (int i = 0; i < count; i++)
+            {
+                CDevicePhilipsHueLight light = layout.Channels[i].Value;
+                channelIds[i] = layout.Channels[i].Key;
+                int r = 0, g = 0, b = 0, n = pcRangeCount[i];
+                for (int k = pcRangeStart[i]; k < pcRangeStart[i] + n; k++)
+                {
+                    r += brPixels[k].R;
+                    g += brPixels[k].G;
+                    b += brPixels[k].B;
+                }
+                if (n > 0)
+                {
+                    // The sliders of the light first, then those of the group
+                    int max = light.MaxBrightnessPercent;
+                    r = r / n * light.ColorRedPercent / 100 * max / 100;
+                    g = g / n * light.ColorGreenPercent / 100 * max / 100;
+                    b = b / n * light.ColorBluePercent / 100 * max / 100;
+                }
+                ToRgb16(Color.FromArgb(255, Math.Min(255, r), Math.Min(255, g), Math.Min(255, b)), rgb16, i * 3);
+            }
+            return count;
+        }
+
+        private void BuildPcGroupRectangles(int width, int height)
+        {
+            HuePcGroup.Layout layout = pcLayout;
+            int count = layout == null ? 0 : Math.Min(layout.Channels.Count, HueStreamMessage.MaxChannels);
+            var rects = new List<Rectangle>();
+            pcRangeStart = new int[count];
+            pcRangeCount = new int[count];
+            for (int i = 0; i < count; i++)
+            {
+                List<Rectangle> sectors = layout.Channels[i].Value.SelectedSectorRectangles(width, height);
+                if (sectors.Count == 0)
+                {
+                    EntertainmentChannel ch = layout.Area.Channels.Find(c => c.ID == layout.Channels[i].Key) ?? new EntertainmentChannel();
+                    sectors.Add(ScanRectangle(ch, width, height, this.InnerSizePercent));
+                }
+                pcRangeStart[i] = rects.Count;
+                pcRangeCount[i] = sectors.Count;
+                rects.AddRange(sectors);
+            }
+            if (rects.Count == 0)
+                rects.Add(Rectangle.Empty);
+
+            rectScanPixels = rects.ToArray();
+            brPixels = new Color[rectScanPixels.Length];
+            aLeft = new int[rectScanPixels.Length];
+            aRight = new int[rectScanPixels.Length];
+            aTop = new int[rectScanPixels.Length];
+            aBottom = new int[rectScanPixels.Length];
+            for (int i = 0; i < rectScanPixels.Length; i++)
+            {
+                aLeft[i] = rectScanPixels[i].Left;
+                aRight[i] = rectScanPixels[i].Right;
+                aTop[i] = rectScanPixels[i].Top;
+                aBottom[i] = rectScanPixels[i].Bottom;
+            }
+            this.iScanAreaWidth = width;
+            this.iScanAreaHeight = height;
+            lColorsFrameNumber = -1;    // calculate the new rectangles on the next call
+            pcRectsAge.Restart();
+        }
+
+        private bool WaitForFrame()
+        {
+            int iWait = 0;
+            while ((this.Frame == null || this.Frame.Pixels == null) && iWait <= 300 && !bAbortThread)
+            {
+                Thread.Sleep(100);
+                iWait++;
+            }
+            return this.Frame != null && this.Frame.Pixels != null;
         }
         #endregion
 

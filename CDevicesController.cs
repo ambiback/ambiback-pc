@@ -114,6 +114,9 @@ namespace AmbiBack
         /// <summary>Entertainment area device of the given configuration id, or null.</summary>
         public CDeviceHueEntertainment FindHueEntertainmentDevice(string configId)
         {
+            CDeviceHueEntertainment pcGroup = HuePcGroup.FindDevice();
+            if (pcGroup != null && pcGroup.HueConfigID == configId)
+                return pcGroup;
             foreach (CDevice myDevice in CGlobals.mainConfig.Devices.GetDeviceList())
                 if (myDevice is CDeviceHueEntertainment existing && existing.HueConfigID == configId)
                     return existing;
@@ -123,6 +126,8 @@ namespace AmbiBack
         /// <summary>Adds an entertainment area of the bridge as streaming device (chosen in frmConnectHue).</summary>
         public CDeviceHueEntertainment AddHueEntertainmentArea(EntertainmentArea area)
         {
+            if (area.Name == HuePcGroup.AreaName)
+                return HuePcGroup.EnsureDevice(area);
             CDeviceHueEntertainment device = FindHueEntertainmentDevice(area.ID);
             if (device == null)
                 device = (CDeviceHueEntertainment)CGlobals.mainConfig.Devices.Add(new CDeviceHueEntertainment(area));
@@ -140,6 +145,12 @@ namespace AmbiBack
 
             foreach (EntertainmentArea area in areas)
             {
+                // The area of this PC always shows up in the list
+                if (area.Name == HuePcGroup.AreaName)
+                {
+                    HuePcGroup.EnsureDevice(area);
+                    continue;
+                }
                 CDeviceHueEntertainment device = FindHueEntertainmentDevice(area.ID);
                 if (device == null)
                     continue;    // only areas the user added

@@ -470,6 +470,7 @@ namespace AmbiBack
                     deviceListItem.SubItems.Add(L.T("st_offline"));
 
                     LVDevices.Items.Add(deviceListItem);
+                    deviceListItem.Checked = philipsHueLightDevice.InGroup;
                 }
             }
             else if (myDevice is CDeviceHueEntertainment hueArea)
@@ -833,7 +834,11 @@ namespace AmbiBack
                 {
                     if (lvItem.Tag != null)
                     {
-                        if (selectedAmbiScreen.GetDevices().Contains(lvItem.Tag))
+                        if (lvItem.Tag is CDevicePhilipsHueLight hueLight)
+                        {
+                            lvItem.Checked = hueLight.InGroup;    // group membership, not per monitor
+                        }
+                        else if (selectedAmbiScreen.GetDevices().Contains(lvItem.Tag))
                         {
                             lvItem.Checked = true;
                         }
@@ -1003,8 +1008,6 @@ namespace AmbiBack
             Stopwatch hueWait = Stopwatch.StartNew();
             foreach (CDeviceHueEntertainment hueArea in hueAreas)
                 hueArea.WaitForShutdown(6000 - (int)hueWait.ElapsedMilliseconds);
-            // Single lights stream through the shared streamer: same there
-            AmbiBack.PhilipsHue.HueLampStreamer.Shutdown(6000 - (int)hueWait.ElapsedMilliseconds);
 
             // Stop Device Threads!
             foreach (CDevice myDevice in CGlobals.mainConfig.Devices.GetDeviceList())
@@ -1110,9 +1113,11 @@ namespace AmbiBack
                     {
                         // check each device if online
                         CDevice myDevice = (CDevice)devicesList[iIndex];
-                        if (!myDevice.CheckIsOnline())
+                        // Hue lights and areas have no address of their own: the bridge reported them or not
+                        bool bHue = myDevice is CDevicePhilipsHueLight || myDevice is CDeviceHueEntertainment;
+                        if (bHue ? !myDevice.IsOnline() : !myDevice.CheckIsOnline())
                         {
-                            szDeleted += "• " + myDevice.GetDeviceName() + " (" + myDevice.GetIPAddress().ToString() + ")\r\n";
+                            szDeleted += "• " + myDevice.GetDeviceName() + (myDevice.GetIPAddress() != null ? " (" + myDevice.GetIPAddress().ToString() + ")" : "") + "\r\n";
                             this.RemoveDeviceFromListView(myDevice);
                             CGlobals.mainConfig.Devices.DeleteEntry(myDevice);
                         }
@@ -1812,6 +1817,17 @@ namespace AmbiBack
 
         private void LVDevices_ItemChecked(object sender, ItemCheckedEventArgs e)
         {
+            // Single Hue lights: the checkbox is the membership in the PC group, which streams them
+            if (e.Item.Tag is CDevicePhilipsHueLight hueLight)
+            {
+                if (hueLight.InGroup != e.Item.Checked)
+                {
+                    hueLight.InGroup = e.Item.Checked;
+                    AmbiBack.PhilipsHue.HuePcGroup.MembershipChanged();
+                }
+                return;
+            }
+
             if (e.Item.Tag != null && selectedAmbiScreen != null)
             {
                 CDevice selectedDevice = (CDevice)e.Item.Tag;

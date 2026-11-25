@@ -19,7 +19,6 @@ namespace AmbiBack
     [Serializable]
     public class CDevicePhilipsHueLight : CDevice
     {
-        bool bInitDone = false;
 
         #region public get/set variables
         public string HueBridge { get; set; }
@@ -30,6 +29,9 @@ namespace AmbiBack
         public byte[] ScreenSectors { get; set; } = null;
         public byte PixelVert { get; set; } = 3;
         public byte PixelHori { get; set; } = 3;
+
+        /// <summary>Member of the PC entertainment group (checkbox in the device list).</summary>
+        public bool InGroup { get; set; } = false;
 
         // Reference to Hue Object!
         public Light HueLight { get; set; } = null;
@@ -65,7 +67,7 @@ namespace AmbiBack
             this.InitScreenSectors();
 
             // Set other defaults
-            // Entertainment streaming (DTLS) through HueLampStreamer
+            // Entertainment streaming (DTLS) through the PC group (HuePcGroup)
             this.FramesPerSecond = 25;
             this.MaxFramesPerSecond = 50;
             this.StepFramesPerSecond = 5;
@@ -83,8 +85,8 @@ namespace AmbiBack
             this.EditMaxBrightnessPercent = true;
             this.EditMinimumLuminosityPercent = true;
 
-            this.EditFrameDelay = false;    // the bridge smooths the stream by itself
-            this.EditFramesPerSecond = true;
+            this.EditFrameDelay = false;       // the bridge smooths the stream by itself
+            this.EditFramesPerSecond = false;  // the group device sets the frame rate
         }
 
         // Process Payload data for devices
@@ -117,6 +119,7 @@ namespace AmbiBack
                 this.WriteXmlElement(writer, "FrameLength", this.FrameLength);
                 this.WriteXmlElement(writer, "FrameDelay", this.FrameDelay);
                 this.WriteXmlElement(writer, "ValueGainPercent", this.ValueGainPercent);
+                this.WriteXmlElement(writer, "InGroup", this.InGroup);
             }
             catch (Exception ex)
             {
@@ -145,6 +148,8 @@ namespace AmbiBack
                 this.FrameLength = this.ReadXmlElementAsByte(reader, "FrameLength", 10);
                 this.FrameDelay = this.ReadXmlElementAsInt(reader, "FrameDelay", 60);
                 this.ValueGainPercent = this.ReadXmlElementAsInt(reader, "ValueGainPercent", 100);
+                if (reader.IsStartElement("InGroup"))
+                    this.InGroup = this.ReadXmlElementAsBool(reader, "InGroup");
 
                 // Settings from the HTTP times (5 to 10 fps) are too slow for streaming
                 if (this.FramesPerSecond < 15 || this.FramesPerSecond > this.MaxFramesPerSecond)
@@ -186,6 +191,7 @@ namespace AmbiBack
             this.HueType = myDevCopyFrom.HueType;
             this.HueModelID = myDevCopyFrom.HueModelID;
             this.ScreenSectors = myDevCopyFrom.ScreenSectors;
+            this.InGroup = myDevCopyFrom.InGroup;
 
             this.FramesPerSecond = myDevCopyFrom.FramesPerSecond;
             this.InnerSizePercent = myDevCopyFrom.InnerSizePercent;
@@ -212,124 +218,36 @@ namespace AmbiBack
 
         #region Virtual Public Threading functions
         /// <summary>
-        /// Computes the color of the selected screen sectors and hands it to <see cref="HueLampStreamer"/>,
-        /// which streams all running lights over the Entertainment API (DTLS). No HTTP color commands.
+        /// Single lights do not stream by themselves: they are members of the PC group
+        /// (<see cref="HuePcGroup"/>), whose device streams all of them in one DTLS session.
         /// </summary>
         public override void HandleThread()
         {
-            DoDebugOutput("CDevicePhilipsHueLight|HandleThread|Begin Thread");
-            Stopwatch frameClock = Stopwatch.StartNew();
-
-            try
-            {
-                HueLampStreamer.Register(this);
-                while (!bAbortThread)
-                {
-                    try
-                    {
-                        long frameStart = frameClock.ElapsedMilliseconds;
-
-                        if (!this.bInitDone)
-                            InitHelpers();
-
-                        // Colors of all sectors from the monitor's frame buffer; skipped when there is no new frame
-                        if (this.rectScanPixels != null)
-                            this.CalcColorsFromFrame(this.ScreenSectors.Length, this.brPixels, this.UpdateScanAreas);
-
-                        HueLampStreamer.SetColor(this, CurrentColor());
-
-                        int fps = Math.Max(1, Math.Min((int)this.FramesPerSecond, (int)this.MaxFramesPerSecond));
-                        int sleep = 1000 / fps - (int)(frameClock.ElapsedMilliseconds - frameStart);
-                        if (sleep > 0)
-                            Thread.Sleep(sleep);
-                    }
-                    catch (ThreadInterruptedException)
-                    {
-                        // Stop button: leave the stream (the streamer switches the light off), wait for Start
-                        DoDebugOutput("CDevicePhilipsHueLight|HandleThread|Interrupted");
-                        HueLampStreamer.Unregister(this);
-                        while (bSleepThread && !bAbortThread)
-                            Thread.Sleep(10);
-                        if (!bAbortThread)
-                        {
-                            DoDebugOutput("CDevicePhilipsHueLight|HandleThread|Restart");
-                            HueLampStreamer.Register(this);
-                        }
-                    }
-                }
-            }
-            catch (ThreadAbortException)
-            {
-                DoDebugOutput("CDevicePhilipsHueLight|HandleThread|Aborted");
-                this.SetAbortThread(true);
-            }
-            catch (Exception ex)
-            {
-                CGlobals.DebugOutput(ex);
-                DoDebugOutput("CDevicePhilipsHueLight|HandleThread|Exception: " + ex.Message);
-                this.SetAbortThread(true);
-            }
-            finally
-            {
-                HueLampStreamer.Unregister(this);
-                bInitDone = false;
-            }
-
-            DoDebugOutput("CDevicePhilipsHueLight|HandleThread|Finished Thread");
         }
 
         public override void StartThread()
         {
-            try
-            {
-                this.SetAbortThread(false);
-                this.SetSleepThread(false);
-                if (myThread != null && myThread.ThreadState == System.Threading.ThreadState.Stopped)
-                    myThread = null;
-                CreateThread();
-                if (myThread.ThreadState == System.Threading.ThreadState.Unstarted)
-                    myThread.Start();
-            }
-            catch (Exception ex)
-            {
-                CGlobals.DebugOutput(ex);
-                DoDebugOutput("CDevicePhilipsHueLight|StartThread|Exception: " + ex.Message);
-            }
+            DoDebugOutput("CDevicePhilipsHueLight|" + this.GetDeviceName() + " streams through the group \"" + HuePcGroup.AreaName + "\"");
         }
 
         public void SendFrameDelay()
         {
-            // Streaming: the bridge smooths by itself, nothing to send
         }
 
         public void SendDeviceName()
         {
-            // The name is managed in the Hue app
         }
 
-        /// <summary>Average of the selected sectors with the color and brightness sliders applied.</summary>
-        private Color CurrentColor()
+        /// <summary>Screen rectangles of the selected sectors for a frame of this size.</summary>
+        public List<Rectangle> SelectedSectorRectangles(int width, int height)
         {
-            if (brPixels == null || ScreenSectors == null)
-                return Color.Black;
-            int r = 0, g = 0, b = 0, n = 0;
-            for (int i = 0; i < ScreenSectors.Length && i < brPixels.Length; i++)
-            {
+            var all = new Rectangle[(this.PixelHori * 2) + (this.PixelVert * 2)];
+            this.CalcRectangles(0, 0, width, height, 0, all);
+            var result = new List<Rectangle>();
+            for (int i = 0; ScreenSectors != null && i < all.Length && i < ScreenSectors.Length; i++)
                 if (ScreenSectors[i] == 1)
-                {
-                    r += brPixels[i].R;
-                    g += brPixels[i].G;
-                    b += brPixels[i].B;
-                    n++;
-                }
-            }
-            if (n == 0)
-                return Color.Black;
-            int max = this.MaxBrightnessPercent;
-            r = r / n * this.ColorRedPercent / 100 * max / 100;
-            g = g / n * this.ColorGreenPercent / 100 * max / 100;
-            b = b / n * this.ColorBluePercent / 100 * max / 100;
-            return Color.FromArgb(255, Math.Min(255, r), Math.Min(255, g), Math.Min(255, b));
+                    result.Add(all[i]);
+            return result;
         }
         #endregion
 
@@ -384,8 +302,6 @@ namespace AmbiBack
                     rectScanPixels = new Rectangle[this.ScreenSectors.Length];
                     this.UpdateScanAreas(iScreenWidth, iScreenHeight);
 
-                    // Init finished
-                    this.bInitDone = true;
                 }
                 catch (Exception ex)
                 {
