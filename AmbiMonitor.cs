@@ -69,7 +69,9 @@ namespace AmbiBack
             // Add reference to arraylist
             if (newDevice != null)
             {
-                m_aDevices.Add(newDevice);
+                // The capture thread enumerates m_aDevices under bmpLock
+                lock (CGlobals.bmpLock)
+                    m_aDevices.Add(newDevice);
 
                 // Bind necessary events to Selected Device
                 newDevice.DebugOutput += new EventDebugOutput(this.EventDebugOutput);
@@ -79,7 +81,11 @@ namespace AmbiBack
         public void RemoveDevice(CDevice newDevice)
         {
             if (newDevice != null)
-                m_aDevices.Remove(newDevice); 
+            {
+                // The capture thread enumerates m_aDevices under bmpLock
+                lock (CGlobals.bmpLock)
+                    m_aDevices.Remove(newDevice);
+            }
         }
         public void SetTitel(string szTitel) {
             lblTitel.Text = szTitel; 

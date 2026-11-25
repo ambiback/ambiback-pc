@@ -76,10 +76,15 @@ namespace AmbiBack
         Texture2D screenTexture = null;
         ShaderResourceView screenTextureView = null;
 
-        // Sclaing Faktor for Desktop Screenshots
-        int m_iTextureScaling = 2;
-        int m_iTextureScalingExtra = 2;
-        int m_iTextureScalingMipMap = 4; /* WTF is with this setting o.O */
+        // Number of mip levels of the downscale texture (needs at least READBACK_MIP + 1)
+        int m_iTextureScalingMipMap = 4;
+
+        // Mip level that is read back: level 2 = 1/4 of the desktop size, the same bitmap size as before,
+        // but averaged by the GPU instead of picking every second pixel on the CPU
+        const int READBACK_MIP = 2;
+
+        // Wait at most this long for a new frame so interrupts and abort still work on a static screen
+        const int ACQUIRE_TIMEOUT_MS = 200;
 
 
         // Duplicate the output
@@ -119,6 +124,10 @@ namespace AmbiBack
                 factory.Dispose();
             if (device != null)
                 device.Dispose();
+            if (adapter != null) {
+                adapter.Dispose();
+                adapter = null;
+            }
             if (output != null) {
                 output.Dispose();
                 output = null;
@@ -204,11 +213,15 @@ namespace AmbiBack
             widthDesktop = (output.Description.DesktopBounds.Right - output.Description.DesktopBounds.Left);
             heightDesktop = (output.Description.DesktopBounds.Bottom - output.Description.DesktopBounds.Top);
 
-            int iScaleHeight = (heightDesktop / m_iTextureScaling);
-            int iScaleWidth = (widthDesktop / m_iTextureScaling);
+            // Free the resources of a previous run (pause/resume, resolution change)
+            FreeScreenHelpers();
 
-            // Create new Image for primary
-            bmpScreenshot = new System.Drawing.Bitmap(iScaleWidth / m_iTextureScalingExtra, iScaleHeight / m_iTextureScalingExtra, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            // Size of the mip level that is read back (D3D11: max(1, size >> level))
+            int iScaleHeight = Math.Max(1, heightDesktop >> READBACK_MIP);
+            int iScaleWidth = Math.Max(1, widthDesktop >> READBACK_MIP);
+
+            // Create new Image for primary, same size as the mip level
+            bmpScreenshot = new System.Drawing.Bitmap(iScaleWidth, iScaleHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 
             // Create Staging Screen texture CPU-accessible
             screenStagingTextureDesc = new Texture2DDescription
@@ -243,6 +256,16 @@ namespace AmbiBack
             
             screenTexture = new Texture2D(device, screenTextureDesc);
             screenTextureView = new ShaderResourceView(device, screenTexture);
+        }
+
+        /// <summary>Dispose the textures and the bitmap created by InitScreenHelpers.</summary>
+        void FreeScreenHelpers()
+        {
+            if (screenTextureView != null) { screenTextureView.Dispose(); screenTextureView = null; }
+            if (screenTexture != null) { screenTexture.Dispose(); screenTexture = null; }
+            if (screenStagungTexture != null) { screenStagungTexture.Dispose(); screenStagungTexture = null; }
+            // Only the capture thread uses bmpScreenshot; consumers clone it inside ReceivedScreenshot
+            if (bmpScreenshot != null) { bmpScreenshot.Dispose(); bmpScreenshot = null; }
 
         }
         public void SetStatusLabel(Label lblnew)
@@ -302,9 +325,10 @@ namespace AmbiBack
                     {
                         try
                         {
-                            // ReInit Dup Output
+                            // ReInit Dup Output, and the textures: the desktop size may have changed (AccessLost)
                             if (this.duplicatedOutput == null) {
                                 CGlobals.DebugOutput("HandleThread:InitDuplicatedOutput");
+                                this.InitScreenHelpers();
                                 this.InitDuplicatedOutput();
                             }
                         }
@@ -323,8 +347,13 @@ namespace AmbiBack
                         /* Process only on if dup output available */
                         if (this.duplicatedOutput != null)
                         {
-                            // Get Screenshot
-                            this.GetImageFromSharpDX();
+                            // Get Screenshot; false = no new desktop image (timeout, mouse only, or error)
+                            if (!this.GetImageFromSharpDX())
+                            {
+                                // Managed wait, so Interrupt (pause) and Abort are handled
+                                Thread.Sleep(1);
+                                continue;
+                            }
                             if (bmpScreenshot == null)
                                 throw (new Exception("ERROR COULD NOT GRAB SCREENSHOT"));
 
@@ -544,87 +573,66 @@ namespace AmbiBack
 
                 while(!bCaptureDone) 
                 {
+                    SharpDX.DXGI.Resource screenResource = null;
+                    bool bFrameAcquired = false;
+                    bool bMapped = false;
+                    System.Drawing.Imaging.BitmapData mapDest = null;
                     try
                     {
-                        SharpDX.DXGI.Resource screenResource;
                         OutputDuplicateFrameInformation duplicateFrameInformation;
 
-                        // Try to get duplicated frame within given time
-                        duplicatedOutput.AcquireNextFrame(-1, out duplicateFrameInformation, out screenResource);
-
-                        // copy resource into memory that can be accessed by the CPU
-                        Texture2D screenTexture2D = screenResource.QueryInterface<Texture2D>();
-                        device.ImmediateContext.CopySubresourceRegion(screenTexture2D, 0, null, screenTexture, 0);
-
-                        // Generates mipmap for screen resize View
-                        device.ImmediateContext.GenerateMips(screenTextureView);
-
-                        // Copy screenTexture to screenStagungTexture 
-                        device.ImmediateContext.CopySubresourceRegion(screenTexture, 1, null, screenStagungTexture, 0);
-
-                        // Get the desktop capture texture
-                        var mapResizedSource = device.ImmediateContext.MapSubresource(screenStagungTexture, 0, MapMode.Read, MapFlags.None);
-
-                        // Copy pixels from screen capture Texture to GDI bitmap
-                        var boundsRect = new System.Drawing.Rectangle(0, 0, bmpScreenshot.Width, bmpScreenshot.Height);
-                        var mapDest = bmpScreenshot.LockBits(boundsRect, ImageLockMode.WriteOnly, bmpScreenshot.PixelFormat);
-                        var sourcePtr = mapResizedSource.DataPointer;
-                        var destPtr = mapDest.Scan0;
-                        int iScaleHeight = (heightDesktop / m_iTextureScaling); // Screencapture Height
-                        int iScaleWidth  = (widthDesktop / m_iTextureScaling);  // Screencapture Width
-                        int iBytesCopy = 4;                                     // How many bytes to copy for a pixel
-
-                        /* Fix height resolution if not devideable to 2: Then we skip last line */
-                        if (iScaleHeight % 2 == 1)
-                            iScaleHeight--; 
-
-                        // Copy only every second PIXEL at the moment to reduce CPU usage 
-                        for (int y = 0; y < iScaleHeight; y+= m_iTextureScalingExtra)
+                        // Wait for a new frame; on a static screen this times out
+                        try
                         {
-                            for (int x = 0; x < iScaleWidth; x+= m_iTextureScalingExtra)
-                            {
-                                // Copy every second byte only
-                                Utilities.CopyMemory(destPtr, sourcePtr, iBytesCopy /* 4 Bytes */ );
-                                destPtr = IntPtr.Add(destPtr, 4);
-                                sourcePtr = IntPtr.Add(sourcePtr, 4 * m_iTextureScalingExtra /* 8 */); 
-                            }
-
-// Copy a single line 
-//                                Utilities.CopyMemory(destPtr, sourcePtr, iScaleWidth * 4 /* 4 Bytes */ );
-
-                            // Advance pointers | Skip next horizontal line
-                            sourcePtr = IntPtr.Add(sourcePtr, mapResizedSource.RowPitch);
-//                                destPtr = IntPtr.Add(destPtr, mapDest.Stride);
+                            duplicatedOutput.AcquireNextFrame(ACQUIRE_TIMEOUT_MS, out duplicateFrameInformation, out screenResource);
+                            bFrameAcquired = true;
+                        }
+                        catch (SharpDXException e) when (e.ResultCode.Code == SharpDX.DXGI.ResultCode.WaitTimeout.Result.Code)
+                        {
+                            return false;
                         }
 
-                        // Release source and dest locks
-                        bmpScreenshot.UnlockBits(mapDest);
-                        device.ImmediateContext.UnmapSubresource(screenTexture, 0);
+                        // Only the mouse pointer changed: the desktop image is the same as before
+                        if (duplicateFrameInformation.LastPresentTime == 0)
+                            return false;
 
-                        // Save the output
-                        //                        bitmap.Save(outputFileName);
+                        // Copy the frame to the texture with mip chain and let the GPU downscale it
+                        using (Texture2D screenTexture2D = screenResource.QueryInterface<Texture2D>())
+                            device.ImmediateContext.CopySubresourceRegion(screenTexture2D, 0, null, screenTexture, 0);
+                        device.ImmediateContext.GenerateMips(screenTextureView);
+
+                        // Read back only the small mip level
+                        device.ImmediateContext.CopySubresourceRegion(screenTexture, READBACK_MIP, null, screenStagungTexture, 0);
+                        var mapResizedSource = device.ImmediateContext.MapSubresource(screenStagungTexture, 0, MapMode.Read, MapFlags.None);
+                        bMapped = true;
+
+                        // Copy line by line: source and destination rows may be padded differently
+                        var boundsRect = new System.Drawing.Rectangle(0, 0, bmpScreenshot.Width, bmpScreenshot.Height);
+                        mapDest = bmpScreenshot.LockBits(boundsRect, ImageLockMode.WriteOnly, bmpScreenshot.PixelFormat);
+                        int iRowBytes = bmpScreenshot.Width * 4;
+                        for (int y = 0; y < bmpScreenshot.Height; y++)
+                        {
+                            Utilities.CopyMemory(IntPtr.Add(mapDest.Scan0, y * mapDest.Stride),
+                                IntPtr.Add(mapResizedSource.DataPointer, y * mapResizedSource.RowPitch), iRowBytes);
+                        }
 
                         // Capture done
                         bCaptureDone = true;
-
-                        screenResource.Dispose();
-                        duplicatedOutput.ReleaseFrame();
-
-                    }
-                    catch (SharpDXException e)
-                    {
-                        if (e.ResultCode.Code == SharpDX.DXGI.ResultCode.WaitTimeout.Result.Code)
-                        {
-                            // Ignore this err
-                            CGlobals.DebugOutput("screenhelper:GetImageFromSharpDX:SharpDXException:WaitTimeout:IgnoreRetry");
-                        }
-                        else {
-                            throw e;
-                        }
                     }
                     finally
                     {
-                        device.ImmediateContext.UnmapSubresource(screenStagungTexture, 0);
+                        if (mapDest != null)
+                            bmpScreenshot.UnlockBits(mapDest);
+                        if (bMapped)
+                            device.ImmediateContext.UnmapSubresource(screenStagungTexture, 0);
+                        if (screenResource != null)
+                            screenResource.Dispose();
+                        if (bFrameAcquired)
+                        {
+                            // Can fail after AccessLost; the frame is gone then anyway
+                            try { duplicatedOutput.ReleaseFrame(); }
+                            catch (SharpDXException) { }
+                        }
                     }
                 }
             }
