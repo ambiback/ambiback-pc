@@ -1,0 +1,51 @@
+App.config
+  s_8b11cdffaf243f::t_078cf5919e680f 70-72
+installer/AmbiBack.iss
+  s_8b11cdffaf243f::t_5fc91704ea30b0 207
+  s_8b11cdffaf243f::t_0fdf59579d6760 134-139
+  s_8b11cdffaf243f::t_dc10da0fde6b1d 1-133,140-206,208-344
+README.de.md
+  s_8b11cdffaf243f::t_8d674d0bbc5d26 42-66
+installer/build-installer.ps1
+  s_8b11cdffaf243f::t_1f4068ba6fcd54 95-96
+  s_8b11cdffaf243f::t_6bd728264cb72d 161-168
+  s_8b11cdffaf243f::t_9af3ec3d7618f5 2-81,87-90,97-99,104-107,110,116,119-120,122-126,130-132,135,140,142-143,146-147,149-150,153,160,169
+  s_3818cf0506438c::t_0510a68a055a45 1,82-86,91-94,100-103,108-109,111-115,117-118,121,127-129,133-134,136-139,141,144-145,148,151-152,154-159
+Properties/Settings.settings
+  s_8b11cdffaf243f::t_40f61ec7d35102 65-67
+Properties/Settings.Designer.cs
+  s_8b11cdffaf243f::t_ed7faa792220e1 264-275
+.github/workflows/release.yml
+  s_8b11cdffaf243f::t_404f5b5fc988a7 1-125,127-292,294-331
+  s_8b11cdffaf243f::t_1d8997fc4d8e47 126
+  s_8b11cdffaf243f::t_72459c751040bf 293
+Program.cs
+  s_8b11cdffaf243f::t_71c8c03428c6ed 49-52
+  s_8b11cdffaf243f::t_c2a8665016e7f5 109-156
+README.md
+  s_8b11cdffaf243f::t_900d1f914c096c 42-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9e1d92b8fcf372fed23bf4c2c53ef311e4767bf8",
+  "prompts": {},
+  "sessions": {
+    "s_3818cf0506438c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21292-b9ce-7b12-8713-549669b1e786",
+        "model": "gpt-6.1-terra"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    },
+    "s_8b11cdffaf243f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b1fa1100-5150-4390-837c-fef1ef740335",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
