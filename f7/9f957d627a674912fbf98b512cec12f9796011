@@ -1,0 +1,41 @@
+Localization.cs
+  s_486f8d5707266f::t_9c5f439a22431f 215-219,469-473
+  s_486f8d5707266f::t_aeca3ec85cff34 213,467
+HueSelfTest.cs
+  s_486f8d5707266f::t_511c10075010a0 49,385-390
+AmbiMonitor.Style.cs
+  s_486f8d5707266f::t_477f3ac9f86455 66
+  s_486f8d5707266f::t_93d0aadec098af 42-45,50-65,67-69
+FormStyles.cs
+  s_486f8d5707266f::t_9c5f439a22431f 111-112,123,126-141,144,149
+Program.cs
+  s_486f8d5707266f::t_aeca3ec85cff34 129-137
+AmbiBack.PC.csproj
+  s_486f8d5707266f::t_9c5f439a22431f 194
+frmConnectHue.cs
+  s_486f8d5707266f::t_9c5f439a22431f 30,60,77-80,92-115,117-158
+  s_486f8d5707266f::t_2aa1df160d85c2 116
+HueDiscovery.cs
+  s_486f8d5707266f::t_2aa1df160d85c2 31-35,42-45,49,54-58,176-200
+  s_486f8d5707266f::t_d17e34ab58daa1 1-30,36-41,46-48,50-53,59-175,201-236
+Theme.cs
+  s_486f8d5707266f::t_93d0aadec098af 194-196
+AmbiMonitor.cs
+  s_486f8d5707266f::t_93d0aadec098af 685,698
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f79f957d627a674912fbf98b512cec12f9796011",
+  "prompts": {},
+  "sessions": {
+    "s_486f8d5707266f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "584fa5f7-1b21-4403-9105-099ef4abe917",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
