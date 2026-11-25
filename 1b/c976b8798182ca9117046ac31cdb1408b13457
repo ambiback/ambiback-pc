@@ -1,0 +1,21 @@
+CDevicePhilipsHueLight.cs
+  s_486f8d5707266f::t_c6e27b7868b207 22-30
+  s_486f8d5707266f::t_74cc0aa6825bfe 420-423
+  s_486f8d5707266f::t_b08840b21778a5 503-516,519-522
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1bc976b8798182ca9117046ac31cdb1408b13457",
+  "prompts": {},
+  "sessions": {
+    "s_486f8d5707266f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "584fa5f7-1b21-4403-9105-099ef4abe917",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
