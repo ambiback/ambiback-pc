@@ -26,6 +26,7 @@ namespace AmbiBack.PhilipsHue
 
         private HueDtlsClient _dtls;
         private bool _streamingStarted;
+        private bool _lightsUsed;      // streamed at least once since the last switch off
         private byte _sequence;
         private int _backoffMs = MinBackoffMs;
         private readonly Stopwatch _sinceFailure = new Stopwatch();
@@ -83,17 +84,65 @@ namespace AmbiBack.PhilipsHue
             }
         }
 
-        /// <summary>Closes the DTLS session and ends streaming mode on the bridge.</summary>
-        public void Stop()
+        /// <summary>
+        /// Closes the DTLS session and ends streaming mode on the bridge. With turnOff the lights of the
+        /// area are switched off: the bridge keeps the last streamed color (or the state from before)
+        /// otherwise, unlike the AmbiBack controllers that go dark without data.
+        /// </summary>
+        public void Stop(bool turnOff = true)
         {
+            if (State == SessionState.Streaming && turnOff)
+                SendBlack();
             CloseDtls(true);
             StopStreamingMode();
             State = SessionState.Idle;
+            if (turnOff && _lightsUsed)
+            {
+                _lightsUsed = false;
+                TurnLightsOff();
+            }
         }
 
         public void Dispose()
         {
             Stop();
+        }
+
+        /// <summary>A few black frames so the lights go dark at once, before the session ends.</summary>
+        private void SendBlack()
+        {
+            EntertainmentArea area = Area;
+            if (area == null)
+                return;
+            int n = Math.Min(area.Channels.Count, HueStreamMessage.MaxChannels);
+            byte[] ids = new byte[n];
+            for (int i = 0; i < n; i++)
+                ids[i] = area.Channels[i].ID;
+            ushort[] black = new ushort[n * 3];
+            for (int i = 0; i < 3 && State == SessionState.Streaming; i++)
+            {
+                Send(ids, black, n);
+                Thread.Sleep(20);
+            }
+        }
+
+        private void TurnLightsOff()
+        {
+            EntertainmentArea area = Area;
+            if (area == null)
+                return;
+            foreach (string light in area.LightServices)
+            {
+                try
+                {
+                    HueClipV2.SetLightOn(light, false);
+                }
+                catch (Exception ex)
+                {
+                    Log("switching light off failed: " + ex.Message);
+                }
+            }
+            Log("lights of \"" + area.Name + "\" switched off");
         }
 
         private bool Connect()
@@ -109,6 +158,11 @@ namespace AmbiBack.PhilipsHue
                 Area = HueClipV2.GetEntertainmentArea(_configId);
                 AreaLoaded?.Invoke(Area);
 
+                // Lights switched off (e.g. by our own Stop) do not light up from streaming alone
+                if (!_lightsUsed)
+                    foreach (string light in Area.LightServices)
+                        HueClipV2.SetLightOn(light, true);
+
                 HueClipV2.SetStreaming(_configId, true);
                 _streamingStarted = true;
 
@@ -120,6 +174,7 @@ namespace AmbiBack.PhilipsHue
                 _dtls.Connect(HandshakeTimeoutMs);
 
                 State = SessionState.Streaming;
+                _lightsUsed = true;
                 LastError = null;
                 _backoffMs = MinBackoffMs;
                 _healthFailed = false;

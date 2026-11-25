@@ -989,6 +989,21 @@ namespace AmbiBack
                 myAmbiScreen.screenHelper.AbortThread();
             }
 
+            // Hue entertainment areas: end streaming and switch the lights off before the process ends
+            // (the bridge does not do this by itself). All in parallel, at most 6 seconds.
+            var hueAreas = new List<CDeviceHueEntertainment>();
+            foreach (CDevice myDevice in CGlobals.mainConfig.Devices.GetDeviceList())
+            {
+                if (myDevice is CDeviceHueEntertainment hueArea && hueArea.IsThreadRunningSafe())
+                {
+                    hueArea.RequestShutdown();
+                    hueAreas.Add(hueArea);
+                }
+            }
+            Stopwatch hueWait = Stopwatch.StartNew();
+            foreach (CDeviceHueEntertainment hueArea in hueAreas)
+                hueArea.WaitForShutdown(6000 - (int)hueWait.ElapsedMilliseconds);
+
             // Stop Device Threads!
             foreach (CDevice myDevice in CGlobals.mainConfig.Devices.GetDeviceList())
             {

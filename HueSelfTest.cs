@@ -213,6 +213,14 @@ namespace AmbiBack.PhilipsHue
                         }
                         session.Send(ids, rgb, n);
                         frames++;
+                        if (frames == 50)
+                        {
+                            foreach (string light in session.Area.LightServices)
+                            {
+                                bool? on = (bool?)HueClipV2.Send("GET", "/clip/v2/resource/light/" + light, null)["data"]?[0]?["on"]?["on"];
+                                output("      while streaming: light " + light.Substring(0, 8) + "… on = " + on);
+                            }
+                        }
                         Thread.Sleep(20);
                     }
                     output(string.Format("PASS  {0} frames in {1} s ({2:0.0} fps), state {3}", frames, seconds, frames / (double)seconds, session.State));
@@ -222,6 +230,11 @@ namespace AmbiBack.PhilipsHue
                 }
                 Thread.Sleep(500);
                 output("PASS  stopped, bridge status now: " + HueClipV2.GetEntertainmentArea(area.ID).Status);
+                foreach (string light in HueClipV2.GetEntertainmentArea(area.ID).LightServices)
+                {
+                    bool? on = (bool?)HueClipV2.Send("GET", "/clip/v2/resource/light/" + light, null)["data"]?[0]?["on"]?["on"];
+                    output((on == false ? "PASS" : "FAIL") + "  light " + light.Substring(0, 8) + "… on = " + on);
+                }
                 return true;
             }
             catch (Exception ex)

@@ -293,6 +293,23 @@ namespace AmbiBack
             }
         }
 
+        /// <summary>
+        /// Ends the thread and waits until the session is closed and the lights are off (app exit).
+        /// The normal AbortThread waits only 100 ms and the process is killed right after.
+        /// </summary>
+        public void RequestShutdown()
+        {
+            this.SetSleepThread(false);
+            this.SetAbortThread(true);
+        }
+
+        /// <summary>Waits for the thread after <see cref="RequestShutdown"/>; false on timeout.</summary>
+        public bool WaitForShutdown(int timeoutMs)
+        {
+            Thread t = myThread;
+            return t == null || !t.IsAlive || t.Join(Math.Max(0, timeoutMs));
+        }
+
         /// <summary>Recalculate the scan regions on the next frame (after the region size changed).</summary>
         public void RecalculateScanAreas()
         {

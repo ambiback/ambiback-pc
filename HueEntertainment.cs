@@ -77,6 +77,8 @@ namespace AmbiBack.PhilipsHue
         /// <summary>Resource id of the application that streams, when active.</summary>
         public string ActiveStreamer { get; set; }
         public List<EntertainmentChannel> Channels { get; } = new List<EntertainmentChannel>();
+        /// <summary>Light resource ids of the area (to switch them off after streaming).</summary>
+        public List<string> LightServices { get; } = new List<string>();
 
         public bool IsActive { get { return string.Equals(Status, "active", StringComparison.OrdinalIgnoreCase); } }
 
@@ -95,6 +97,10 @@ namespace AmbiBack.PhilipsHue
                 Status = (string)item["status"],
                 ActiveStreamer = (string)item["active_streamer"]?["rid"],
             };
+            if (item["light_services"] is JArray lights)
+                foreach (JToken l in lights)
+                    if ((string)l["rid"] != null)
+                        area.LightServices.Add((string)l["rid"]);
             if (item["channels"] is JArray channels)
             {
                 foreach (JToken ch in channels)
@@ -204,6 +210,13 @@ namespace AmbiBack.PhilipsHue
             if (string.IsNullOrEmpty(id))
                 throw new HueException(0, "Hue bridge did not return the new entertainment area.");
             return id;
+        }
+
+        /// <summary>Switches a light (CLIP v2 light resource id) on or off.</summary>
+        public static void SetLightOn(string lightId, bool on)
+        {
+            JObject body = new JObject { ["on"] = new JObject { ["on"] = on } };
+            Send("PUT", "/clip/v2/resource/light/" + Uri.EscapeDataString(lightId), body.ToString(Newtonsoft.Json.Formatting.None));
         }
 
         /// <summary>Starts (true) or stops (false) streaming mode of the area.</summary>
