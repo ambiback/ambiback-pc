@@ -1,0 +1,40 @@
+FormStyles.cs
+  s_486f8d5707266f::t_70f03c14a42787 109,204-208
+Localization.cs
+  s_486f8d5707266f::t_ee576df1c1193e 232-253,470-491
+CDevicesController.cs
+  s_486f8d5707266f::t_432875dea30b2a 169-172
+HueClient.cs
+  s_486f8d5707266f::t_432875dea30b2a 142-147
+HueSelfTest.cs
+  s_486f8d5707266f::t_647e6510572fb6 385
+  s_486f8d5707266f::t_2e170e67811d87 46-47,359-384,386-405
+HueEntertainment.cs
+  s_486f8d5707266f::t_8fb34c1aa7b7e0 143-208
+  s_486f8d5707266f::t_6d7f056fbeb2c2 55-68
+AmbiBack.PC.csproj
+  s_486f8d5707266f::t_70f03c14a42787 101-103
+Program.cs
+  s_486f8d5707266f::t_2e170e67811d87 129-132
+frmHueCreateArea.cs
+  s_486f8d5707266f::t_70f03c14a42787 53
+  s_486f8d5707266f::t_bd81c1b8584bcc 1-52,54-252
+frmConnectHue.cs
+  s_486f8d5707266f::t_70f03c14a42787 118,122,146,189-210
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "76e0e683f4eef1bf9592e61d2a1a1d454e0fc6ee",
+  "prompts": {},
+  "sessions": {
+    "s_486f8d5707266f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "584fa5f7-1b21-4403-9105-099ef4abe917",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
