@@ -61,19 +61,59 @@ namespace AmbiBack
             this.Close();
         }
 
+        private bool webViewReady;
+
         private void cbVideoList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // Set WebPage Content
-            webBrowser.DocumentText = string.Format("<html><head><title></title></head><body>{0}</body></html>",
-                "<iframe width=\"100%\" height=\"100%\" " +
-                "   src=\"https://www.youtube.com/embed/videoseries?list=" + VIDEOLISTIDS[cbVideoList.SelectedIndex] + "\" " +
-                "   frameborder=\"0\" allow=\"accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>");
+            // Navigates once the WebView2 is ready (see frmWeb_Shown)
+            if (webViewReady && cbVideoList.SelectedIndex >= 0)
+                webBrowser.CoreWebView2.Navigate(WebViewHost.PlaylistUrl(VIDEOLISTIDS[cbVideoList.SelectedIndex]));
         }
 
-        private void frmWeb_Shown(object sender, EventArgs e)
+        private async void frmWeb_Shown(object sender, EventArgs e)
         {
-            // Trigger load
-            cbVideoList_SelectedIndexChanged(sender, e);
+            string listId = VIDEOLISTIDS[Math.Max(0, cbVideoList.SelectedIndex)];
+            if (WebViewHost.RuntimeVersion == null)
+            {
+                // No Edge WebView2 runtime: open the playlist in the default browser instead
+                OpenInBrowser("https://www.youtube.com/playlist?list=" + listId);
+                Close();
+                return;
+            }
+            try
+            {
+                await WebViewHost.InitAsync(webBrowser);
+                WebViewHost.MapPlayerPage(webBrowser);
+                // A video in full screen covers the whole window, including the buttons
+                webBrowser.CoreWebView2.ContainsFullScreenElementChanged += (s, a) =>
+                {
+                    if (webBrowser.CoreWebView2.ContainsFullScreenElement)
+                    {
+                        webBrowser.Dock = DockStyle.Fill;
+                        webBrowser.BringToFront();
+                    }
+                    else
+                    {
+                        webBrowser.Dock = DockStyle.None;
+                        webBrowser.SetBounds(0, 0, ClientSize.Width, ClientSize.Height);
+                        webBrowser.SendToBack();
+                    }
+                };
+                webViewReady = true;
+                cbVideoList_SelectedIndexChanged(sender, e);
+            }
+            catch (Exception ex)
+            {
+                CGlobals.DebugOutput(ex);
+                OpenInBrowser("https://www.youtube.com/playlist?list=" + listId);
+                Close();
+            }
+        }
+
+        private static void OpenInBrowser(string url)
+        {
+            try { System.Diagnostics.Process.Start(url); }
+            catch (Exception ex) { CGlobals.DebugOutput(ex); }
         }
         
     }
