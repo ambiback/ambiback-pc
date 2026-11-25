@@ -624,7 +624,8 @@ namespace AmbiBack
             if (myThread == null)
             {
                 myThread = new Thread(new ThreadStart(HandleThread));
-                myThread.Priority = ThreadPriority.Lowest;
+                // Lowest starved the device threads under game load
+                myThread.Priority = ThreadPriority.BelowNormal;
 
                 // Set ThreadName here
                 myThread.Name = "DeviceHelper";
