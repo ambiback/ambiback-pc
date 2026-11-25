@@ -258,7 +258,7 @@ namespace AmbiBack
             foreach (ListViewItem item in lvAreas.Items)
             {
                 EntertainmentArea area = (EntertainmentArea)item.Tag;
-                CDeviceHueEntertainment device = CGlobals.deviceController.FindHueEntertainmentDevice(area.ID);
+                CDeviceHueEntertainment device = CGlobals.deviceController?.FindHueEntertainmentDevice(area.ID);
                 string text = device == null ? ""
                     : device.IsThreadRunningSafe() && !string.IsNullOrEmpty(device.StreamStatus) ? device.StreamStatus
                     : L.T("hue_area_added");

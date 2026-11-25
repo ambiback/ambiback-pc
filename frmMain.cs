@@ -345,7 +345,26 @@ namespace AmbiBack
             }
         }
 
+        /// <summary>
+        /// While items are added or updated: the list view reports their checkboxes as unchecked first,
+        /// which must not remove Hue lights from the PC group.
+        /// </summary>
+        private int listUpdating;
+
         private ListViewItem AddDeviceToListView(CDevice myDevice)
+        {
+            listUpdating++;
+            try
+            {
+                return AddDeviceToListViewCore(myDevice);
+            }
+            finally
+            {
+                listUpdating--;
+            }
+        }
+
+        private ListViewItem AddDeviceToListViewCore(CDevice myDevice)
         {
             // Define DeviceID
             string szDeviceId = myDevice.GetDeviceID();
@@ -469,9 +488,9 @@ namespace AmbiBack
                     deviceListItem.SubItems.Add(philipsHueLightDevice.GetDeviceName());
                     deviceListItem.SubItems.Add(philipsHueLightDevice.HueUniqueID);
                     deviceListItem.SubItems.Add(L.T("st_offline"));
+                    deviceListItem.Checked = philipsHueLightDevice.InGroup;
 
                     LVDevices.Items.Add(deviceListItem);
-                    deviceListItem.Checked = philipsHueLightDevice.InGroup;
                 }
             }
             else if (myDevice is CDeviceHueEntertainment hueArea)
@@ -1821,6 +1840,13 @@ namespace AmbiBack
             // Single Hue lights: the checkbox is the membership in the PC group, which streams them
             if (e.Item.Tag is CDevicePhilipsHueLight hueLight)
             {
+                if (listUpdating > 0)
+                {
+                    // Not a click: keep the stored membership and show it
+                    if (e.Item.Checked != hueLight.InGroup)
+                        BeginInvoke((Action)(() => { if (!IsDisposed && e.Item.ListView != null) e.Item.Checked = hueLight.InGroup; }));
+                    return;
+                }
                 if (hueLight.InGroup != e.Item.Checked)
                 {
                     hueLight.InGroup = e.Item.Checked;
