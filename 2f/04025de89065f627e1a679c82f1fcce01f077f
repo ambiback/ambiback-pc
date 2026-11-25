@@ -1,0 +1,28 @@
+CDevice.cs
+  s_a59843c0379039::t_da9bb34959166d 627-628
+AmbiBack.PC.csproj
+  s_a59843c0379039::t_04b8211d0010b9 126
+CScreenHelper.cs
+  s_a59843c0379039::t_da9bb34959166d 318-320,361-363,365-368,436-437
+FramePacer.cs
+  s_a59843c0379039::t_7677fc17301b22 1-69
+CDeviceAmbiBack.cs
+  s_a59843c0379039::t_50921f72f25ec9 27-43,737-756,759-763,765,786-787
+  s_a59843c0379039::t_da9bb34959166d 378-379,410-412
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2f04025de89065f627e1a679c82f1fcce01f077f",
+  "prompts": {},
+  "sessions": {
+    "s_a59843c0379039": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1919d5b9-18dc-41a9-86c2-cd5f4f3802e7",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
