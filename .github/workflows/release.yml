@@ -1,8 +1,9 @@
 name: Release
 
-# Pushing a tag like v1.2.3 builds AmbiBack PC, runs the Hue self test and creates a draft
+# Pushing a tag like v1.2.3 builds AmbiBack PC, runs the Hue self test and publishes a
 # GitHub release with the setup and the portable ZIP. Tags with a hyphen (v1.2.3-beta1)
-# become prereleases. The release is published by hand on GitHub after checking it.
+# become prereleases. If a release for the tag already exists (tag pushed again), its text
+# and files are replaced; leftover drafts for the tag are deleted.
 
 on:
   push:
@@ -316,13 +317,40 @@ jobs:
             fs.mkdirSync('notes', { recursive: true });
             fs.writeFileSync(path.join('notes', 'release-notes.md'), body);
 
-      - name: Create draft GitHub release
+      - name: Remove drafts and previous files for this tag
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $repo = "${{ github.repository }}"
+          $json = gh api "repos/$repo/releases?per_page=100" --paginate --slurp
+          if ($LASTEXITCODE -ne 0) { throw "Listing releases failed with exit code $LASTEXITCODE." }
+          $releases = @(($json | ConvertFrom-Json) | ForEach-Object { $_ }) | Where-Object { $_.tag_name -eq $tag }
+          foreach ($release in $releases) {
+            if ($release.draft) {
+              Write-Host "Deleting draft release $($release.id) for $tag"
+              gh api -X DELETE "repos/$repo/releases/$($release.id)"
+              if ($LASTEXITCODE -ne 0) { throw "Deleting draft $($release.id) failed." }
+              continue
+            }
+            foreach ($asset in $release.assets) {
+              if ($asset.name -match '^AmbiBack-PC-.+\.(exe|zip)$') {
+                Write-Host "Removing previous release file $($asset.name)"
+                gh api -X DELETE "repos/$repo/releases/assets/$($asset.id)"
+                if ($LASTEXITCODE -ne 0) { throw "Deleting asset $($asset.name) failed." }
+              }
+            }
+          }
+          if (-not $releases) { Write-Host "No existing release for $tag." }
+
+      - name: Publish GitHub release
         uses: softprops/action-gh-release@v3
         with:
           name: AmbiBack PC ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           body_path: notes/release-notes.md
-          draft: true
+          draft: false
           prerelease: ${{ steps.vars.outputs.prerelease == 'true' }}
           overwrite_files: true
           fail_on_unmatched_files: true

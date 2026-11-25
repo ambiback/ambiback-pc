@@ -58,8 +58,8 @@ The setup installs for the current user without administrator rights (`%LOCALAPP
 ## Releases
 
 1. Push a tag: `git tag v1.2.0` and `git push origin v1.2.0`. A hyphen makes a prerelease (`v1.2.0-beta1`).
-2. The workflow `.github/workflows/release.yml` builds with version `1.2.0.<run number>`, runs the self test and creates a **draft** release with `AmbiBack-PC-<version>-setup.exe` and `AmbiBack-PC-<version>.zip`. The self test report and the files are also kept as a workflow artifact.
-3. Check the draft on GitHub and publish it.
+2. The workflow `.github/workflows/release.yml` builds with version `1.2.0.<run number>`, runs the self test and publishes the release with `AmbiBack-PC-<version>-setup.exe` and `AmbiBack-PC-<version>.zip`. The self test report and the files are also kept as a workflow artifact.
+3. When a tag is pushed again (e.g. after `git tag -f v1.2.0` and `git push -f origin v1.2.0`), the workflow replaces text and files of the existing release; leftover drafts for the tag are deleted.
 
 The release text (German and English) contains downloads, requirements and a changelog. Optional repository secrets:
 
