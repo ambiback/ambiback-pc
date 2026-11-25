@@ -12,6 +12,8 @@ AmbiBack PC computes the color of every LED itself and sends the finished values
 
 **By hand:** click **Add** and enter the IP address or host name (e.g. `wled-tv.local`).
 
+![Add a WLED device](../images/wled_add_en.png)
+
 - With *Detect the device type automatically* ticked, AmbiBack asks the address for WLED (`/json/info`) and adds it as WLED if it answers.
 - For a DDP receiver that is not WLED, untick it and choose **WLED / DDP** as device type.
 
@@ -24,6 +26,8 @@ The layout works like for an [AmbiBack controller](ambiback-devices.md#set-up-th
 1. Click **Use** on the monitor card and tick the WLED device in the device list.
 2. Select the device. On the monitor card set the number of LEDs **vertical** (one side) and **horizontal** (top or bottom), and the start corner and direction.
 3. Click **Start**.
+
+![WLED device with its LED layout on the monitor card](../images/wled_main_en.png)
 
 For a WLED found on the network AmbiBack suggests a layout from its LED count, split for a 16:9 screen. Check it against your strip: the count per side must match the LEDs that really sit on that side. The layout covers at most 120 LEDs horizontal and 60 vertical.
 
