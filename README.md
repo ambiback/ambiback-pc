@@ -51,6 +51,10 @@ Without `-Version` the version from `Properties\AssemblyInfo.cs` is used. Output
 
 The setup installs for the current user without administrator rights (`%LOCALAPPDATA%\Programs\AmbiBack`) or, if chosen, for all users. It installs the .NET Framework (4.8.1, or 4.8 on older Windows) and the WebView2 Runtime when they are missing; the WebView2 bootstrapper is in `installer\redist\`.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request to `main`, on pushes to `main` and by hand. It runs `build-installer.ps1` without signing (warning-free build, Hue self test, setup and ZIP) and keeps setup, ZIP and test report as a workflow artifact for 14 days.
+
 ## Releases
 
 1. Push a tag: `git tag v1.2.0` and `git push origin v1.2.0`. A hyphen makes a prerelease (`v1.2.0-beta1`).

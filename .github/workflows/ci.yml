@@ -1,0 +1,55 @@
+name: CI
+
+# Builds AmbiBack PC the same way as a release, without signing: warning-free release build,
+# Hue self test, setup and portable ZIP. Setup, ZIP and test report are kept as an artifact.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") |
+            Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) {
+            choco install innosetup -y --no-progress
+            if ($LASTEXITCODE -ne 0) { throw "Inno Setup install failed with exit code $LASTEXITCODE." }
+          }
+
+      # Version from Properties/AssemblyInfo.cs, fourth part = run number
+      - name: Build, self test and package
+        id: build
+        shell: pwsh
+        run: |
+          ./installer/build-installer.ps1 `
+            -BuildNumber $env:GITHUB_RUN_NUMBER `
+            -OutRoot (Join-Path $env:RUNNER_TEMP 'build')
+
+      - name: Upload self test report and packages
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ambiback-pc-ci-${{ github.run_number }}
+          path: |
+            ${{ runner.temp }}/build/hue-selftest.txt
+            ${{ runner.temp }}/build/dist/*
+          if-no-files-found: warn
+          retention-days: 14
