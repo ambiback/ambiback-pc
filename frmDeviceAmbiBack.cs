@@ -27,18 +27,25 @@ namespace AmbiBack
         {
             txtName.Text = abDevice.GetDeviceName();
             txtIpAddress.Text = abDevice.GetIPAddress().ToString();
+            NavigateToDevice();
+        }
 
+        /// <summary>Open the device's web page (http://address) in the current view.</summary>
+        private void NavigateToDevice()
+        {
             try
             {
-                // Init WebBrowser
-                if (WebViewObj != null)
+                var uri = new Uri("http://" + txtIpAddress.Text);
+                var edge = WebViewObj as Microsoft.Web.WebView2.WinForms.WebView2;
+                if (edge != null)
                 {
-                    if (WebViewObj.GetType().ToString() == "System.Windows.Forms.WebBrowser") {
-                        WebBrowser WebView = (WebBrowser)(this.WebViewObj);
-                        WebView.Navigate(new Uri("http://" + txtIpAddress.Text));
-                    }
+                    if (edge.CoreWebView2 != null)
+                        edge.CoreWebView2.Navigate(uri.ToString());
+                    else
+                        edge.Source = uri;   // navigates once the view is initialized
                 }
-                // webView.Source = new Uri("http://" + txtIpAddress.Text);
+                else if (WebViewObj is WebBrowser)
+                    ((WebBrowser)WebViewObj).Navigate(uri);
             }
             catch (Exception ex)
             {
@@ -46,55 +53,53 @@ namespace AmbiBack
             }
         }
 
-        private void frmDeviceAmbiBack_Load(object sender, EventArgs e)
+        private async void frmDeviceAmbiBack_Load(object sender, EventArgs e)
         {
-            // Try to create WebControl
+            this.Height = Screen.PrimaryScreen.WorkingArea.Height;
+            this.Top = 0;
+
+            Control view = null;
             try
             {
-                this.WebViewObj = new System.Windows.Forms.WebBrowser();
-                WebBrowser WebView = (WebBrowser)(this.WebViewObj);
-                // Basic properties
-                WebView.Dock = System.Windows.Forms.DockStyle.Fill;
-                WebView.Location = new System.Drawing.Point(0, 25);
-                WebView.MinimumSize = new System.Drawing.Size(20, 20);
-                WebView.Size = new System.Drawing.Size(640, 480);
-                WebView.Name = "WebView";
-
-                this.Controls.Add((Control)WebViewObj);
-
-                // Advanced properties
-                WebView.BringToFront();
-                WebView.ScriptErrorsSuppressed = true;
+                if (WebViewHost.RuntimeVersion != null)
+                {
+                    // Edge WebView2 (Chromium)
+                    var edge = new Microsoft.Web.WebView2.WinForms.WebView2 { Name = "WebView", Dock = DockStyle.Fill };
+                    this.WebViewObj = view = edge;
+                    this.Controls.Add(edge);
+                    edge.BringToFront();
+                    await WebViewHost.InitAsync(edge);
+                }
             }
             catch (Exception ex)
             {
                 CGlobals.DebugOutput(ex);
+                if (view != null) { this.Controls.Remove(view); view.Dispose(); view = null; }
             }
 
-            if (abDevice != null)
-                LoadSettingsFromDevice();
+            if (view == null)
+            {
+                // No WebView2 runtime: the old Internet Explorer control as fallback
+                try
+                {
+                    var ie = new WebBrowser { Name = "WebView", Dock = DockStyle.Fill, ScriptErrorsSuppressed = true };
+                    this.WebViewObj = ie;
+                    this.Controls.Add(ie);
+                    ie.BringToFront();
+                }
+                catch (Exception ex)
+                {
+                    CGlobals.DebugOutput(ex);
+                }
+            }
 
-            this.Height = Screen.PrimaryScreen.WorkingArea.Height;
-            this.Top = 0; 
+            if (abDevice != null && !IsDisposed)
+                LoadSettingsFromDevice();
         }
 
         private void cmdReload_Click(object sender, EventArgs e)
         {
-            try
-            {
-                if (WebViewObj != null)
-                {
-                    if (WebViewObj.GetType().ToString() == "System.Windows.Forms.WebBrowser")
-                    {
-                        WebBrowser WebView = (WebBrowser)(this.WebViewObj);
-                        WebView.Navigate(new Uri("http://" + txtIpAddress.Text));
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                CGlobals.DebugOutput(ex);
-            }
+            NavigateToDevice();
         }
 
         private void cmdClose_Click(object sender, EventArgs e)

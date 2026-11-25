@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.webBrowser = new System.Windows.Forms.WebBrowser();
+            this.webBrowser = new Microsoft.Web.WebView2.WinForms.WebView2();
             this.cmdClose = new System.Windows.Forms.Button();
             this.cmdCloseTop = new System.Windows.Forms.Button();
             this.cbVideoList = new System.Windows.Forms.ComboBox();
@@ -40,7 +40,7 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.webBrowser.Location = new System.Drawing.Point(0, 0);
-            this.webBrowser.MinimumSize = new System.Drawing.Size(20, 20);
+            this.webBrowser.DefaultBackgroundColor = System.Drawing.Color.Black;
             this.webBrowser.Name = "webBrowser";
             this.webBrowser.Size = new System.Drawing.Size(800, 450);
             this.webBrowser.TabIndex = 0;
@@ -104,7 +104,7 @@
 
         #endregion
 
-        private System.Windows.Forms.WebBrowser webBrowser;
+        private Microsoft.Web.WebView2.WinForms.WebView2 webBrowser;
         private System.Windows.Forms.Button cmdClose;
         private System.Windows.Forms.Button cmdCloseTop;
         private System.Windows.Forms.ComboBox cbVideoList;
