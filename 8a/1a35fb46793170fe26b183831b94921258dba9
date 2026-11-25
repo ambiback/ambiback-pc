@@ -1,0 +1,22 @@
+docs/de/wled.md
+  s_997c07f5a28628::t_141edac2dc03cc 15-16,28-30
+docs/en/wled.md
+  s_997c07f5a28628::t_141edac2dc03cc 15-16,30
+  s_997c07f5a28628::t_b9c6b649b5cd63 31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8a1a35fb46793170fe26b183831b94921258dba9",
+  "prompts": {},
+  "sessions": {
+    "s_997c07f5a28628": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "acceca07-2c2b-4a31-b332-385685d6f272",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
