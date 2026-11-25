@@ -34,11 +34,6 @@ namespace AmbiBack
 
     public partial class frmMain : Form
     {
-        #region Language helpers
-        // Create Form Resource manager
-        ComponentResourceManager myResources = new ComponentResourceManager(typeof(frmMain));
-        #endregion
-
         // Main ScreenHelper
         public CScreenHelper screenHelperMain = null;
         public AmbiMonitor selectedAmbiScreen = null;
@@ -122,6 +117,7 @@ namespace AmbiBack
         public frmMain()
         {
             InitializeComponent();
+            ApplyStyle();
             RegisterForPowerNotifications(this.Handle);
         }
 
@@ -366,7 +362,7 @@ namespace AmbiBack
                     ListViewGroup newGroup = new ListViewGroup();
                     newGroup.Name = szGroupId;
                     newGroup.Tag = dreamscreenDevice.GroupNumber;
-                    newGroup.Header = "DreamScreen Group " + dreamscreenDevice.GroupNumber.ToString() + ": " + dreamscreenDevice.GroupName;
+                    newGroup.Header = L.F("ds_group_header", dreamscreenDevice.GroupNumber, dreamscreenDevice.GroupName);
 
                     LVDevices.Groups.Add(newGroup);
                 }
@@ -383,7 +379,7 @@ namespace AmbiBack
                     deviceListItem.Text = CGlobals.DEVICETYPESDISPLAYNAME[(int)dreamscreenDevice.GetDeviceType()];
                     deviceListItem.SubItems[1].Text = dreamscreenDevice.GetDeviceName();
                     deviceListItem.SubItems[2].Text = dreamscreenDevice.GetIPAddress().ToString();
-                    deviceListItem.SubItems[3].Text = "Online";
+                    deviceListItem.SubItems[3].Text = L.T("st_online");
                 }
                 else
                 {
@@ -398,7 +394,7 @@ namespace AmbiBack
                     deviceListItem.Text = CGlobals.DEVICETYPESDISPLAYNAME[(int)dreamscreenDevice.GetDeviceType()];
                     deviceListItem.SubItems.Add(dreamscreenDevice.GetDeviceName());
                     deviceListItem.SubItems.Add(dreamscreenDevice.GetIPAddress().ToString());
-                    deviceListItem.SubItems.Add("Offline");
+                    deviceListItem.SubItems.Add(L.T("st_offline"));
 
                     LVDevices.Items.Add(deviceListItem);
                 }
@@ -435,7 +431,7 @@ namespace AmbiBack
                     deviceListItem.Text = CGlobals.DEVICETYPESDISPLAYNAME[(int)nodeMcuManagerDevice.GetDeviceType()];
                     deviceListItem.SubItems.Add(nodeMcuManagerDevice.GetDeviceName());
                     deviceListItem.SubItems.Add(nodeMcuManagerDevice.GetIPAddress().ToString());
-                    deviceListItem.SubItems.Add("Offline");
+                    deviceListItem.SubItems.Add(L.T("st_offline"));
 
 
                     LVDevices.Items.Add(deviceListItem);
@@ -471,7 +467,7 @@ namespace AmbiBack
                     deviceListItem.Text = CGlobals.DEVICETYPESDISPLAYNAME[(int)philipsHueLightDevice.GetDeviceType()];
                     deviceListItem.SubItems.Add(philipsHueLightDevice.GetDeviceName());
                     deviceListItem.SubItems.Add(philipsHueLightDevice.HueUniqueID);
-                    deviceListItem.SubItems.Add("Offline");
+                    deviceListItem.SubItems.Add(L.T("st_offline"));
 
                     LVDevices.Items.Add(deviceListItem);
                 }
@@ -486,22 +482,20 @@ namespace AmbiBack
         {
             if (myDevice.IsSerial())
             {
-                // deviceListItem.StateImageIndex = (int)LVState.stopped_online;
-                deviceListItem.SubItems[3].Text = "USB (" + myDevice.szSerialPort + ")";
-                deviceListItem.BackColor = Color.LightSkyBlue;
+                deviceListItem.SubItems[3].Text = L.F("st_usb", myDevice.szSerialPort);
+                deviceListItem.SubItems[3].Tag = Theme.Accent;
             }
             else if (myDevice.IsOnline())
             {
-                // deviceListItem.StateImageIndex = (int)LVState.stopped_online;
-                deviceListItem.SubItems[3].Text = "Online";
-                deviceListItem.BackColor = Color.LightGreen;
+                deviceListItem.SubItems[3].Text = L.T("st_online");
+                deviceListItem.SubItems[3].Tag = Theme.Success;
             }
             else
             {
-                // deviceListItem.StateImageIndex = (int)LVState.stopped_offline;
-                deviceListItem.SubItems[3].Text = "Offline";
-                deviceListItem.BackColor = Color.LightGray;
+                deviceListItem.SubItems[3].Text = L.T("st_offline");
+                deviceListItem.SubItems[3].Tag = Theme.ControlBorder;
             }
+            UpdateDeviceSummary();
 
         }
         private void InitFormControls()
@@ -535,9 +529,7 @@ namespace AmbiBack
             mainAmbiScreen.Location = new System.Drawing.Point(0, 0);
             mainAmbiScreen.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
             mainAmbiScreen.Width = panScreens.Width;
-            mainAmbiScreen.SetTitel("Monitor: 0/0");
-            mainAmbiScreen.BackColor = SystemColors.Control;
-            mainAmbiScreen.BorderStyle = BorderStyle.FixedSingle;
+            mainAmbiScreen.SetTitel(L.F("mon_title", 1));
 
             // Bind events
             mainAmbiScreen.Click += new System.EventHandler(this.AmbiScreen_Click);
@@ -559,9 +551,7 @@ namespace AmbiBack
                     newAmbiScreen.Location = new System.Drawing.Point(0, (mainAmbiScreen.Height * iScreenNum));
                     newAmbiScreen.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
                     newAmbiScreen.Width = panScreens.Width;
-                    newAmbiScreen.SetTitel("Monitor: 0/" + iNum.ToString());
-                    newAmbiScreen.BackColor = SystemColors.ControlDark;
-                    newAmbiScreen.BorderStyle = BorderStyle.FixedSingle;
+                    newAmbiScreen.SetTitel(L.F("mon_title", iNum + 1));
 
                     // Bind events
                     newAmbiScreen.Click += new System.EventHandler(this.AmbiScreen_Click);
@@ -591,14 +581,12 @@ namespace AmbiBack
                     // Create Main AmbiMonitor Object
                     AmbiMonitor cardMainAmbiScreen = new AmbiMonitor(iScreen, 0);
                     cardMainAmbiScreen.Name = "AmbiScreenScreen" + iScreenNum.ToString();
-                    cardMainAmbiScreen.screenHelper = screenHelperMain;
+                    cardMainAmbiScreen.screenHelper = screenHelperCardMain;
                     // Set position and size            
-                    cardMainAmbiScreen.Location = new System.Drawing.Point(0, 0);
+                    cardMainAmbiScreen.Location = new System.Drawing.Point(0, (mainAmbiScreen.Height * iScreenNum));
                     cardMainAmbiScreen.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
                     cardMainAmbiScreen.Width = panScreens.Width;
-                    cardMainAmbiScreen.SetTitel("Monitor: " + iScreen.ToString() + "/0");
-                    cardMainAmbiScreen.BackColor = SystemColors.Control;
-                    cardMainAmbiScreen.BorderStyle = BorderStyle.FixedSingle;
+                    cardMainAmbiScreen.SetTitel(L.F("mon_title_gpu", iScreenNum + 1, iScreen + 1));
 
                     // Bind events
                     cardMainAmbiScreen.Click += new System.EventHandler(this.AmbiScreen_Click);
@@ -621,9 +609,7 @@ namespace AmbiBack
                                 newAmbiScreen.Location = new System.Drawing.Point(0, (mainAmbiScreen.Height * iScreenNum));
                                 newAmbiScreen.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
                                 newAmbiScreen.Width = panScreens.Width;
-                                newAmbiScreen.SetTitel("Monitor: " + iScreen.ToString() + "/" + iNum.ToString());
-                                newAmbiScreen.BackColor = SystemColors.ControlDark;
-                                newAmbiScreen.BorderStyle = BorderStyle.FixedSingle;
+                                newAmbiScreen.SetTitel(L.F("mon_title_gpu", iScreenNum + 1, iScreen + 1));
 
                                 // Bind events
                                 newAmbiScreen.Click += new System.EventHandler(this.AmbiScreen_Click);
@@ -707,6 +693,9 @@ namespace AmbiBack
             // Start Comport detection Timer
 // DISABLED FOR DEBUG
 //            timerComPort.Enabled = true;
+
+            LayoutMonitors();
+            UpdateDeviceSummary();
         }
 
         private void frmMain_Load(object sender, EventArgs e)
@@ -806,12 +795,12 @@ namespace AmbiBack
             {
                 if (selectedAmbiScreen != null)
                 {
-                    selectedAmbiScreen.BackColor = SystemColors.ControlDark;
+                    selectedAmbiScreen.SetSelected(false);
                 }
 
                 // Set selected AmbiScreen Object
                 selectedAmbiScreen = (AmbiMonitor)sender;
-                selectedAmbiScreen.BackColor = SystemColors.ControlLightLight;
+                selectedAmbiScreen.SetSelected(true);
                 selectedAmbiScreen.SetControlsBySelectedDevice();
 
                 // Check Devices for selection first
@@ -1027,6 +1016,11 @@ namespace AmbiBack
                 // Get new Selected Device
                 CDevice selectedDevice = (CDevice)LVDevices.SelectedItems[0].Tag;
 
+                // Deleting cannot be undone, so ask first
+                if (CGlobals.MyMessageBox(this, L.F("msg_delete_title", selectedDevice.GetDeviceName()), L.T("msg_delete_text"),
+                    false, "", MessageBoxIcon.Warning, MoreModes.None, "", "", MessageBoxButtons.YesNo) != DialogResult.OK)
+                    return;
+
                 // Unset old selected device, this will also avoid that Trackbars send data to controller
                 this.currentSelectedDevice = null;
 
@@ -1049,6 +1043,7 @@ namespace AmbiBack
 
                 // Remove From LitsView
                 LVDevices.Items.Remove(LVDevices.SelectedItems[0]);
+                UpdateDeviceSummary();
             }
         }
 
@@ -1057,14 +1052,14 @@ namespace AmbiBack
             DialogResult myResult = DialogResult.OK;
             if (Properties.Settings.Default.nWarnDelete == 1)
             {
-                myResult = CGlobals.MyMessageBox(this, myResources.GetString("szWarnDeleteDevices"),
-                    myResources.GetString("szWarnDeleteDevicesText"),
+                myResult = CGlobals.MyMessageBox(this, L.T("msg_cleanup_title"),
+                    L.T("msg_cleanup_text"),
                     true, "nWarnDelete", MessageBoxIcon.Question, MoreModes.None, "", "", MessageBoxButtons.YesNo);
             }
 
             if (myResult == DialogResult.OK)
             {
-                string szDeleted = "Deleted Devices:\r\n";
+                string szDeleted = "";
                 // Check for offline devices and delete them
                 ArrayList devicesList = CGlobals.mainConfig.Devices.GetDeviceList();
                 for (int iIndex = devicesList.Count - 1; iIndex >= 0; iIndex--)
@@ -1075,7 +1070,7 @@ namespace AmbiBack
                         CDevice myDevice = (CDevice)devicesList[iIndex];
                         if (!myDevice.CheckIsOnline())
                         {
-                            szDeleted += "\t" + myDevice.GetDeviceName() + "(" + myDevice.GetIPAddress().ToString() + ")\r\n";
+                            szDeleted += "• " + myDevice.GetDeviceName() + " (" + myDevice.GetIPAddress().ToString() + ")\r\n";
                             this.RemoveDeviceFromListView(myDevice);
                             CGlobals.mainConfig.Devices.DeleteEntry(myDevice);
                         }
@@ -1087,8 +1082,10 @@ namespace AmbiBack
                 }
 
                 // Show control message
-                CGlobals.MyMessageBox(this, "Devices Cleanup",
-                    szDeleted, false, "", MessageBoxIcon.Warning, MessageBoxButtons.OK);
+                CGlobals.MyMessageBox(this, L.T("msg_cleanup_done_title"),
+                    szDeleted.Length > 0 ? L.T("msg_cleanup_done") + "\r\n" + szDeleted : L.T("msg_cleanup_none"),
+                    false, "", MessageBoxIcon.Information, MessageBoxButtons.OK);
+                UpdateDeviceSummary();
             }
         }
 
@@ -1942,7 +1939,7 @@ namespace AmbiBack
                     foreach (Control myControl in panScreens.Controls)
                     {
                         AmbiMonitor myAmbiScreen = (AmbiMonitor)myControl;
-                        szNew += "Screen " + iNum.ToString() + ": " + (myAmbiScreen.AmbiBackRunning ? (myAmbiScreen.screenHelper != null ? myAmbiScreen.szLastStatus : "") : "Stopped") + "\r\n";
+                        szNew += L.F("mon_title", iNum) + ": " + (myAmbiScreen.AmbiBackRunning ? (myAmbiScreen.screenHelper != null ? myAmbiScreen.szLastStatus : "") : L.T("mon_idle")) + "\r\n";
                         iNum++;
                     }
                     nficon.BalloonTipIcon = ToolTipIcon.Info;
@@ -2114,7 +2111,7 @@ namespace AmbiBack
                         catch (System.UnauthorizedAccessException ex)
                         {
                             // Show Error message
-                            CGlobals.MyMessageBox(this, "Serial Connection", "SerialClient ACCESS denied on Port " + deviceAmbiBack.szSerialPort + " - DISABLE SERIAL on this Device, details: " + ex.ToString(),
+                            CGlobals.MyMessageBox(this, L.T("msg_serial_title"), L.F("msg_serial_text", deviceAmbiBack.szSerialPort, ex.Message),
                                 false, "", MessageBoxIcon.Warning, MessageBoxButtons.OK);
 
                             // Disable serial connection until next discovery!

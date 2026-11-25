@@ -17,6 +17,7 @@ namespace AmbiBack
         public frmDeviceDreamScreen()
         {
             InitializeComponent();
+            ApplyStyle();
         }
 
         private void cmdOk_Click(object sender, EventArgs e)

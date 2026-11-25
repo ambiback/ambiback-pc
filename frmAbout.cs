@@ -20,6 +20,7 @@ namespace AmbiBack
             this.labelCopyright.Text = AssemblyCopyright;
             this.labelCompanyName.Text = AssemblyCompany;
             this.textBoxDescription.Text = AssemblyDescription;
+            ApplyStyle();
         }
 
         #region Assembly Attribute Accessors

@@ -15,6 +15,7 @@ namespace AmbiBack
         public frmSplash()
         {
             InitializeComponent();
+            ApplyStyle();
         }
 
         private void frmSplash_Load(object sender, EventArgs e)

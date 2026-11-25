@@ -21,6 +21,7 @@ namespace AmbiBack
         public frmAddDevice()
         {
             InitializeComponent();
+            ApplyStyle();
         }
 
         private void cmdOK_Click(object sender, EventArgs e)
@@ -56,7 +57,7 @@ namespace AmbiBack
                     if (ipAddress == null)
                     {
                         this.Cursor = Cursors.Default;
-                        DialogResult ds = MessageBox.Show("The device '" + txtDevice.Text + "' could not be resolved to a valid network address (IP).\r\n", "AmbiBack PC",
+                        DialogResult ds = MessageBox.Show(this, L.F("add_err_resolve", txtDevice.Text), L.T("add_err_resolve_title"),
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Warning);
 
@@ -72,14 +73,14 @@ namespace AmbiBack
                         newDevice = new CDeviceAmbiBack(DeviceType.AmbiBackController, szIP);
                         newDevice.SetIPAddress(ipAddress);
                     } else {
-                        DialogResult ds = MessageBox.Show("The device '" + txtDevice.Text + "' could not be setup correctly, invalid IP address!", "AmbiBack PC",
+                        DialogResult ds = MessageBox.Show(this, L.F("add_err_ip", txtDevice.Text), L.T("add_err_ip_title"),
                             MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
                 catch (Exception ex)
                 {
                     this.Cursor = Cursors.Default;
-                    DialogResult ds = MessageBox.Show("The device '" + txtDevice.Text + "' could not be setup correctly: \r\n" + ex.Message, "AmbiBack PC",
+                    DialogResult ds = MessageBox.Show(this, L.F("add_err", txtDevice.Text, ex.Message) + "\r\n\r\n" + L.T("add_err_q"), L.T("add_err_title"),
                         MessageBoxButtons.YesNoCancel,
                         MessageBoxIcon.Question,
                         MessageBoxDefaultButton.Button2);

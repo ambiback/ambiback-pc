@@ -386,10 +386,14 @@ namespace AmbiBack
                             }
                         }
 
-                        if (this.bmpScreenCopy != null)
+                        // The monitor replaces and disposes bmpScreenCopy under bmpLock
+                        lock (CGlobals.bmpLock)
                         {
-                            // Scan Images by each Pixel for Colors
-                            this.CalcColorsRectangles(this.PixelTotalPort1, this.bmpScreenCopy, this.brPixels);
+                            if (this.bmpScreenCopy != null)
+                            {
+                                // Scan Images by each Pixel for Colors
+                                this.CalcColorsRectangles(this.PixelTotalPort1, this.bmpScreenCopy, this.brPixels);
+                            }
                         }
 
                         // Finally send calced pixels to DS!
@@ -831,14 +835,14 @@ namespace AmbiBack
                 // IO: Exception, happens on disconnect 
                 CGlobals.HandleException("SendLEDData", ex);
             }
-            catch (ObjectDisposedException ex)
+            catch (ObjectDisposedException)
             {
                 // Something is not right, close all objects
                 CloseClientTCP();
                 CloseClientUDP();
                 CloseSerial();
             }
-            catch(SocketException ex)
+            catch(SocketException)
             {
                 // Something is not right, close all objects
                 CloseClientTCP();
@@ -873,7 +877,9 @@ namespace AmbiBack
             StringBuilder builder = new StringBuilder();
             bool bCmd = false;
             bool bData = false;
+#pragma warning disable CS0219 // only read by the disabled reload check below
             bool bValid = false;
+#pragma warning restore CS0219
             string indata = "";
             if (sp.IsOpen)
             {
@@ -943,7 +949,7 @@ namespace AmbiBack
                         DoDebugOutput("SerialPort(" + this.szSerialPort + "): " + "debug: '" + (indata != null ? indata.Trim() : "") + "'\r\n");
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {   if (indata.Length == 0) {
                         indata = sp.ReadExisting();
                     }

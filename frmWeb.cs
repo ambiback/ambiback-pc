@@ -29,6 +29,7 @@ namespace AmbiBack
         public frmWeb()
         {
             InitializeComponent();
+            ApplyStyle();
         }
 
         private void frmWeb_Load(object sender, EventArgs e)

@@ -245,8 +245,8 @@ namespace AmbiBack
             {
                 // Get Screen reference
                 CScreenHelper myScreen = (CScreenHelper)sender;
-                this.lblStatus.Text = szStatus;
-                this.szLastStatus = szStatus; 
+                this.szLastStatus = szStatus;
+                this.UpdateStatusText();
             }
         }
         private void ScreenHelperReceivedScreenshot(object sender, EventArgs e, Bitmap bmpScreenshot)
@@ -264,14 +264,18 @@ namespace AmbiBack
                     {
                         lock (CGlobals.bmpLock)
                         {
-                            // Clone Image to object
+                            // Clone Image to object, free the previous frame (readers hold bmpLock)
+                            Bitmap oldScreen = this.bmpScreen;
                             this.bmpScreen = (Bitmap)bmpScreenshot.Clone();
+                            if (oldScreen != null) oldScreen.Dispose();
                             // this.bmpScreen = new Bitmap((Bitmap)bmpScreenshot, new Size(monPreview.Width, monPreview.Height)); // (Bitmap)bmpScreenshot.Clone();
 
                             // Clone Bmp Copy for each bound device
                             foreach (CDevice myDevice in m_aDevices)
                             {
+                                Bitmap oldCopy = myDevice.bmpScreenCopy;
                                 myDevice.bmpScreenCopy = (Bitmap)bmpScreenshot.Clone();
+                                if (oldCopy != null) oldCopy.Dispose();
                                 // myDevice.bmpScreenCopy = new Bitmap((Bitmap)bmpScreenshot, new Size(CGlobals.SCREENSHOT_WIDTH, CGlobals.SCREENSHOT_HEIGHT));
                             }
                         }
@@ -280,20 +284,23 @@ namespace AmbiBack
                         long lCurrentTimeTicks = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
                         if (lCurrentTimeTicks > (this.lScreenLastUpdate + 100))
                         {
-                            // Blur Image if not selected
-                            if (CGlobals.mainForm.selectedAmbiScreen != null &&
-                                CGlobals.mainForm.selectedAmbiScreen.Name != this.Name)
+                            lock (CGlobals.bmpLock)
                             {
-                                BitmapFilter.Brightness(bmpScreen, 160);
-//                                Graphics gForm = this.CreateGraphics();
-//                                ControlPaint.DrawGrid(gForm, new Rectangle(0, 0, this.Width, this.Height), new Size(2, 2), this.BackColor);
-                            }
+                                // Blur Image if not selected
+                                if (CGlobals.mainForm.selectedAmbiScreen != null &&
+                                    CGlobals.mainForm.selectedAmbiScreen.Name != this.Name)
+                                {
+                                    BitmapFilter.Brightness(bmpScreen, 160);
+                                }
 
-                            // Draw Preview Screen - NOW IN this thread!
-                            Graphics g = (tblSectors.Visible ? tblSectors.CreateGraphics() : monPreview.CreateGraphics());
-                            g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
-                            // Draw on PB Box
-                            g.DrawImage(bmpScreen, 0, 0, monPreview.Width, monPreview.Height);
+                                // Draw Preview Screen - NOW IN this thread! The Graphics must be disposed every frame.
+                                using (Graphics g = (tblSectors.Visible ? tblSectors.CreateGraphics() : monPreview.CreateGraphics()))
+                                {
+                                    g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
+                                    // Draw on PB Box
+                                    g.DrawImage(bmpScreen, 0, 0, monPreview.Width, monPreview.Height);
+                                }
+                            }
 
 /*                            // Use threading callback for other Form stuff
                             ScreenHelperReceivedScreenshotCallback myCallBack = new ScreenHelperReceivedScreenshotCallback(ScreenHelperReceivedScreenshot);
@@ -338,6 +345,7 @@ namespace AmbiBack
             lScreenLastUpdate = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
 
             InitializeComponent();
+            ApplyStyle();
         }
 
         #region User Control Functions
@@ -591,6 +599,7 @@ namespace AmbiBack
                 
                 // Set AmbiBack State to running
                 this.AmbiBackRunning = true;
+                this.UpdateStatusText();
 
                 // --- Start Device Thread(s)
                 foreach (CDevice myDevice in m_aDevices)
@@ -631,6 +640,7 @@ namespace AmbiBack
 
                 // Set AmbiBack State to stopped
                 this.AmbiBackRunning = false;
+                this.UpdateStatusText();
 
                 // --- Start Device Thread(s)
                 foreach (CDevice myDevice in m_aDevices)
@@ -756,8 +766,12 @@ namespace AmbiBack
                     long lCurrentTimeTicks = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
                     if (lCurrentTimeTicks > (this.lScreenLastUpdate + 1000))
                     {
-                        // Draw image again
-                        e.Graphics.DrawImage(bmpScreen, monPreview.Left, monPreview.Top, monPreview.Width, monPreview.Height);
+                        // Draw image again (the capture thread replaces and disposes bmpScreen under bmpLock)
+                        lock (CGlobals.bmpLock)
+                        {
+                            if (bmpScreen != null)
+                                e.Graphics.DrawImage(bmpScreen, monPreview.Left, monPreview.Top, monPreview.Width, monPreview.Height);
+                        }
                         // Set new Last Update
                         this.lScreenLastUpdate = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
                     }

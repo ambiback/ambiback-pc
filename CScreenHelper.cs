@@ -351,7 +351,7 @@ namespace AmbiBack
                                 {
                                     CGlobals.DebugOutput("Screenshot FPS: " + iImagesPerSec + "(" + CGlobals.SCREENSHOT_MAX_FPS + ")");
                                     if (UpdateStatus != null)
-                                        UpdateStatus(this, null, "Capture FPS: " + iImagesPerSec + "(" + CGlobals.SCREENSHOT_MAX_FPS + ")");
+                                        UpdateStatus(this, null, L.F("mon_fps_max", iImagesPerSec, CGlobals.SCREENSHOT_MAX_FPS));
                                 }
 
                                     // Reset variables
@@ -369,7 +369,7 @@ namespace AmbiBack
                             else
                             {
                                 if (UpdateStatus != null)
-                                    UpdateStatus(this, null, "Capture FPS: " + iImagesPerSec);
+                                    UpdateStatus(this, null, L.F("mon_fps", iImagesPerSec));
 
                                 iLastSecond = DateTime.Now.Second;
                                 iImagesPerSec = 0;

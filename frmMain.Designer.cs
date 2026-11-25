@@ -105,7 +105,7 @@
             this.txtDebugSyslogPort = new System.Windows.Forms.TextBox();
             this.txtDebugSyslogServer = new System.Windows.Forms.TextBox();
             this.tabDebug = new System.Windows.Forms.TabPage();
-            this.gbDebug = new System.Windows.Forms.GroupBox();
+            this.gbDebug = new AmbiBack.CardGroupBox();
             this.chkShowDebugMessages = new System.Windows.Forms.CheckBox();
             this.cmdGetInfo = new System.Windows.Forms.Button();
             this.cmdReboot = new System.Windows.Forms.Button();
@@ -1281,7 +1281,7 @@
         private System.Windows.Forms.ToolStripButton btnCleanup;
         private System.Windows.Forms.Panel panScreens;
         private System.Windows.Forms.TabPage tabDebug;
-        private System.Windows.Forms.GroupBox gbDebug;
+        private AmbiBack.CardGroupBox gbDebug;
         private System.Windows.Forms.TextBox txtDebug;
         private System.Windows.Forms.Splitter splitMain;
         private System.Windows.Forms.ToolStripContainer tsConMain;

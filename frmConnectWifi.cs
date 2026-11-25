@@ -27,6 +27,7 @@ namespace AmbiBack
         public frmConnectWifi()
         {
             InitializeComponent();
+            ApplyStyle();
         }
 
         private void cmdOK_Click(object sender, EventArgs e)
@@ -61,7 +62,7 @@ namespace AmbiBack
                             // Give time to process DATA!
                             Thread.Sleep(2000);
 
-                            DialogResult ds = MessageBox.Show("Successfully send Wifi network data to device '" + myDevice.GetDeviceName() + "'.\r\n", "AmbiBack PC",
+                            DialogResult ds = MessageBox.Show(this, L.F("wifi_ok", myDevice.GetDeviceName()), L.T("wifi_ok_title"),
                                 MessageBoxButtons.OK,
                                 MessageBoxIcon.Information);
                         }
@@ -71,7 +72,7 @@ namespace AmbiBack
             catch (Exception ex)
             {
                 CGlobals.DebugOutput(ex);
-                DialogResult ds = MessageBox.Show("Failed to send Wifi network data to device '" + myDevice.GetDeviceName() + "'.\r\n", "AmbiBack PC",
+                DialogResult ds = MessageBox.Show(this, L.F("wifi_err", myDevice.GetDeviceName()), L.T("wifi_err_title"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
                 return;

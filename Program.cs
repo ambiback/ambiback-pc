@@ -42,6 +42,9 @@ namespace AmbiBack
                 // Copy the Startup Path
                 CGlobals.szApplicationPath = Application.StartupPath;
 
+                // Language from the settings, empty = Windows language
+                L.Set(Properties.Settings.Default.szLanguage);
+
                 // Show the SplashForm first
                 frmSplash frmLoading = new frmSplash();
                 CGlobals.frmLoading = frmLoading;

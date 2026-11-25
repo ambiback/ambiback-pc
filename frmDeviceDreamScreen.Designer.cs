@@ -36,7 +36,7 @@
             this.lblGroupName = new System.Windows.Forms.Label();
             this.txtName = new System.Windows.Forms.TextBox();
             this.lblDeviceName = new System.Windows.Forms.Label();
-            this.gbInstallatioNSettings = new System.Windows.Forms.GroupBox();
+            this.gbInstallatioNSettings = new AmbiBack.CardGroupBox();
             this.txtLedPortSetup2 = new System.Windows.Forms.TextBox();
             this.lblLedPortSetup2 = new System.Windows.Forms.Label();
             this.txtLedPortSetup1 = new System.Windows.Forms.TextBox();
@@ -305,7 +305,7 @@
         private System.Windows.Forms.Label lblGroupName;
         private System.Windows.Forms.TextBox txtName;
         private System.Windows.Forms.Label lblDeviceName;
-        private System.Windows.Forms.GroupBox gbInstallatioNSettings;
+        private AmbiBack.CardGroupBox gbInstallatioNSettings;
         private System.Windows.Forms.TextBox txtLedPortSetup2;
         private System.Windows.Forms.Label lblLedPortSetup2;
         private System.Windows.Forms.TextBox txtLedPortSetup1;

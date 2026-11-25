@@ -19,6 +19,12 @@ namespace AmbiBack
 
         private void cmdOK_Click(object sender, EventArgs e)
         {
+            acceptedWithOk = true;
+
+            // Language takes effect at once, the main window updates its texts
+            Properties.Settings.Default.szLanguage = SelectedLanguage;
+            L.Set(SelectedLanguage);
+
             // Trigger save settings
             Properties.Settings.Default.Save();
 
@@ -30,18 +36,18 @@ namespace AmbiBack
 
         private void cmdCancel_Click(object sender, EventArgs e)
         {
+            // FormClosing restores the bound settings, the dialog was not accepted with OK
             this.Close();
         }
 
         private void frmOptions_Load(object sender, EventArgs e)
         {
-            if (Properties.Settings.Default.szDebugFileLog.Length == 0) 
-                Properties.Settings.Default.szDebugFileLog = Environment.CurrentDirectory + "\\debug.log";
 #if (DEBUG)
 #else
             // Hide Debug Options
             this.gbDebug.Visible = false;
 #endif
+            ApplyStyle();
         }
     }
 }
