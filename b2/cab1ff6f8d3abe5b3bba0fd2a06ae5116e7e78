@@ -1,0 +1,19 @@
+docs/en/main-window.md
+  s_58bf49675f46cd::t_e928566f2d78ed 61-65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b2cab1ff6f8d3abe5b3bba0fd2a06ae5116e7e78",
+  "prompts": {},
+  "sessions": {
+    "s_58bf49675f46cd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e1f6897f-d43c-4fa0-9713-919f12331006",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
