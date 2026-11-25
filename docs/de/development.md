@@ -35,6 +35,7 @@ Das Setup installiert ohne Administratorrechte für den aktuellen Benutzer (`%LO
 
 - `AmbiBack.exe --hue-selftest [bericht.txt]` prüft Verschlüsselung und Protokolle des Hue-Codes ohne Oberfläche.
 - `AmbiBack.exe --hue-discover` sucht Hue Bridges im Netzwerk.
+- `AmbiBack.exe --wled-test host [sekunden]` streamt ein bewegtes Testbild per DDP an ein WLED oder einen anderen DDP-Empfänger. Der Selbsttest prüft auch das DDP-Paketformat und das WLED-Gerät.
 
 ## Continuous Integration
 

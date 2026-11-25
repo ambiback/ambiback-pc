@@ -49,6 +49,14 @@ namespace AmbiBack.PhilipsHue
                 Test("mDNS query for _hue._tcp.local", TestMdnsQuery),
                 Test("Light assistant: automatic places", TestAutoPlaces),
                 Test("Hue color pipeline: value gain and minimum brightness", TestLightSettings),
+                Test("WLED: DDP packet layout", TestDdpPacket),
+                Test("WLED: DDP split of long strips", TestDdpSplit),
+                Test("WLED: /json/info parsing", TestWledInfo),
+                Test("WLED: device XML round trip", TestWledXml),
+                Test("WLED: layout for the reported LED count", TestWledLayout),
+                Test("Strip regions: AmbiBack controller and WLED match", TestStripRectangles),
+                Test("mDNS query for _wled._tcp.local", () => Equal("000000000001000000000000" + "055f776c6564" + "045f746370" + "056c6f63616c" + "00" + "000c8001",
+                    TlsPrf.ToHex(HueDiscovery.BuildMdnsQuery("_wled")))),
             };
 
             int failed = 0;
@@ -482,6 +490,114 @@ namespace AmbiBack.PhilipsHue
             Equal((byte)30, copy.InnerSizePercent);
             Equal((byte)80, copy.ColorBluePercent);
             Equal(250, copy.ValueGainPercent);
+        }
+
+        private static void TestDdpPacket()
+        {
+            var packets = new List<byte[]>();
+            CDeviceWled.BuildDdpPackets(new byte[] { 1, 2, 3, 4, 5, 6 }, 6, 7, packets);
+            Equal(1, packets.Count);
+            // flags v1 + push, sequence, RGB 8 bit, id 1, offset 0, length 6, data
+            Equal("41070b01" + "00000000" + "0006" + "010203040506", TlsPrf.ToHex(packets[0]));
+        }
+
+        private static void TestDdpSplit()
+        {
+            var packets = new List<byte[]>();
+            byte[] data = new byte[600 * 3];
+            data[1440] = 0xAB;
+            CDeviceWled.BuildDdpPackets(data, data.Length, 1, packets);
+            Equal(2, packets.Count);
+            Equal((byte)0x40, packets[0][0]);   // no push on the first packet
+            Equal((byte)0x41, packets[1][0]);   // push on the last
+            Equal(CDeviceWled.DdpHeaderLength + 1440, packets[0].Length);
+            Equal(CDeviceWled.DdpHeaderLength + 360, packets[1].Length);
+            Equal("000005a0" + "0168", TlsPrf.ToHex(Slice(packets[1], 4, 6)));   // offset 1440, length 360
+            Equal((byte)0xAB, packets[1][CDeviceWled.DdpHeaderLength]);
+        }
+
+        private static void TestWledInfo()
+        {
+            IPAddress ip = IPAddress.Parse("192.168.0.42");
+            CDeviceWled.WledInfo info = CDeviceWled.ParseInfo(ip,
+                "{\"ver\":\"0.15.0\",\"leds\":{\"count\":120,\"rgbw\":false},\"name\":\"TV strip\",\"brand\":\"WLED\",\"mac\":\"a8:03:2a:12:34:56\"}");
+            Equal("TV strip", info.Name);
+            Equal("0.15.0", info.Version);
+            Equal(120, info.LedCount);
+            Equal("a8032a123456", info.Mac);
+            True(CDeviceWled.ParseInfo(ip, "{\"name\":\"Other\"}") == null, "a device without brand WLED must be left out");
+
+            CDeviceWled device = CDeviceWled.FromInfo(info);
+            Equal("WledDdp_a8032a123456", device.GetDeviceID());
+            Equal(ip, device.GetIPAddress());
+            Equal(120, device.PixelTotal);
+        }
+
+        private static void TestWledXml()
+        {
+            var device = new CDeviceWled("Desk", IPAddress.Parse("10.0.0.7"))
+            {
+                PixelHori = 30, PixelVert = 17, FlexSetupPort1 = (byte)DsFlexSetups.Top_Clock_top_left_right,
+                Port = 4049, FramesPerSecond = 40, FrameDelay = 120, ValueGainPercent = 150, ColorRedPercent = 90,
+                ReceiverLedCount = 94, ReceiverInfo = "WLED 0.15.0", InternalNetworkMAC = "a8032a123456",
+            };
+            device.SetDeviceID();
+            var serializer = new System.Xml.Serialization.XmlSerializer(typeof(CDeviceWled));
+            var writer = new System.IO.StringWriter();
+            serializer.Serialize(writer, device);
+            var copy = (CDeviceWled)serializer.Deserialize(new System.IO.StringReader(writer.ToString()));
+            copy.SetDeviceID();
+            Equal(device.GetDeviceID(), copy.GetDeviceID());
+            Equal("Desk", copy.GetDeviceName());
+            Equal(IPAddress.Parse("10.0.0.7"), copy.GetIPAddress());
+            Equal((byte)30, copy.PixelHori);
+            Equal((byte)17, copy.PixelVert);
+            Equal((byte)DsFlexSetups.Top_Clock_top_left_right, copy.FlexSetupPort1);
+            Equal(4049, copy.Port);
+            Equal((byte)40, copy.FramesPerSecond);
+            Equal(120, copy.FrameDelay);
+            Equal(150, copy.ValueGainPercent);
+            Equal((byte)90, copy.ColorRedPercent);
+            Equal(94, copy.ReceiverLedCount);
+            Equal("WLED 0.15.0", copy.ReceiverInfo);
+        }
+
+        private static void TestWledLayout()
+        {
+            var device = new CDeviceWled();
+            device.SuggestLayout(120);
+            Equal((byte)38, device.PixelHori);
+            Equal((byte)22, device.PixelVert);
+            device.SuggestLayout(1000);   // capped to what the monitor preview offers
+            Equal((byte)CDeviceWled.MaxPixelHori, device.PixelHori);
+            Equal((byte)CDeviceWled.MaxPixelVert, device.PixelVert);
+        }
+
+        private static void TestStripRectangles()
+        {
+            foreach (DsFlexSetups setup in Enum.GetValues(typeof(DsFlexSetups)))
+            {
+                var ambiBack = new CDeviceAmbiBack();
+                ambiBack.SetPixelVert(9);
+                ambiBack.SetPixelHori(16);
+                ambiBack.SetFlexPort1((byte)setup);
+                var expected = new Rectangle[ambiBack.PixelTotalPort1];
+                ambiBack.CalcRectangles(0, 0, 1920, 1080, 0, expected);
+
+                var wled = new CDeviceWled { PixelVert = 9, PixelHori = 16, FlexSetupPort1 = (byte)setup, InnerSizePercent = ambiBack.InnerSizePercent };
+                var actual = new Rectangle[wled.PixelTotal];
+                wled.CalcStripRectangles(wled.FlexSetupPort1, wled.PixelVert, wled.PixelHori, actual.Length, 0, 0, 1920, 1080, 0, actual);
+
+                Equal(expected.Length, actual.Length);
+                for (int i = 0; i < expected.Length; i++)
+                    Equal(expected[i], actual[i]);
+            }
+            // First LED of "clockwise from bottom left up": left side, bottom
+            var d = new CDeviceWled { PixelVert = 9, PixelHori = 16, FlexSetupPort1 = (byte)DsFlexSetups.Left_Clock_bottom_left_up };
+            var rects = new Rectangle[d.PixelTotal];
+            d.CalcStripRectangles(d.FlexSetupPort1, d.PixelVert, d.PixelHori, rects.Length, 0, 0, 1920, 1080, 0, rects);
+            Equal(0, rects[0].Left);
+            Equal(8 * 120, rects[0].Top);
         }
 
         private static byte[] Slice(byte[] a, int offset, int length)

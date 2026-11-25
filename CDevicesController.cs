@@ -220,6 +220,27 @@ namespace AmbiBack
             }
         }
 
+        /// <summary>
+        /// Adds the WLED devices that answer mDNS, or refreshes address and LED count of known ones
+        /// (their layout and sliders are kept).
+        /// </summary>
+        public void EnumWledDevices()
+        {
+            try
+            {
+                foreach (CDeviceWled.WledInfo info in CDeviceWled.Discover())
+                {
+                    CDevice device = CGlobals.mainConfig.Devices.Add(CDeviceWled.FromInfo(info));
+                    device.SetIsOnline(true);
+                    HandleDiscoveredDevice(device);
+                }
+            }
+            catch (Exception ex)
+            {
+                CGlobals.DebugOutput(ex);
+            }
+        }
+
         public void HandleDiscoveredDevice(CDevice newDevice)
         {
             if (this.DiscoveredDevice != null)
@@ -387,6 +408,9 @@ namespace AmbiBack
 
             // Enum Hue Lights FIRST!
             this.EnumHueDevices();
+
+            // WLED via mDNS in the background (the query waits about 2 s for answers)
+            System.Threading.Tasks.Task.Run(() => this.EnumWledDevices());
 
             // UDP Helper Client
             UdpClient client = new UdpClientBroadcast();

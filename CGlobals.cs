@@ -277,6 +277,7 @@ namespace AmbiBack
         AmbiBack_Pc_M5AX_Controller = 18,
         AmbiBack_Led_M5A1_Controller = 19,
         PhilipsHueEntertainment = 20,
+        WledDdp = 21,
     }
     public enum ConnectionTypes
     {
@@ -411,6 +412,7 @@ namespace AmbiBack
             "AmbiBack_Pc_M5AX_Controller",
             "AmbiBack_Led_M5A1_Controller",
             "PhilipsHueEntertainment",
+            "WledDdp",
         };
         public static string[] DEVICETYPESDISPLAYNAME = new string[]
         {
@@ -435,6 +437,7 @@ namespace AmbiBack
             "AmbiBack PC M5 Matrix",
             "AmbiBack PC M5 LED REV1",
             "Philips Hue Entertainment",
+            "WLED / DDP",
         };
         public static string[] INSTALLATIONTYPES = new string[]
         {

@@ -114,13 +114,13 @@ namespace AmbiBack
                 bNumControlls = false;
                 bDirectionControls = false;
                 bSectorControls = false;
-            } else if (selectedDevice.GetType() == typeof(CDeviceAmbiBack)) {
+            } else if (selectedDevice is ILedStripLayout nodeMcuManagerDevice) {
+                // AmbiBack controllers and WLED/DDP strips: LEDs per side, start corner and direction
                 bNumControlls = true;
                 bDirectionControls = true;
                 bSectorControls = false;
 
                 // Get properties from Device
-                CDeviceAmbiBack nodeMcuManagerDevice = (CDeviceAmbiBack)selectedDevice;
                 cbLedsHori.Text = nodeMcuManagerDevice.PixelHori.ToString();
                 cbLedsVert.Text = nodeMcuManagerDevice.PixelVert.ToString();
             } else if (selectedDevice is CDeviceHueEntertainment) {
@@ -405,10 +405,9 @@ namespace AmbiBack
         {
             if (selectedDevice != null && !this._SettingsLoading)
             {
-                if (selectedDevice.GetType() == typeof(CDeviceAmbiBack))
+                if (selectedDevice is ILedStripLayout nodeMcuManagerDevice)
                 {
                     // Get properties from Device
-                    CDeviceAmbiBack nodeMcuManagerDevice = (CDeviceAmbiBack)selectedDevice;
 
                     // Default all buttons to FALSE first
                     chkBottomLeft.Checked = false;
@@ -468,10 +467,9 @@ namespace AmbiBack
 
             if (selectedDevice != null && !this._SettingsLoading)
             {
-                if (selectedDevice.GetType() == typeof(CDeviceAmbiBack))
+                if (selectedDevice is ILedStripLayout nodeMcuManagerDevice)
                 {
                     // Get properties from Device
-                    CDeviceAmbiBack nodeMcuManagerDevice = (CDeviceAmbiBack)selectedDevice;
 
                     if (nodeMcuManagerDevice.FlexSetupPort1 == (byte)DsFlexSetups.Right_Cclock_bottom_right_up)
                     {
@@ -629,8 +627,8 @@ namespace AmbiBack
 
                         // Start Device Handling Thread!
                         myDevice.StartThread();
-                    } else if (myDevice is CDeviceHueEntertainment) {
-                        // Entertainment streaming (DTLS)
+                    } else if (myDevice is CDeviceHueEntertainment || myDevice is CDeviceWled) {
+                        // Entertainment streaming (DTLS), DDP streaming
                         myDevice.StartThread();
                     }
                 }
@@ -707,9 +705,8 @@ namespace AmbiBack
             {   
                 if (selectedDevice != null && !this._SettingsLoading)
                 {
-                    if (selectedDevice.GetType() == typeof(CDeviceAmbiBack))
+                    if (selectedDevice is ILedStripLayout nodeMcuManagerDevice)
                     {
-                        CDeviceAmbiBack nodeMcuManagerDevice = (CDeviceAmbiBack)selectedDevice;
                         nodeMcuManagerDevice.SetPixelHori((byte) Int32.Parse(cbLedsHori.Text));
                         nodeMcuManagerDevice.SendLedHorizontal();
                     }
@@ -726,9 +723,8 @@ namespace AmbiBack
             {
                 if (selectedDevice != null && !this._SettingsLoading)
                 {
-                    if (selectedDevice.GetType() == typeof(CDeviceAmbiBack))
+                    if (selectedDevice is ILedStripLayout nodeMcuManagerDevice)
                     {
-                        CDeviceAmbiBack nodeMcuManagerDevice = (CDeviceAmbiBack)selectedDevice;
                         nodeMcuManagerDevice.SetPixelVert((byte)Int32.Parse(cbLedsVert.Text));
                         nodeMcuManagerDevice.SendLedVertical();
                     }
@@ -803,10 +799,9 @@ namespace AmbiBack
 
             if (selectedDevice != null && !this._SettingsLoading)
             {
-                if (selectedDevice.GetType() == typeof(CDeviceAmbiBack))
+                if (selectedDevice is ILedStripLayout nodeMcuManagerDevice)
                 {
                     // Get properties from Device
-                    CDeviceAmbiBack nodeMcuManagerDevice = (CDeviceAmbiBack)selectedDevice;
                     if (nodeMcuManagerDevice.FlexSetupPort1 == (byte)DsFlexSetups.Left_Clock_bottom_left_up)
                         nodeMcuManagerDevice.SetFlexPort1((byte)DsFlexSetups.Bottom_Cclock_bottom_left_right); 
                     else
@@ -828,10 +823,9 @@ namespace AmbiBack
 
             if (selectedDevice != null && !this._SettingsLoading)
             {
-                if (selectedDevice.GetType() == typeof(CDeviceAmbiBack))
+                if (selectedDevice is ILedStripLayout nodeMcuManagerDevice)
                 {
                     // Get properties from Device
-                    CDeviceAmbiBack nodeMcuManagerDevice = (CDeviceAmbiBack)selectedDevice;
                     if (nodeMcuManagerDevice.FlexSetupPort1 == (byte)DsFlexSetups.Top_Clock_top_left_right)
                         nodeMcuManagerDevice.SetFlexPort1((byte)DsFlexSetups.Left_Cclock_top_left_down);
                     else
@@ -853,10 +847,9 @@ namespace AmbiBack
 
             if (selectedDevice != null && !this._SettingsLoading)
             {
-                if (selectedDevice.GetType() == typeof(CDeviceAmbiBack))
+                if (selectedDevice is ILedStripLayout nodeMcuManagerDevice)
                 {
                     // Get properties from Device
-                    CDeviceAmbiBack nodeMcuManagerDevice = (CDeviceAmbiBack)selectedDevice;
                     if (nodeMcuManagerDevice.FlexSetupPort1 == (byte)DsFlexSetups.Right_Clock_top_right_down)
                         nodeMcuManagerDevice.SetFlexPort1((byte)DsFlexSetups.Top_Cclock_top_right_left);
                     else
@@ -878,10 +871,9 @@ namespace AmbiBack
 
             if (selectedDevice != null && !this._SettingsLoading)
             {
-                if (selectedDevice.GetType() == typeof(CDeviceAmbiBack))
+                if (selectedDevice is ILedStripLayout nodeMcuManagerDevice)
                 {
                     // Get properties from Device
-                    CDeviceAmbiBack nodeMcuManagerDevice = (CDeviceAmbiBack)selectedDevice;
                     if (nodeMcuManagerDevice.FlexSetupPort1 == (byte)DsFlexSetups.Bottom_Clock_bottom_right_left)
                         nodeMcuManagerDevice.SetFlexPort1((byte)DsFlexSetups.Right_Cclock_bottom_right_up);
                     else

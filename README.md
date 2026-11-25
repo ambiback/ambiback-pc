@@ -2,7 +2,7 @@
 
 **English** · [Deutsch](README.de.md)
 
-Ambient light for your Windows PC. AmbiBack PC captures what your monitors show and sends the colors in real time to AmbiBack LED controllers and Philips Hue lights, so the picture seems to flow onto the wall.
+Ambient light for your Windows PC. AmbiBack PC captures what your monitors show and sends the colors in real time to AmbiBack LED controllers, WLED and other DDP LED strips, and Philips Hue lights, so the picture seems to flow onto the wall.
 
 ![The AmbiBack PC main window](docs/images/main_en.png)
 
@@ -20,7 +20,7 @@ Windows 10 or 11 is required. The files are not code-signed, so Windows SmartScr
 ## Quick start
 
 1. Install and start AmbiBack PC. When Windows Firewall asks, allow it on **private networks**.
-2. Add your lights: AmbiBack controllers are found on their own; for Philips Hue click **Hue Bridge**, press the link button on the bridge and click **Connect**.
+2. Add your lights: AmbiBack controllers and WLED devices are found on their own; for Philips Hue click **Hue Bridge**, press the link button on the bridge and click **Connect**.
 3. Click **Use** on a monitor card, tick the lights for this monitor in the device list and click **Start**.
 
 Step by step with screenshots: **[Quick start](docs/en/quick-start.md)**.
@@ -33,6 +33,7 @@ The [user guide](docs/user-guide.md) covers:
 - [Quick start](docs/en/quick-start.md)
 - [AmbiBack devices](docs/en/ambiback-devices.md) – Wi-Fi setup over USB, LED layout
 - [Philips Hue](docs/en/philips-hue.md) – Hue Entertainment, bridge, lights, areas
+- [WLED and DDP](docs/en/wled.md) – WLED and other DDP receivers
 - [The main window](docs/en/main-window.md) and [settings](docs/en/settings.md)
 - [Troubleshooting and FAQ](docs/en/troubleshooting.md) – firewall, SmartScreen, Hue
 
@@ -40,6 +41,7 @@ The [user guide](docs/user-guide.md) covers:
 
 - Screen capture through DirectX with live preview, for one or several monitors
 - AmbiBack controllers over Wi-Fi (UDP or TCP) or USB, found on their own on the local network
+- WLED and other DDP receivers (ESPHome, Hyperion, ESPixelStick …) at up to 60 fps, WLED found over mDNS
 - Philips Hue through the Entertainment API: encrypted streaming at 25 to 50 fps, automatic bridge discovery, an entertainment area of its own from the lights you choose
 - Brightness, color balance, color boost and smoothing per device
 - Start with Windows and run from the notification area
@@ -52,7 +54,7 @@ The [user guide](docs/user-guide.md) covers:
 
 ## Security
 
-Communication with AmbiBack devices is unencrypted on the local network, and the device API has no login. Run devices only on a trusted network. Hue streaming is encrypted (DTLS, AES-GCM), management commands to the bridge use HTTPS, and the bridge key is stored with Windows DPAPI.
+Communication with AmbiBack and WLED/DDP devices is unencrypted on the local network, and the device API has no login. Run devices only on a trusted network. Hue streaming is encrypted (DTLS, AES-GCM), management commands to the bridge use HTTPS, and the bridge key is stored with Windows DPAPI.
 
 ## For developers
 
@@ -60,7 +62,7 @@ Building, setup, self tests, CI and releases: [docs/en/development.md](docs/en/d
 
 ## Trademarks
 
-Philips Hue and DreamScreen are trademarks of their respective owners. This project is not affiliated with them.
+Philips Hue, DreamScreen and WLED are trademarks or names of their respective owners. This project is not affiliated with them.
 
 ## License
 

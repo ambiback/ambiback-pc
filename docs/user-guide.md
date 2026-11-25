@@ -2,7 +2,7 @@
 
 **English** · [Deutsch](benutzerhandbuch.md)
 
-AmbiBack PC captures what your monitors show and sends the colors in real time to lights behind or next to the screen: AmbiBack controllers (LED strips) and Philips Hue lights. The picture seems to flow onto the wall.
+AmbiBack PC captures what your monitors show and sends the colors in real time to lights behind or next to the screen: AmbiBack controllers (LED strips), WLED and other DDP strips, and Philips Hue lights. The picture seems to flow onto the wall.
 
 ![The AmbiBack PC main window](images/main_en.png)
 
@@ -15,6 +15,7 @@ AmbiBack PC captures what your monitors show and sends the colors in real time t
 
 - [AmbiBack devices](en/ambiback-devices.md) – put a controller on Wi-Fi, find or add it, set up the LED layout
 - [Philips Hue](en/philips-hue.md) – connect the bridge, choose lights, entertainment areas
+- [WLED and DDP](en/wled.md) – find or add a WLED strip, LED layout, settings
 
 ## Reference
 

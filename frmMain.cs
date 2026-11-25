@@ -518,6 +518,31 @@ namespace AmbiBack
                     LVDevices.Items.Add(deviceListItem);
                 }
             }
+            else if (myDevice is CDeviceWled wledDevice)
+            {
+                string szAddress = wledDevice.GetIPAddress() != null ? wledDevice.GetIPAddress().ToString() : "";
+                if (LVDevices.Items.IndexOfKey(szDeviceId) >= 0)
+                {
+                    deviceListItem = LVDevices.Items[szDeviceId];
+                    deviceListItem.Tag = wledDevice;
+                    deviceListItem.ImageKey = CGlobals.GetImageKey(wledDevice.GetDeviceType());
+                    deviceListItem.Text = CGlobals.DEVICETYPESDISPLAYNAME[(int)wledDevice.GetDeviceType()];
+                    deviceListItem.SubItems[1].Text = wledDevice.GetDeviceName();
+                    deviceListItem.SubItems[2].Text = szAddress;
+                }
+                else
+                {
+                    deviceListItem = new ListViewItem();
+                    deviceListItem.Name = szDeviceId;
+                    deviceListItem.Tag = wledDevice;
+                    deviceListItem.ImageKey = CGlobals.GetImageKey(wledDevice.GetDeviceType());
+                    deviceListItem.Text = CGlobals.DEVICETYPESDISPLAYNAME[(int)wledDevice.GetDeviceType()];
+                    deviceListItem.SubItems.Add(wledDevice.GetDeviceName());
+                    deviceListItem.SubItems.Add(szAddress);
+                    deviceListItem.SubItems.Add(L.T("st_offline"));
+                    LVDevices.Items.Add(deviceListItem);
+                }
+            }
 
             this.ListviewHandleOnlineState(myDevice, deviceListItem);
 
@@ -1181,6 +1206,10 @@ namespace AmbiBack
                     {
                         hueArea.ColorRedPercent = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceWled wled)
+                    {
+                        wled.ColorRedPercent = (byte)myTrackBar.Value;
+                    }
 
                     // Set Tooltip Text
                     string szTooltip = myTrackBar.Value.ToString();
@@ -1218,6 +1247,10 @@ namespace AmbiBack
                     {
                         hueArea.ColorGreenPercent = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceWled wled)
+                    {
+                        wled.ColorGreenPercent = (byte)myTrackBar.Value;
+                    }
                 }
 
                 // Set Tooltip Text
@@ -1249,11 +1282,15 @@ namespace AmbiBack
                     else if (currentSelectedDevice.GetDeviceType() == DeviceType.PhilipsHueColorLight)
                     {
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
-                        philipsHueDevice.ColorGreenPercent = (byte)myTrackBar.Value;
+                        philipsHueDevice.ColorBluePercent = (byte)myTrackBar.Value;
                     }
                     else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
                     {
                         hueArea.ColorBluePercent = (byte)myTrackBar.Value;
+                    }
+                    else if (currentSelectedDevice is CDeviceWled wled)
+                    {
+                        wled.ColorBluePercent = (byte)myTrackBar.Value;
                     }
                 }
 
@@ -1292,6 +1329,10 @@ namespace AmbiBack
                     {
                         hueArea.MaxBrightnessPercent = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceWled wled)
+                    {
+                        wled.MaxBrightnessPercent = (byte)myTrackBar.Value;
+                    }
                 }
 
                 // Set Tooltip Text
@@ -1329,6 +1370,10 @@ namespace AmbiBack
                     {
                         hueArea.MinimumLuminosityPercent = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceWled wled)
+                    {
+                        wled.MinimumLuminosityPercent = (byte)myTrackBar.Value;
+                    }
                 }
 
                 // Set Tooltip Text
@@ -1362,6 +1407,10 @@ namespace AmbiBack
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.FrameDelay = (byte)myTrackBar.Value;
                         philipsHueDevice.SendFrameDelay();
+                    }
+                    else if (currentSelectedDevice is CDeviceWled wled)
+                    {
+                        wled.FrameDelay = myTrackBar.Value;    // smoothing in AmbiBack PC
                     }
                 }
 
@@ -1399,6 +1448,10 @@ namespace AmbiBack
                     else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
                     {
                         hueArea.ValueGainPercent = myTrackBar.Value;
+                    }
+                    else if (currentSelectedDevice is CDeviceWled wled)
+                    {
+                        wled.ValueGainPercent = myTrackBar.Value;
                     }
                 }
 
@@ -1448,6 +1501,10 @@ namespace AmbiBack
                     {
                         hueArea.ColorBoostPercent = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceWled wled)
+                    {
+                        wled.ColorBoostPercent = (byte)myTrackBar.Value;
+                    }
                 }
 
                 // Set Tooltip Text
@@ -1494,6 +1551,10 @@ namespace AmbiBack
                     {
                         hueArea.FramesPerSecond = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceWled wled)
+                    {
+                        wled.FramesPerSecond = (byte)myTrackBar.Value;
+                    }
                 }
 
                 // Set Tooltip Text
@@ -1536,6 +1597,11 @@ namespace AmbiBack
                     {
                         hueArea.InnerSizePercent = (byte)myTrackBar.Value;
                         hueArea.RecalculateScanAreas();
+                    }
+                    else if (currentSelectedDevice is CDeviceWled wled)
+                    {
+                        wled.InnerSizePercent = (byte)myTrackBar.Value;
+                        wled.RecalculateScanAreas();
                     }
                 }
 
@@ -1814,6 +1880,22 @@ namespace AmbiBack
                         this.currentSelectedDevice = hueArea;
                         bEnableOptions = true;
                     }
+                    else if (selectedDevice is CDeviceWled wled)
+                    {
+                        tbInnerPicture.Value = Math.Max(tbInnerPicture.Minimum, Math.Min(tbInnerPicture.Maximum, (int)wled.InnerSizePercent));
+                        tbFramesPerSecond.Value = Math.Max(tbFramesPerSecond.Minimum, Math.Min(tbFramesPerSecond.Maximum, (int)wled.FramesPerSecond));
+                        tbRed.Value = wled.ColorRedPercent;
+                        tbGreen.Value = wled.ColorGreenPercent;
+                        tbBlue.Value = wled.ColorBluePercent;
+                        tbColorBoost.Value = wled.ColorBoostPercent;
+                        tbMaxBrightness.Value = wled.MaxBrightnessPercent;
+                        tbMinimumLuminosity.Value = wled.MinimumLuminosityPercent;
+                        tbValueGain.Value = Math.Max(tbValueGain.Minimum, Math.Min(tbValueGain.Maximum, wled.ValueGainPercent));
+                        tbSmoothing.Value = Math.Max(tbSmoothing.Minimum, Math.Min(tbSmoothing.Maximum, wled.FrameDelay));
+
+                        this.currentSelectedDevice = wled;
+                        bEnableOptions = true;
+                    }
 
                     // Also set 
                     if (selectedAmbiScreen != null)
@@ -1972,6 +2054,10 @@ namespace AmbiBack
                         philipsHueDevice.SetDeviceName(myTextBox.Text);
                         // NOT SUPPORTED TO SAVE NAME YET!
                         philipsHueDevice.SendDeviceName();
+                    }
+                    else if (currentSelectedDevice is CDeviceWled wled)
+                    {
+                        wled.SetDeviceName(myTextBox.Text);
                     }
                 }
 

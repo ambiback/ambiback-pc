@@ -1,4 +1,4 @@
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -64,11 +64,11 @@ namespace AmbiBack.PhilipsHue
                 .OrderBy(b => b.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
         }
 
-        /// <summary>DNS question for PTR _hue._tcp.local with the "unicast response" bit.</summary>
-        internal static byte[] BuildMdnsQuery()
+        /// <summary>DNS question for PTR &lt;service&gt;._tcp.local (default _hue) with the "unicast response" bit.</summary>
+        internal static byte[] BuildMdnsQuery(string service = "_hue")
         {
             var b = new List<byte> { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 };   // id, flags, 1 question
-            foreach (string label in new[] { "_hue", "_tcp", "local" })
+            foreach (string label in new[] { service, "_tcp", "local" })
             {
                 b.Add((byte)label.Length);
                 b.AddRange(Encoding.ASCII.GetBytes(label));
@@ -78,10 +78,11 @@ namespace AmbiBack.PhilipsHue
             return b.ToArray();
         }
 
-        private static List<IPAddress> QueryMdns(int timeoutMs)
+        /// <summary>Addresses that answered an mDNS query for &lt;service&gt;._tcp.local on any IPv4 interface.</summary>
+        internal static List<IPAddress> QueryMdns(int timeoutMs, string service = "_hue")
         {
             var found = new List<IPAddress>();
-            byte[] query = BuildMdnsQuery();
+            byte[] query = BuildMdnsQuery(service);
             var sockets = new List<Socket>();
             try
             {
@@ -115,8 +116,8 @@ namespace AmbiBack.PhilipsHue
                         int n;
                         try { n = s.ReceiveFrom(buffer, ref from); }
                         catch (SocketException) { continue; }
-                        // Any answer that mentions the Hue service comes from a bridge
-                        if (n > 12 && Encoding.ASCII.GetString(buffer, 0, n).IndexOf("_hue", StringComparison.OrdinalIgnoreCase) >= 0)
+                        // Any answer that mentions the service comes from such a device
+                        if (n > 12 && Encoding.ASCII.GetString(buffer, 0, n).IndexOf(service, StringComparison.OrdinalIgnoreCase) >= 0)
                         {
                             IPAddress ip = ((IPEndPoint)from).Address;
                             if (!found.Contains(ip))

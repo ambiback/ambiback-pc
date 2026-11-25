@@ -21,7 +21,7 @@ using AmbiBack.Properties;
 namespace AmbiBack
 {
     [Serializable]
-    public class CDeviceAmbiBack : CDevice
+    public class CDeviceAmbiBack : CDevice, ILedStripLayout
     {
         public static readonly int SERIAL_HEADLEN = 14;
 
@@ -1308,97 +1308,7 @@ namespace AmbiBack
         // WE NOW CALC FROM FRONT VIEW
         public void CalcRectangles(int iLeftOffset, int iTopOffset, int iScanWidth, int iScanHeight, int iIntoImagePx, System.Drawing.Rectangle[] rectPixels)
         {
-            int iOffset = 0;
-
-            // CounterClockWise Bottom Right To Up
-            if (this.FlexSetupPort1 == (byte)DsFlexSetups.Right_Cclock_bottom_right_up)
-            {
-                iOffset = CalcRightRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcTopRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcLeftRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcBottomRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
-
-            }
-            // CounterClockWise Top Right to Left
-            else if (this.FlexSetupPort1 == (byte)DsFlexSetups.Top_Cclock_top_right_left)
-            {
-                iOffset = CalcTopRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcLeftRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcBottomRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcRightRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
-            }
-            // CounterClockWise Top Left to Down
-            else if (this.FlexSetupPort1 == (byte)DsFlexSetups.Left_Cclock_top_left_down)
-            {
-                iOffset = CalcLeftRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcBottomRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcRightRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcTopRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
-            }
-            // CounterClockWise Bottom Left to Right
-            else if (this.FlexSetupPort1 == (byte)DsFlexSetups.Bottom_Cclock_bottom_left_right)
-            {
-                iOffset = CalcBottomRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcRightRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcTopRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcLeftRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
-            }
-            // ClockWise Top Right To Down
-            else if (this.FlexSetupPort1 == (byte)DsFlexSetups.Right_Clock_top_right_down)
-            {
-                iOffset = CalcRightRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcBottomRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcLeftRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcTopRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
-            }
-            // ClockWise Top Left to Right
-            else if (this.FlexSetupPort1 == (byte)DsFlexSetups.Top_Clock_top_left_right)
-            {
-                iOffset = CalcTopRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcRightRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcBottomRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcLeftRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
-            }
-            // ClockWise Bottom Left to Up
-            else if (this.FlexSetupPort1 == (byte)DsFlexSetups.Left_Clock_bottom_left_up)
-            {
-                iOffset = CalcLeftRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcTopRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcRightRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcBottomRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
-            }
-            // ClockWise Bottom Right to Left
-            else if (this.FlexSetupPort1 == (byte)DsFlexSetups.Bottom_Clock_bottom_right_left)
-            {
-                iOffset = CalcBottomRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcLeftRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcTopRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
-                if (this.PixelTotalPort1 > iOffset)
-                    iOffset = CalcRightRectangles(this.PixelVert, this.PixelHori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
-            }
+            this.CalcStripRectangles(this.FlexSetupPort1, this.PixelVert, this.PixelHori, this.PixelTotalPort1, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, rectPixels);
         }
         #endregion
 
