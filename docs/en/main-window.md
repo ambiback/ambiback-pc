@@ -58,7 +58,11 @@ When a monitor turns off (power saving), AmbiBack pauses and switches Hue lights
 
 ## Notification area (tray)
 
-The AmbiBack icon in the notification area shows in its tooltip whether and on how many monitors AmbiBack runs. Its menu offers:
+The AmbiBack icon in the notification area shows in its tooltip whether and on how many monitors AmbiBack runs. Right-click it for the menu:
+
+![The AmbiBack tray menu](../images/tray_en.png)
+
+The menu offers:
 
 - The status
 - **Start All Monitors** / **Stop All Monitors**
