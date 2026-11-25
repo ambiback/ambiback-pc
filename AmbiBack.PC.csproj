@@ -116,6 +116,7 @@
     <Compile Include="CGlobals.cs" />
     <Compile Include="AppPaths.cs" />
     <Compile Include="FormStyles.cs" />
+    <Compile Include="FrameBuffer.cs" />
     <Compile Include="Localization.cs" />
     <Compile Include="Theme.cs" />
     <Compile Include="frmMain.Style.cs">

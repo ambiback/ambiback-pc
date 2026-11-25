@@ -583,9 +583,9 @@ namespace AmbiBack
                         bwPacket.Write((byte)(this.PixelTotalPort1 - bPixelStart)); // Pixel Length
                     }
 
-                    bwPacket.Write(((SolidBrush)brPixels[bPixelCurrent]).Color.R); // RED
-                    bwPacket.Write(((SolidBrush)brPixels[bPixelCurrent]).Color.G); // GREEN
-                    bwPacket.Write(((SolidBrush)brPixels[bPixelCurrent]).Color.B); // BLUE
+                    bwPacket.Write(brPixels[bPixelCurrent].R); // RED
+                    bwPacket.Write(brPixels[bPixelCurrent].G); // GREEN
+                    bwPacket.Write(brPixels[bPixelCurrent].B); // BLUE
 
                     if (msPacket.Length >= this.MaxBytesPerPacket || bPixelCurrent >= (this.PixelTotalPort1 - 1))
                     {
@@ -746,27 +746,28 @@ namespace AmbiBack
         {
             // Wait for first screenshot
             int iWait = 0;
-            while (this.bmpScreenCopy == null && iWait <= 300)
+            while ((this.Frame == null || this.Frame.Pixels == null) && iWait <= 300)
             {
                 Thread.Sleep(100);
                 iWait++;
             }
 
             /* Calc rectPixels from base image */
-            if (this.bmpScreenCopy != null)
+            if (this.Frame != null && this.Frame.Pixels != null)
             {
                 try
                 {
                     int iScreenWidth;
                     int iScreenHeight;
-                    lock (CGlobals.bmpLock)
+                    lock (this.Frame.Sync)
                     {
-                        iScreenWidth = this.bmpScreenCopy.Width;
-                        iScreenHeight = this.bmpScreenCopy.Height;
+                        iScreenWidth = this.Frame.Width;
+                        iScreenHeight = this.Frame.Height;
                     }
 
                     // Init Pixels Brush helper variables which will contain the color codes!
-                    brPixels = new Brush[this.PixelTotalPort1];
+                    brPixels = new Color[this.PixelTotalPort1];
+                    lColorsFrameNumber = -1;   // new (black) colors: calculate on the next call
 
                     // Init Screen Scan Areas
                     rectScanPixels = new Rectangle[this.PixelTotalPort1];
