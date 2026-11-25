@@ -58,8 +58,8 @@ Das Setup installiert ohne Administratorrechte für den aktuellen Benutzer (`%LO
 ## Releases
 
 1. Tag pushen: `git tag v1.2.0` und `git push origin v1.2.0`. Mit Bindestrich wird es ein Prerelease (`v1.2.0-beta1`).
-2. Der Workflow `.github/workflows/release.yml` baut mit Version `1.2.0.<Run-Nummer>`, führt den Selbsttest aus und legt ein **Draft**-Release mit `AmbiBack-PC-<Version>-setup.exe` und `AmbiBack-PC-<Version>.zip` an. Selbsttest-Bericht und Dateien bleiben zusätzlich als Workflow-Artefakt erhalten.
-3. Den Entwurf auf GitHub prüfen und veröffentlichen.
+2. Der Workflow `.github/workflows/release.yml` baut mit Version `1.2.0.<Run-Nummer>`, führt den Selbsttest aus und veröffentlicht das Release mit `AmbiBack-PC-<Version>-setup.exe` und `AmbiBack-PC-<Version>.zip`. Selbsttest-Bericht und Dateien bleiben zusätzlich als Workflow-Artefakt erhalten.
+3. Wird ein Tag erneut gepusht (z. B. nach `git tag -f v1.2.0` und `git push -f origin v1.2.0`), ersetzt der Workflow Text und Dateien des vorhandenen Releases; liegengebliebene Entwürfe zum Tag werden gelöscht.
 
 Der Release-Text (Deutsch und Englisch) enthält Downloads, Voraussetzungen und einen Changelog. Optionale Repository-Secrets:
 
