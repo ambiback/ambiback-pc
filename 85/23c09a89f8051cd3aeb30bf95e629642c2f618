@@ -1,0 +1,25 @@
+Theme.cs
+  s_486f8d5707266f::t_5594aa92cf547d 299-307
+  s_486f8d5707266f::t_0c88d066a5a0cf 135-195,248-250,281-292,316-317
+frmMain.Style.cs
+  s_486f8d5707266f::t_1ca782a708a274 15-20,40,69-75,171-176,392-393,399-534
+  s_486f8d5707266f::t_5594aa92cf547d 36-38
+Localization.cs
+  s_486f8d5707266f::t_1ca782a708a274 95-100,350-355
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8523c09a89f8051cd3aeb30bf95e629642c2f618",
+  "prompts": {},
+  "sessions": {
+    "s_486f8d5707266f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "584fa5f7-1b21-4403-9105-099ef4abe917",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
