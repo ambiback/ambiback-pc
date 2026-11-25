@@ -100,6 +100,143 @@ namespace AmbiBack.PhilipsHue
             }
         }
 
+        /// <summary>
+        /// Test against a real bridge: pairing (link button, up to 90 s) unless credFile already holds
+        /// DPAPI protected credentials, list areas, stream a color cycle to one area, stop.
+        /// Never prints the user name or client key.
+        /// </summary>
+        public static bool RunBridgeTest(string ip, string credFile, int areaIndex, int seconds, bool simulateLoss, Action<string> output)
+        {
+            try
+            {
+                Configuration.DeviceIP = IPAddress.Parse(ip);
+                Configuration.AppID = "AmbiBack.PC#selftest";
+                string[] cred = System.IO.File.Exists(credFile) ? (HueSecrets.Unprotect(System.IO.File.ReadAllText(credFile)) ?? "").Split('\n') : new string[0];
+                if (cred.Length == 2)
+                {
+                    Configuration.Username = cred[0];
+                    Configuration.ClientKey = cred[1];
+                    output("using stored credentials");
+                }
+                else
+                {
+                    output("PRESS THE LINK BUTTON NOW (waiting up to 90 s)");
+                    var wait = System.Diagnostics.Stopwatch.StartNew();
+                    while (true)
+                    {
+                        try
+                        {
+                            if (Configuration.RegisterNewUser())
+                                break;
+                        }
+                        catch (HueException ex) when (ex.ErrorType == 101)
+                        {
+                            // link button not pressed yet
+                        }
+                        if (wait.ElapsedMilliseconds > 90000)
+                            throw new Exception("link button was not pressed within 90 s");
+                        Thread.Sleep(2000);
+                    }
+                    if (string.IsNullOrEmpty(Configuration.ClientKey))
+                        throw new Exception("bridge returned no client key");
+                    System.IO.File.WriteAllText(credFile, HueSecrets.Protect(Configuration.Username + "\n" + Configuration.ClientKey));
+                    output("PASS  paired, client key received (" + Configuration.ClientKey.Length + " hex chars), stored DPAPI protected");
+                }
+
+                List<EntertainmentArea> areas = HueClipV2.GetEntertainmentAreas();
+                output("PASS  CLIP v2: " + areas.Count + " entertainment area(s)");
+                for (int i = 0; i < areas.Count; i++)
+                {
+                    output(string.Format("      [{0}] {1}: {2} channels, type {3}, status {4}", i, areas[i].Name, areas[i].Channels.Count, areas[i].ConfigurationType, areas[i].Status));
+                    foreach (EntertainmentChannel ch in areas[i].Channels)
+                        output("          channel " + ch);
+                }
+                if (areas.Count == 0)
+                    throw new Exception("no entertainment area on the bridge");
+                EntertainmentArea area = areas[Math.Min(areaIndex, areas.Count - 1)];
+
+                using (var session = new HueEntertainmentSession(area.ID, output))
+                {
+                    var clock = System.Diagnostics.Stopwatch.StartNew();
+                    while (!session.EnsureConnected())
+                    {
+                        if (clock.ElapsedMilliseconds > 20000)
+                            throw new Exception("could not connect: " + session.LastError);
+                        Thread.Sleep(200);
+                    }
+                    output("PASS  streaming connected after " + clock.ElapsedMilliseconds + " ms");
+                    output("      bridge status now: " + HueClipV2.GetEntertainmentArea(area.ID).Status);
+
+                    int n = Math.Min(session.Area.Channels.Count, HueStreamMessage.MaxChannels);
+                    byte[] ids = new byte[n];
+                    for (int i = 0; i < n; i++)
+                        ids[i] = session.Area.Channels[i].ID;
+                    ushort[] rgb = new ushort[n * 3];
+                    int frames = 0;
+                    clock.Restart();
+                    bool interrupted = false;
+                    int reconnects = 0;
+                    bool wasStreaming = true;
+                    while (clock.ElapsedMilliseconds < seconds * 1000)
+                    {
+                        // Halfway: end streaming mode from outside (like another app or a bridge reset)
+                        if (simulateLoss && !interrupted && clock.ElapsedMilliseconds > seconds * 500)
+                        {
+                            interrupted = true;
+                            HueClipV2.SetStreaming(area.ID, false);
+                            output("      streaming stopped from outside at " + clock.ElapsedMilliseconds + " ms");
+                        }
+                        bool streaming = session.EnsureConnected();
+                        if (streaming && !wasStreaming)
+                        {
+                            reconnects++;
+                            output("PASS  reconnected at " + clock.ElapsedMilliseconds + " ms");
+                        }
+                        wasStreaming = streaming;
+                        if (!streaming)
+                        {
+                            if (!simulateLoss)
+                                throw new Exception("connection lost while streaming: " + session.LastError);
+                            Thread.Sleep(100);
+                            continue;
+                        }
+                        // Hue wheel, channels phase shifted, one turn every 5 s
+                        double t = clock.ElapsedMilliseconds / 5000.0;
+                        for (int i = 0; i < n; i++)
+                        {
+                            Color c = Wheel((t + (double)i / Math.Max(1, n)) % 1.0);
+                            rgb[i * 3] = (ushort)(c.R * 257);
+                            rgb[i * 3 + 1] = (ushort)(c.G * 257);
+                            rgb[i * 3 + 2] = (ushort)(c.B * 257);
+                        }
+                        session.Send(ids, rgb, n);
+                        frames++;
+                        Thread.Sleep(20);
+                    }
+                    output(string.Format("PASS  {0} frames in {1} s ({2:0.0} fps), state {3}", frames, seconds, frames / (double)seconds, session.State));
+                    if (simulateLoss && reconnects == 0)
+                        throw new Exception("no reconnect after the simulated loss");
+                    session.Stop();
+                }
+                Thread.Sleep(500);
+                output("PASS  stopped, bridge status now: " + HueClipV2.GetEntertainmentArea(area.ID).Status);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                output("FAIL  " + ex.GetType().Name + ": " + ex.Message);
+                return false;
+            }
+        }
+
+        private static Color Wheel(double h)
+        {
+            double r = Math.Max(0, Math.Min(1, Math.Abs(h * 6 - 3) - 1));
+            double g = Math.Max(0, Math.Min(1, 2 - Math.Abs(h * 6 - 2)));
+            double b = Math.Max(0, Math.Min(1, 2 - Math.Abs(h * 6 - 4)));
+            return Color.FromArgb((int)(r * 255), (int)(g * 255), (int)(b * 255));
+        }
+
         private static KeyValuePair<string, Action> Test(string name, Action body)
         {
             return new KeyValuePair<string, Action>(name, body);
@@ -186,6 +323,14 @@ namespace AmbiBack.PhilipsHue
             Equal(new Rectangle(512, 288, 128, 72), CDeviceHueEntertainment.ScanRectangle(new EntertainmentChannel { X = 1, Z = -1 }, 640, 360, 20));
             // Out of range positions are clamped
             Equal(new Rectangle(512, 0, 128, 72), CDeviceHueEntertainment.ScanRectangle(new EntertainmentChannel { X = 3, Z = 2 }, 640, 360, 20));
+            // Lights never placed in the Hue app (all at 0/0/0) are spread from left to right
+            var unplaced = new List<EntertainmentChannel> { new EntertainmentChannel { ID = 0 }, new EntertainmentChannel { ID = 1 } };
+            List<EntertainmentChannel> spread = CDeviceHueEntertainment.EffectivePositions(unplaced);
+            Equal(-0.5, spread[0].X);
+            Equal(0.5, spread[1].X);
+            Equal((byte)1, spread[1].ID);
+            var placed = new List<EntertainmentChannel> { new EntertainmentChannel { ID = 0, X = -1 }, new EntertainmentChannel { ID = 1, X = 1 } };
+            True(ReferenceEquals(placed, CDeviceHueEntertainment.EffectivePositions(placed)), "placed lights must keep their positions");
         }
 
         private static void TestChannelFormat()

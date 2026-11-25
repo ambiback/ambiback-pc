@@ -372,6 +372,7 @@ namespace AmbiBack
             List<EntertainmentChannel> snapshot;
             lock (channelsLock)
                 snapshot = new List<EntertainmentChannel>(channels);
+            snapshot = EffectivePositions(snapshot);
             int n = rectScanPixels.Length;
             for (int i = 0; i < n; i++)
                 rectScanPixels[i] = i < snapshot.Count
@@ -391,6 +392,30 @@ namespace AmbiBack
             }
             this.iScanAreaWidth = width;
             this.iScanAreaHeight = height;
+        }
+
+        /// <summary>
+        /// Areas created without placing the lights (all channels at the same position, e.g. 0/0/0)
+        /// would give every light the same region. Then spread the channels evenly from left to right
+        /// at mid height, in channel order.
+        /// </summary>
+        public static List<EntertainmentChannel> EffectivePositions(List<EntertainmentChannel> list)
+        {
+            if (list.Count < 2)
+                return list;
+            bool same = true;
+            foreach (EntertainmentChannel ch in list)
+                if (Math.Abs(ch.X - list[0].X) > 0.01 || Math.Abs(ch.Z - list[0].Z) > 0.01)
+                {
+                    same = false;
+                    break;
+                }
+            if (!same)
+                return list;
+            var spread = new List<EntertainmentChannel>(list.Count);
+            for (int i = 0; i < list.Count; i++)
+                spread.Add(new EntertainmentChannel { ID = list[i].ID, X = -1 + 2 * (i + 0.5) / list.Count, Y = list[i].Y, Z = 0 });
+            return spread;
         }
 
         /// <summary>

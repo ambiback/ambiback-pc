@@ -126,9 +126,25 @@ namespace AmbiBack
                 ok = AmbiBack.PhilipsHue.HueSelfTest.RunInterop(args[1], port, args[3], args[4], report);
                 reportFile = args.Length > 5 ? args[5] : null;
             }
+            else if (args[0] == "--hue-bridge-test" && args.Length >= 3)
+            {
+                // Live output, the pairing step waits for the link button
+                reportFile = args.Length > 5 && !args[5].StartsWith("--") ? args[5] : null;
+                Action<string> output = line =>
+                {
+                    Console.WriteLine(line);
+                    if (reportFile != null)
+                        System.IO.File.AppendAllText(reportFile, line + Environment.NewLine);
+                };
+                int area = args.Length > 3 && int.TryParse(args[3], out int a) ? a : 0;
+                int seconds = args.Length > 4 && int.TryParse(args[4], out int s) ? s : 15;
+                bool simulateLoss = Array.IndexOf(args, "--simulate-loss") > 0;
+                return AmbiBack.PhilipsHue.HueSelfTest.RunBridgeTest(args[1], args[2], area, seconds, simulateLoss, output) ? 0 : 1;
+            }
             else
             {
                 report.AppendLine("Usage: AmbiBack.exe --hue-selftest [report.txt]");
+                report.AppendLine("       AmbiBack.exe --hue-bridge-test bridge-ip credfile [area-index] [seconds] [report.txt] [--simulate-loss]");
                 report.AppendLine("       AmbiBack.exe --hue-dtls-interop host port identity pskhex [report.txt]");
                 ok = false;
             }
