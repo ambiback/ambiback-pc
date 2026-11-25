@@ -1,0 +1,42 @@
+frmMain.cs
+  s_486f8d5707266f::t_f8d66519ac737c 1006-1007
+HueSelfTest.cs
+  s_486f8d5707266f::t_f8d66519ac737c 48,384,386-394
+Localization.cs
+  s_486f8d5707266f::t_735233404384b5 254-257,496-499
+CDevicePhilipsHueLight.cs
+  s_486f8d5707266f::t_a9a9db06cfa873 13,68-71,86-87,149-152,214-217,221,223,225-226,228,230,233,239,241-244,246,248-257,261-276,280,287-288,296,302,304,307,309-311,313-316,318-323,326-332
+FormStyles.cs
+  s_486f8d5707266f::t_735233404384b5 110,210-214
+HueClient.cs
+  s_486f8d5707266f::t_f8d66519ac737c 60
+AmbiBack.PC.csproj
+  s_486f8d5707266f::t_f8d66519ac737c 197
+frmConnectHue.cs
+  s_486f8d5707266f::t_735233404384b5 119,227-266
+HueEntertainment.cs
+  s_486f8d5707266f::t_aa1854d55ec5e1 315,319-320
+  s_486f8d5707266f::t_3499a7b36594ab 23-24,62-65,114,120-125,173-180,191-192,196-197,209-231,247
+  s_486f8d5707266f::t_735233404384b5 257-268
+HueLampStreamer.cs
+  s_486f8d5707266f::t_735233404384b5 206-208
+  s_486f8d5707266f::t_c6a339f0a8d275 1-205,209-369
+frmHueCreateArea.cs
+  s_486f8d5707266f::t_735233404384b5 243
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5669b5975dd55b408c7918759d73ed652a4417ae",
+  "prompts": {},
+  "sessions": {
+    "s_486f8d5707266f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "584fa5f7-1b21-4403-9105-099ef4abe917",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
