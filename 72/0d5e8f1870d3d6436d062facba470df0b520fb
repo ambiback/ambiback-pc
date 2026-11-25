@@ -1,0 +1,21 @@
+.github/workflows/ci.yml
+  s_8b11cdffaf243f::t_c9f803ec0729ae 25,48
+.github/workflows/release.yml
+  s_8b11cdffaf243f::t_c9f803ec0729ae 24,122,146,148,224,320
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "720d5e8f1870d3d6436d062facba470df0b520fb",
+  "prompts": {},
+  "sessions": {
+    "s_8b11cdffaf243f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b1fa1100-5150-4390-837c-fef1ef740335",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
