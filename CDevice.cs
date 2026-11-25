@@ -814,11 +814,10 @@ namespace AmbiBack
             int iReturn = iDefault; 
             try
             {
-                byte[] buffer = new byte[8];
                 reader.ReadStartElement();
                 iReturn = reader.ReadContentAsInt();
                 reader.ReadEndElement();
-                return buffer[0];
+                return iReturn;    // returned an unused buffer (always 0) before
             }
             catch (Exception ex)
             {

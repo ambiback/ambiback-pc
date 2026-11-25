@@ -345,7 +345,26 @@ namespace AmbiBack
             }
         }
 
+        /// <summary>
+        /// While items are added or updated: the list view reports their checkboxes as unchecked first,
+        /// which must not remove Hue lights from the PC group.
+        /// </summary>
+        private int listUpdating;
+
         private ListViewItem AddDeviceToListView(CDevice myDevice)
+        {
+            listUpdating++;
+            try
+            {
+                return AddDeviceToListViewCore(myDevice);
+            }
+            finally
+            {
+                listUpdating--;
+            }
+        }
+
+        private ListViewItem AddDeviceToListViewCore(CDevice myDevice)
         {
             // Define DeviceID
             string szDeviceId = myDevice.GetDeviceID();
@@ -453,6 +472,7 @@ namespace AmbiBack
                     deviceListItem.Text = CGlobals.DEVICETYPESDISPLAYNAME[(int)philipsHueLightDevice.GetDeviceType()];
                     deviceListItem.SubItems[1].Text = philipsHueLightDevice.GetDeviceName();
                     deviceListItem.SubItems[2].Text = philipsHueLightDevice.HueUniqueID;
+                    deviceListItem.Checked = philipsHueLightDevice.InGroup;
                 }
                 else
                 {
@@ -468,7 +488,33 @@ namespace AmbiBack
                     deviceListItem.SubItems.Add(philipsHueLightDevice.GetDeviceName());
                     deviceListItem.SubItems.Add(philipsHueLightDevice.HueUniqueID);
                     deviceListItem.SubItems.Add(L.T("st_offline"));
+                    deviceListItem.Checked = philipsHueLightDevice.InGroup;
 
+                    LVDevices.Items.Add(deviceListItem);
+                }
+            }
+            else if (myDevice is CDeviceHueEntertainment hueArea)
+            {
+                string szDetails = L.F("hue_area_channels", hueArea.ChannelCount);
+                if (LVDevices.Items.IndexOfKey(szDeviceId) >= 0)
+                {
+                    deviceListItem = LVDevices.Items[szDeviceId];
+                    deviceListItem.Tag = hueArea;
+                    deviceListItem.ImageKey = CGlobals.GetImageKey(hueArea.GetDeviceType());
+                    deviceListItem.Text = CGlobals.DEVICETYPESDISPLAYNAME[(int)hueArea.GetDeviceType()];
+                    deviceListItem.SubItems[1].Text = hueArea.GetDeviceName();
+                    deviceListItem.SubItems[2].Text = szDetails;
+                }
+                else
+                {
+                    deviceListItem = new ListViewItem();
+                    deviceListItem.Name = szDeviceId;
+                    deviceListItem.Tag = hueArea;
+                    deviceListItem.ImageKey = CGlobals.GetImageKey(hueArea.GetDeviceType());
+                    deviceListItem.Text = CGlobals.DEVICETYPESDISPLAYNAME[(int)hueArea.GetDeviceType()];
+                    deviceListItem.SubItems.Add(hueArea.GetDeviceName());
+                    deviceListItem.SubItems.Add(szDetails);
+                    deviceListItem.SubItems.Add(L.T("st_offline"));
                     LVDevices.Items.Add(deviceListItem);
                 }
             }
@@ -808,7 +854,11 @@ namespace AmbiBack
                 {
                     if (lvItem.Tag != null)
                     {
-                        if (selectedAmbiScreen.GetDevices().Contains(lvItem.Tag))
+                        if (lvItem.Tag is CDevicePhilipsHueLight hueLight)
+                        {
+                            lvItem.Checked = hueLight.InGroup;    // group membership, not per monitor
+                        }
+                        else if (selectedAmbiScreen.GetDevices().Contains(lvItem.Tag))
                         {
                             lvItem.Checked = true;
                         }
@@ -964,6 +1014,21 @@ namespace AmbiBack
                 myAmbiScreen.screenHelper.AbortThread();
             }
 
+            // Hue entertainment areas: end streaming and switch the lights off before the process ends
+            // (the bridge does not do this by itself). All in parallel, at most 6 seconds.
+            var hueAreas = new List<CDeviceHueEntertainment>();
+            foreach (CDevice myDevice in CGlobals.mainConfig.Devices.GetDeviceList())
+            {
+                if (myDevice is CDeviceHueEntertainment hueArea && hueArea.IsThreadRunningSafe())
+                {
+                    hueArea.RequestShutdown();
+                    hueAreas.Add(hueArea);
+                }
+            }
+            Stopwatch hueWait = Stopwatch.StartNew();
+            foreach (CDeviceHueEntertainment hueArea in hueAreas)
+                hueArea.WaitForShutdown(6000 - (int)hueWait.ElapsedMilliseconds);
+
             // Stop Device Threads!
             foreach (CDevice myDevice in CGlobals.mainConfig.Devices.GetDeviceList())
             {
@@ -1068,9 +1133,11 @@ namespace AmbiBack
                     {
                         // check each device if online
                         CDevice myDevice = (CDevice)devicesList[iIndex];
-                        if (!myDevice.CheckIsOnline())
+                        // Hue lights and areas have no address of their own: the bridge reported them or not
+                        bool bHue = myDevice is CDevicePhilipsHueLight || myDevice is CDeviceHueEntertainment;
+                        if (bHue ? !myDevice.IsOnline() : !myDevice.CheckIsOnline())
                         {
-                            szDeleted += "• " + myDevice.GetDeviceName() + " (" + myDevice.GetIPAddress().ToString() + ")\r\n";
+                            szDeleted += "• " + myDevice.GetDeviceName() + (myDevice.GetIPAddress() != null ? " (" + myDevice.GetIPAddress().ToString() + ")" : "") + "\r\n";
                             this.RemoveDeviceFromListView(myDevice);
                             CGlobals.mainConfig.Devices.DeleteEntry(myDevice);
                         }
@@ -1110,6 +1177,10 @@ namespace AmbiBack
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.ColorRedPercent = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.ColorRedPercent = (byte)myTrackBar.Value;
+                    }
 
                     // Set Tooltip Text
                     string szTooltip = myTrackBar.Value.ToString();
@@ -1142,6 +1213,10 @@ namespace AmbiBack
                     {
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.ColorGreenPercent = (byte)myTrackBar.Value;
+                    }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.ColorGreenPercent = (byte)myTrackBar.Value;
                     }
                 }
 
@@ -1176,6 +1251,10 @@ namespace AmbiBack
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.ColorGreenPercent = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.ColorBluePercent = (byte)myTrackBar.Value;
+                    }
                 }
 
                 // Set Tooltip Text
@@ -1209,6 +1288,10 @@ namespace AmbiBack
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.MaxBrightnessPercent = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.MaxBrightnessPercent = (byte)myTrackBar.Value;
+                    }
                 }
 
                 // Set Tooltip Text
@@ -1241,6 +1324,10 @@ namespace AmbiBack
                     {
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.MinimumLuminosityPercent = (byte)myTrackBar.Value;
+                    }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.MinimumLuminosityPercent = (byte)myTrackBar.Value;
                     }
                 }
 
@@ -1307,7 +1394,11 @@ namespace AmbiBack
                     else if (currentSelectedDevice.GetDeviceType() == DeviceType.PhilipsHueColorLight)
                     {
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
-                        philipsHueDevice.ValueGainPercent = (byte)myTrackBar.Value;
+                        philipsHueDevice.ValueGainPercent = myTrackBar.Value;    // 100..300 %, no byte cast
+                    }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.ValueGainPercent = myTrackBar.Value;
                     }
                 }
 
@@ -1353,6 +1444,10 @@ namespace AmbiBack
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.ColorBoostPercent = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.ColorBoostPercent = (byte)myTrackBar.Value;
+                    }
                 }
 
                 // Set Tooltip Text
@@ -1395,6 +1490,10 @@ namespace AmbiBack
                         CDevicePhilipsHueLight philipsHueDevice = (CDevicePhilipsHueLight)currentSelectedDevice;
                         philipsHueDevice.FramesPerSecond = (byte)myTrackBar.Value;
                     }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.FramesPerSecond = (byte)myTrackBar.Value;
+                    }
                 }
 
                 // Set Tooltip Text
@@ -1432,6 +1531,11 @@ namespace AmbiBack
                     {
                         CDeviceAmbiBack nodeMcuManagerDevice = (CDeviceAmbiBack)currentSelectedDevice;
                         nodeMcuManagerDevice.SetInnerSizePercent((byte)myTrackBar.Value);
+                    }
+                    else if (currentSelectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        hueArea.InnerSizePercent = (byte)myTrackBar.Value;
+                        hueArea.RecalculateScanAreas();
                     }
                 }
 
@@ -1688,10 +1792,26 @@ namespace AmbiBack
                         tbColorBoost.Value = philipsHueLight.ColorBoostPercent;
                         tbMaxBrightness.Value = philipsHueLight.MaxBrightnessPercent;
                         tbMinimumLuminosity.Value = philipsHueLight.MinimumLuminosityPercent;
+                        tbValueGain.Value = Math.Max(tbValueGain.Minimum, Math.Min(tbValueGain.Maximum, philipsHueLight.ValueGainPercent));
                         tbSmoothing.Value = (philipsHueLight.FrameDelay >= 100 ? (philipsHueLight.FrameDelay <= 1000 ? philipsHueLight.FrameDelay : 1000) : 100);
 
                         // Set new selected Device 
                         this.currentSelectedDevice = philipsHueLight;
+                        bEnableOptions = true;
+                    }
+                    else if (selectedDevice is CDeviceHueEntertainment hueArea)
+                    {
+                        tbInnerPicture.Value = Math.Max(tbInnerPicture.Minimum, Math.Min(tbInnerPicture.Maximum, (int)hueArea.InnerSizePercent));
+                        tbFramesPerSecond.Value = Math.Max(tbFramesPerSecond.Minimum, Math.Min(tbFramesPerSecond.Maximum, (int)hueArea.FramesPerSecond));
+                        tbRed.Value = hueArea.ColorRedPercent;
+                        tbGreen.Value = hueArea.ColorGreenPercent;
+                        tbBlue.Value = hueArea.ColorBluePercent;
+                        tbColorBoost.Value = hueArea.ColorBoostPercent;
+                        tbMaxBrightness.Value = hueArea.MaxBrightnessPercent;
+                        tbMinimumLuminosity.Value = hueArea.MinimumLuminosityPercent;
+                        tbValueGain.Value = Math.Max(tbValueGain.Minimum, Math.Min(tbValueGain.Maximum, hueArea.ValueGainPercent));
+
+                        this.currentSelectedDevice = hueArea;
                         bEnableOptions = true;
                     }
 
@@ -1719,6 +1839,24 @@ namespace AmbiBack
 
         private void LVDevices_ItemChecked(object sender, ItemCheckedEventArgs e)
         {
+            // Single Hue lights: the checkbox is the membership in the PC group, which streams them
+            if (e.Item.Tag is CDevicePhilipsHueLight hueLight)
+            {
+                if (listUpdating > 0)
+                {
+                    // Not a click: keep the stored membership and show it
+                    if (e.Item.Checked != hueLight.InGroup)
+                        BeginInvoke((Action)(() => { if (!IsDisposed && e.Item.ListView != null) e.Item.Checked = hueLight.InGroup; }));
+                    return;
+                }
+                if (hueLight.InGroup != e.Item.Checked)
+                {
+                    hueLight.InGroup = e.Item.Checked;
+                    AmbiBack.PhilipsHue.HuePcGroup.MembershipChanged();
+                }
+                return;
+            }
+
             if (e.Item.Tag != null && selectedAmbiScreen != null)
             {
                 CDevice selectedDevice = (CDevice)e.Item.Tag;

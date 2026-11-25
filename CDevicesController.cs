@@ -111,8 +111,65 @@ namespace AmbiBack
             }
         }
 
+        /// <summary>Entertainment area device of the given configuration id, or null.</summary>
+        public CDeviceHueEntertainment FindHueEntertainmentDevice(string configId)
+        {
+            CDeviceHueEntertainment pcGroup = HuePcGroup.FindDevice();
+            if (pcGroup != null && pcGroup.HueConfigID == configId)
+                return pcGroup;
+            foreach (CDevice myDevice in CGlobals.mainConfig.Devices.GetDeviceList())
+                if (myDevice is CDeviceHueEntertainment existing && existing.HueConfigID == configId)
+                    return existing;
+            return null;
+        }
+
+        /// <summary>Adds an entertainment area of the bridge as streaming device (chosen in frmConnectHue).</summary>
+        public CDeviceHueEntertainment AddHueEntertainmentArea(EntertainmentArea area)
+        {
+            if (area.Name == HuePcGroup.AreaName)
+                return HuePcGroup.EnsureDevice(area);
+            CDeviceHueEntertainment device = FindHueEntertainmentDevice(area.ID);
+            if (device == null)
+                device = (CDeviceHueEntertainment)CGlobals.mainConfig.Devices.Add(new CDeviceHueEntertainment(area));
+            device.SetIsOnline(true);
+            HandleDiscoveredDevice(device);
+            return device;
+        }
+
+        /// <summary>Marks the added entertainment areas online and refreshes their layout (needs the client key).</summary>
+        public void EnumHueEntertainmentAreas()
+        {
+            List<EntertainmentArea> areas = CGlobals.HueEntertainmentAreas;
+            if (areas == null)
+                return;
+
+            foreach (EntertainmentArea area in areas)
+            {
+                // The area of this PC always shows up in the list
+                if (area.Name == HuePcGroup.AreaName)
+                {
+                    HuePcGroup.EnsureDevice(area);
+                    continue;
+                }
+                CDeviceHueEntertainment device = FindHueEntertainmentDevice(area.ID);
+                if (device == null)
+                    continue;    // only areas the user added
+                if (!device.IsThreadRunningSafe())
+                {
+                    // Keep the stored layout current while not streaming
+                    device.HueAreaName = area.Name;
+                    device.HueChannels = EntertainmentChannel.Format(area.Channels);
+                }
+                device.SetIsOnline(true);
+                HandleDiscoveredDevice(device);
+            }
+        }
+
         public void EnumHueDevices()
         {
+            // Streaming areas first, then the single lights (REST fallback)
+            this.EnumHueEntertainmentAreas();
+
             // Skip if no Hue available
             if (CGlobals.HueLights == null)
                 return; 
@@ -120,13 +177,16 @@ namespace AmbiBack
             // Loop Through Hue Lights
             foreach (Light hueLight in CGlobals.HueLights)
             {
+                // Only lights that can show colors; plugs, switches and white only lights are left out
+                if (!hueLight.IsColorLight)
+                    continue;
+
                 // Check if device was already added
                 CDevice newDevice = null; 
                 foreach (CDevice myDevice in CGlobals.mainConfig.Devices.GetDeviceList()) {
                     if (myDevice.GetDeviceType() == DeviceType.PhilipsHueColorLight)
                     {
                         CDevicePhilipsHueLight myHueDevice = (CDevicePhilipsHueLight)myDevice;
-                        myHueDevice.SetIsOnline(true); /* Set device online */
                         if (hueLight.UniqueID == myHueDevice.HueUniqueID)
                         {
                             newDevice = myHueDevice;

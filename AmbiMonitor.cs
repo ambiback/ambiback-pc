@@ -91,6 +91,9 @@ namespace AmbiBack
                     m_aDevices.Remove(newDevice);
             }
         }
+        /// <summary>Title shown on the card, e.g. "Monitor 1".</summary>
+        public string Title { get { return lblTitel.Text; } }
+
         public void SetTitel(string szTitel) {
             lblTitel.Text = szTitel; 
         }
@@ -120,6 +123,11 @@ namespace AmbiBack
                 CDeviceAmbiBack nodeMcuManagerDevice = (CDeviceAmbiBack)selectedDevice;
                 cbLedsHori.Text = nodeMcuManagerDevice.PixelHori.ToString();
                 cbLedsVert.Text = nodeMcuManagerDevice.PixelVert.ToString();
+            } else if (selectedDevice is CDeviceHueEntertainment) {
+                // Scan regions come from the light positions of the entertainment area
+                bNumControlls = false;
+                bDirectionControls = false;
+                bSectorControls = false;
             } else if (selectedDevice.GetDeviceType() == DeviceType.PhilipsHueColorLight)
             {
                 bNumControlls = false;
@@ -621,6 +629,9 @@ namespace AmbiBack
 
                         // Start Device Handling Thread!
                         myDevice.StartThread();
+                    } else if (myDevice is CDeviceHueEntertainment) {
+                        // Entertainment streaming (DTLS)
+                        myDevice.StartThread();
                     }
                 }
             }
@@ -674,7 +685,7 @@ namespace AmbiBack
 
                 btnStart.Enabled = true;
                 btnStop.Enabled = false;
-                btnEnable.Image = global::AmbiBack.Properties.Resources.selection_ok;
+                SetEnableGlyph(true);
             }
             else {
                 // Stop Screenhelper threads
@@ -687,7 +698,7 @@ namespace AmbiBack
                 this._MonitorEnabled = false;
                 btnStart.Enabled = false;
                 btnStop.Enabled = false;
-                btnEnable.Image = global::AmbiBack.Properties.Resources.selection;
+                SetEnableGlyph(false);
             }
         }
         private void cbLedsHori_SelectedIndexChanged(object sender, EventArgs e)

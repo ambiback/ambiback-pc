@@ -12,6 +12,12 @@ namespace AmbiBack
         private ToolStripMenuItem trayStatus, trayStart, trayStop;
         private Label lblDevicesEmpty;
 
+        // App toolbar: status, Hue Bridge and options, mode switch, start / stop all
+        private ToolStrip tsApp;
+        private ToolStripLabel tbStatus;
+        private ToolStripButton tbHue, tbOptions, tbStartStop;
+        private ToolStripMenuItem mnuStartAll, mnuStopAll;
+
         private int Px(int v) { return (int)Math.Round(v * DeviceDpi / 96.0); }
 
         private void ApplyStyle()
@@ -27,14 +33,11 @@ namespace AmbiBack
             contextMenuTaskIcon.Renderer = new FlatToolStripRenderer();
             tsDevices.Padding = new Padding(Px(6), Px(4), Px(6), Px(4));
             toolStripMenuItem1.Visible = false;   // empty placeholder item
+            // Top level menus without icons, as usual on Windows
+            foreach (ToolStripItem i in MainMenu.Items)
+                i.Image = null;
 
-            // Mode switch on the right of the menu bar
-            btnModeAdvanced = new ToolStripButton { Alignment = ToolStripItemAlignment.Right, Margin = new Padding(0, 1, Px(6), 1), Tag = FlatToolStripRenderer.SegmentTag, Padding = new Padding(Px(6), 0, Px(6), 0) };
-            btnModeEasy = new ToolStripButton { Alignment = ToolStripItemAlignment.Right, Tag = FlatToolStripRenderer.SegmentTag, Padding = new Padding(Px(6), 0, Px(6), 0) };
-            btnModeEasy.Click += (s, e) => SetMode(false);
-            btnModeAdvanced.Click += (s, e) => SetMode(true);
-            MainMenu.Items.Add(btnModeAdvanced);
-            MainMenu.Items.Add(btnModeEasy);
+            BuildAppToolbar();
 
             // View menu: mode first, list styles only in Advanced
             mnuModeEasy = new ToolStripMenuItem();
@@ -62,6 +65,13 @@ namespace AmbiBack
                 mnuWifi.Enabled = sel && currentSelectedDevice != null && currentSelectedDevice.IsSerial();
             };
 
+
+            // Device toolbar: the same symbol set as the app toolbar
+            SetGlyph(btnEnumDevices, Theme.Glyphs.Search, Theme.PrimaryText);
+            SetGlyph(btnAdd, Theme.Glyphs.Add, Theme.PrimaryText);
+            SetGlyph(btnCleanup, Theme.Glyphs.Broom, Theme.PrimaryText);
+            SetGlyph(btnDelete, Theme.Glyphs.Delete, Theme.Destructive);
+            SetGlyph(btnChangeView, Theme.Glyphs.View, Theme.PrimaryText);
 
             // Device toolbar: Delete on the right, in red
             btnDelete.Alignment = ToolStripItemAlignment.Right;
@@ -158,6 +168,12 @@ namespace AmbiBack
             mnuAbout.Text = L.T("m_about");
             btnModeEasy.Text = L.T("mode_easy");
             btnModeAdvanced.Text = L.T("mode_advanced");
+            tbHue.Text = L.T("tb_hue");
+            tbHue.ToolTipText = L.T("tb_hue_tip");
+            tbOptions.Text = L.T("tb_options");
+            tbOptions.ToolTipText = L.T("tb_options_tip");
+            mnuStartAll.Text = L.T("tray_start");
+            mnuStopAll.Text = L.T("tray_stop");
 
             btnEnumDevices.Text = L.T("tb_find");
             btnAdd.Text = L.T("tb_add");
@@ -373,9 +389,190 @@ namespace AmbiBack
                 statusDotColor = dot;
             }
 
+            UpdateAppToolbar(running, total);
+
             string tip = L.T("app") + " – " + (running > 0 ? L.F("tray_running", running, total) : L.T("tray_idle"));
             nficon.Text = tip.Length > 63 ? tip.Substring(0, 63) : tip;
             PlaceEmptyLabel();
+        }
+
+        /// <summary>
+        /// Toolbar under the menu: live status on the left; Hue Bridge and Options in the middle; the mode
+        /// switch and the one prominent action, Start All / Stop All, on the right. Every item is also in a menu.
+        /// </summary>
+        private void BuildAppToolbar()
+        {
+            tsApp = new ToolStrip
+            {
+                Dock = DockStyle.Top,
+                ImageScalingSize = new Size(Px(20), Px(20)),
+                AutoSize = false,
+                Height = Px(52),
+                CanOverflow = true,
+                Stretch = true,
+            };
+            Theme.StyleStrip(tsApp);
+            tsApp.BackColor = Theme.Card;
+            tsApp.Padding = new Padding(Px(12), Px(8), Px(12), Px(8));
+
+            tbStatus = new ToolStripLabel { Margin = new Padding(0, 0, Px(16), 0), ImageAlign = ContentAlignment.MiddleLeft };
+            tbStatus.Font = Theme.CardTitleFont;
+
+            tbHue = AppButton(Theme.Glyphs.Lightbulb, (s, e) => connectHueBridgeToolStripMenuItem_Click(s, e));
+            tbOptions = AppButton(Theme.Glyphs.Settings, (s, e) => optionsToolStripMenuItem.PerformClick());
+
+            // Right edge (added from the right): Start All / Stop All, then the mode switch
+            tbStartStop = new ToolStripButton
+            {
+                Alignment = ToolStripItemAlignment.Right,
+                Tag = FlatToolStripRenderer.PrimaryTag,
+                DisplayStyle = ToolStripItemDisplayStyle.ImageAndText,
+                TextImageRelation = TextImageRelation.ImageBeforeText,
+                AutoSize = false,
+                Size = new Size(Px(150), Px(34)),
+                Padding = new Padding(Px(10), 0, Px(12), 0),
+                Margin = new Padding(Px(12), 0, 0, 0),
+                Font = Theme.CardTitleFont,
+            };
+            tbStartStop.Click += (s, e) =>
+            {
+                int total, running = RunningMonitors(out total);
+                StartStopAll(running == 0);
+            };
+
+            btnModeAdvanced = new ToolStripButton { Alignment = ToolStripItemAlignment.Right, Tag = FlatToolStripRenderer.SegmentTag, Padding = new Padding(Px(8), 0, Px(8), 0), AutoSize = false, Height = Px(30) };
+            btnModeEasy = new ToolStripButton { Alignment = ToolStripItemAlignment.Right, Tag = FlatToolStripRenderer.SegmentTag, Padding = new Padding(Px(8), 0, Px(8), 0), AutoSize = false, Height = Px(30) };
+            btnModeEasy.Click += (s, e) => SetMode(false);
+            btnModeAdvanced.Click += (s, e) => SetMode(true);
+            btnModeEasy.TextChanged += (s, e) => btnModeEasy.Width = TextRenderer.MeasureText(btnModeEasy.Text, tsApp.Font).Width + Px(20);
+            btnModeAdvanced.TextChanged += (s, e) => btnModeAdvanced.Width = TextRenderer.MeasureText(btnModeAdvanced.Text, tsApp.Font).Width + Px(20);
+
+            tsApp.Items.AddRange(new ToolStripItem[]
+            {
+                tbStatus,
+                new ToolStripSeparator(),
+                tbHue,
+                tbOptions,
+                tbStartStop,
+                btnModeAdvanced,
+                btnModeEasy,
+            });
+
+            // Below the menu bar, above the monitor column and the device list
+            Controls.Add(tsApp);
+            Controls.SetChildIndex(tsApp, Controls.GetChildIndex(MainMenu));
+
+            // File menu: Start All / Stop All
+            mnuStartAll = new ToolStripMenuItem(null, null, (s, e) => StartStopAll(true));
+            mnuStopAll = new ToolStripMenuItem(null, null, (s, e) => StartStopAll(false));
+            fileToolStripMenuItem.DropDownItems.Insert(0, mnuStartAll);
+            fileToolStripMenuItem.DropDownItems.Insert(1, mnuStopAll);
+            fileToolStripMenuItem.DropDownItems.Insert(2, new ToolStripSeparator());
+            fileToolStripMenuItem.DropDownOpening += (s, e) =>
+            {
+                int total, running = RunningMonitors(out total);
+                mnuStartAll.Enabled = running < total;
+                mnuStopAll.Enabled = running > 0;
+            };
+        }
+
+        private ToolStripButton AppButton(char glyph, EventHandler click)
+        {
+            var b = new ToolStripButton
+            {
+                DisplayStyle = ToolStripItemDisplayStyle.ImageAndText,
+                TextImageRelation = TextImageRelation.ImageBeforeText,
+                Padding = new Padding(Px(8), Px(4), Px(10), Px(4)),
+                Margin = new Padding(0, 0, Px(4), 0),
+            };
+            SetGlyph(b, glyph, Theme.PrimaryText);
+            b.Click += click;
+            return b;
+        }
+
+        private void SetGlyph(ToolStripItem item, char glyph, Color color)
+        {
+            Bitmap bmp = Theme.Glyph(glyph, color, Px(20));
+            if (bmp == null)
+                return;    // no icon font: keep the designer image
+            item.Image = bmp;
+            item.ImageScaling = ToolStripItemImageScaling.None;
+        }
+
+        private Bitmap toolbarDot;
+        private Color toolbarDotColor;
+        private int toolbarRunning = -1;
+
+        /// <summary>Status on the left and the Start All / Stop All button follow the monitors.</summary>
+        private void UpdateAppToolbar(int running, int total)
+        {
+            if (tsApp == null) return;
+            tbStatus.Text = running > 0 ? L.F("tray_running", running, total) : L.T("tray_idle");
+            Color dot = running > 0 ? Theme.Success : Theme.ControlBorder;
+            if (toolbarDot == null || toolbarDotColor != dot)
+            {
+                var bmp = new Bitmap(Px(14), Px(14));
+                using (var g = Graphics.FromImage(bmp))
+                    Theme.DrawStatusDot(g, dot, Px(2), bmp.Height / 2, Px(10));
+                tbStatus.Image = bmp;
+                toolbarDot?.Dispose();
+                toolbarDot = bmp;
+                toolbarDotColor = dot;
+            }
+            bool anyRunning = running > 0;
+            tbStartStop.Text = anyRunning ? L.T("tb_stop_all") : L.T("tb_start_all");
+            tbStartStop.ToolTipText = anyRunning ? L.T("tray_stop") : L.T("tray_start");
+            if (toolbarRunning != (anyRunning ? 1 : 0))
+            {
+                toolbarRunning = anyRunning ? 1 : 0;
+                tbStartStop.Image?.Dispose();
+                tbStartStop.Image = Theme.Glyph(anyRunning ? Theme.Glyphs.Stop : Theme.Glyphs.Play, Color.White, Px(16));
+                tbStartStop.ImageScaling = ToolStripItemImageScaling.None;
+            }
+            tbStartStop.Enabled = total > 0;
+        }
+
+        /// <summary>The monitor cards in their order.</summary>
+        internal System.Collections.Generic.List<AmbiMonitor> GetMonitors()
+        {
+            var list = new System.Collections.Generic.List<AmbiMonitor>();
+            foreach (Control c in panScreens.Controls)
+                if (c is AmbiMonitor mon)
+                    list.Add(mon);
+            return list;
+        }
+
+        /// <summary>Links a device to one monitor only (removed from the others) and starts it when that monitor runs.</summary>
+        internal void AssignDeviceToMonitor(CDevice device, AmbiMonitor target)
+        {
+            foreach (AmbiMonitor mon in GetMonitors())
+            {
+                if (mon != target && mon.GetDevices().Contains(device))
+                {
+                    mon.RemoveDevice(device);
+                    if (mon.AmbiBackRunning)
+                        device.AbortThread();
+                }
+            }
+            if (!target.GetDevices().Contains(device))
+            {
+                target.AddDevice(device);
+                if (target.MonitorEnabled && target.AmbiBackRunning)
+                    device.StartThread();
+            }
+            foreach (ListViewItem item in LVDevices.Items)
+                if (item.Tag == device && selectedAmbiScreen != null)
+                    item.Checked = selectedAmbiScreen.GetDevices().Contains(device);
+        }
+
+        /// <summary>Checkboxes of the Hue lights show their group membership.</summary>
+        internal void RefreshHueLampChecks()
+        {
+            foreach (ListViewItem item in LVDevices.Items)
+                if (item.Tag is CDevicePhilipsHueLight lamp && item.Checked != lamp.InGroup)
+                    item.Checked = lamp.InGroup;
+            if (selectedAmbiScreen != null)
+                selectedAmbiScreen.SetControlsBySelectedDevice();
         }
 
         private void UpdateTrayMenu()

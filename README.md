@@ -4,20 +4,23 @@
 
 Windows client for AmbiBack. It captures the screen content and sends the colors to AmbiBack devices, DreamScreen and Philips Hue lights.
 
+**User guide:** [docs/user-guide.md](docs/user-guide.md) (with screenshots).
+
 It is part of the [AmbiBack project](https://github.com/ambiback) and works with the [AmbiBack firmware](https://github.com/ambiback/ambiback-firmware).
 
 ## Status
 
 - Version 0.9.0.180. The PC version remained a prototype and was never a finished product.
 - The Release build passes, and forms and resources load.
-- **The full application has not been started since the migration.** The new Hue client has only been tested against a simulated bridge, not a real one.
+- Philips Hue (Entertainment streaming, bridge discovery, own entertainment area) was tested against a real Hue Bridge v2. Other parts of the application are tested less after the migration.
 - AmbiBack devices have not been on sale for around five years. This repository is for DIY use and further development, with no product support. More at [ambiback.de](https://www.ambiback.de/).
 
 ## Features
 
 - Screen capture through DirectX with preview and per-device sectors
 - Find and manage devices on the local network
-- Control of AmbiBack, DreamScreen and Philips Hue
+- Control of AmbiBack controllers, Philips Hue and DreamScreen (DreamScreen only in builds with `USE_DREAMSCREEN`)
+- Philips Hue through the Entertainment API: encrypted DTLS streaming at 25 to 50 fps, automatic bridge discovery, an entertainment area of its own built from the lights you choose
 - Settings for brightness, contrast, color balance and transitions
 - Start with Windows and run from the notification area
 
@@ -45,7 +48,7 @@ Depending on the module, USB access needs a driver from the chip manufacturer. I
 
 ## Security
 
-Communication with devices and the Hue Bridge is unencrypted on the local network, and the device API has no login. Run devices only on a trusted network.
+Communication with AmbiBack devices is unencrypted on the local network, and the device API has no login. Run devices only on a trusted network. Hue streaming is encrypted (DTLS, AES-GCM), management commands to the bridge use HTTPS, and the bridge key is stored with Windows DPAPI.
 
 ## Trademarks
 

@@ -4,20 +4,23 @@
 
 Windows-Client für AmbiBack. Er erfasst den Bildschirminhalt und sendet die Farben an AmbiBack-Geräte, DreamScreen und Philips-Hue-Lampen.
 
+**Benutzerhandbuch:** [docs/benutzerhandbuch.md](docs/benutzerhandbuch.md) (mit Screenshots).
+
 Er gehört zum [AmbiBack-Projekt](https://github.com/ambiback) und arbeitet mit der [AmbiBack-Firmware](https://github.com/ambiback/ambiback-firmware).
 
 ## Status
 
 - Version 0.9.0.180. Die PC-Version blieb ein Prototyp und wurde nie zum fertigen Produkt.
 - Der Release-Build läuft durch, Formulare und Ressourcen laden.
-- **Die gesamte Anwendung wurde seit der Migration nicht gestartet.** Der neue Hue-Client wurde nur gegen eine simulierte Bridge getestet, nicht gegen eine echte.
+- Philips Hue (Entertainment-Streaming, Bridge-Suche, eigener Entertainment-Bereich) wurde mit einer echten Hue Bridge v2 getestet. Andere Teile der Anwendung sind seit der Migration weniger getestet.
 - AmbiBack-Geräte werden seit rund fünf Jahren nicht mehr verkauft. Dieses Repository dient dem Eigenbau und der Weiterentwicklung, ohne Produktsupport. Mehr auf [ambiback.de](https://www.ambiback.de/).
 
 ## Funktionen
 
 - Bildschirmaufnahme über DirectX mit Vorschau und Sektoren je Gerät
 - Geräte im lokalen Netzwerk finden und verwalten
-- Ansteuerung von AmbiBack, DreamScreen und Philips Hue
+- Ansteuerung von AmbiBack-Controllern, Philips Hue und DreamScreen (DreamScreen nur in Builds mit `USE_DREAMSCREEN`)
+- Philips Hue über die Entertainment API: verschlüsseltes DTLS-Streaming mit 25 bis 50 fps, automatische Bridge-Suche, eigener Entertainment-Bereich aus den gewählten Lampen
 - Einstellungen für Helligkeit, Kontrast, Farbanteile und Übergänge
 - Start mit Windows und Betrieb im Infobereich
 
@@ -45,7 +48,7 @@ Für den Zugriff auf Geräte per USB wird je nach Modul ein Treiber des Chip-Her
 
 ## Sicherheit
 
-Die Kommunikation mit Geräten und der Hue Bridge läuft unverschlüsselt im lokalen Netz, und die Geräte-API hat keine Anmeldung. Betreibe die Geräte nur in einem vertrauenswürdigen Netz.
+Die Kommunikation mit AmbiBack-Geräten läuft unverschlüsselt im lokalen Netz, und die Geräte-API hat keine Anmeldung. Betreibe die Geräte nur in einem vertrauenswürdigen Netz. Das Hue-Streaming ist verschlüsselt (DTLS, AES-GCM), Verwaltungsbefehle an die Bridge laufen über HTTPS, und der Bridge-Schlüssel wird mit Windows-DPAPI gespeichert.
 
 ## Marken
 

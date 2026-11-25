@@ -90,6 +90,12 @@ namespace AmbiBack
                         // Get Object from XML Stream
                         newDevice = (CDevice)xmlIn.Deserialize(stringIn);
                     }
+                    else if (myNode.Name == "AmbiBack.CDeviceHueEntertainment")
+                    {
+                        XmlSerializer xmlIn = new System.Xml.Serialization.XmlSerializer(typeof(CDeviceHueEntertainment));
+                        StringReader stringIn = new StringReader(myNode.InnerText);
+                        newDevice = (CDevice)xmlIn.Deserialize(stringIn);
+                    }
                     else
                     {
                         throw (new Exception("ERROR_INITLIST_UNKNOWN_TYPE"));

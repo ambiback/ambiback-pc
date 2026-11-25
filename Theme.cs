@@ -132,6 +132,70 @@ namespace AmbiBack
             return p;
         }
 
+        /// <summary>Icon font of Windows 11 (Segoe Fluent Icons) or Windows 10 (Segoe MDL2 Assets), null when neither exists.</summary>
+        private static string glyphFont;
+        private static bool glyphFontChecked;
+
+        public static string GlyphFontName
+        {
+            get
+            {
+                if (!glyphFontChecked)
+                {
+                    glyphFontChecked = true;
+                    foreach (string name in new[] { "Segoe Fluent Icons", "Segoe MDL2 Assets" })
+                    {
+                        using (var f = new Font(name, 10f))
+                        {
+                            if (f.Name == name)
+                            {
+                                glyphFont = name;
+                                break;
+                            }
+                        }
+                    }
+                }
+                return glyphFont;
+            }
+        }
+
+        /// <summary>
+        /// Monochrome symbol from the Windows icon font as bitmap (size in pixels), so all toolbar icons share
+        /// one look and stay sharp at every DPI. Returns null when the icon font is missing.
+        /// </summary>
+        public static Bitmap Glyph(char glyph, Color color, int size)
+        {
+            string font = GlyphFontName;
+            if (font == null)
+                return null;
+            var bmp = new Bitmap(size, size);
+            using (var g = Graphics.FromImage(bmp))
+            using (var f = new Font(font, size * 0.75f, GraphicsUnit.Pixel))
+            {
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+                TextRenderer.DrawText(g, glyph.ToString(), f, new Rectangle(0, 0, size, size), color,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
+            }
+            return bmp;
+        }
+
+        /// <summary>Glyphs of the Windows icon font used in the toolbars.</summary>
+        public static class Glyphs
+        {
+            public const char Play = '';
+            public const char Stop = '';
+            public const char Lightbulb = '';
+            public const char Settings = '';
+            public const char Search = '';
+            public const char Add = '';
+            public const char Delete = '';
+            public const char Broom = '';
+            public const char View = '';
+            public const char Checkbox = '';
+            public const char CheckboxChecked = '';
+            public const char Globe = '';
+        }
+
         /// <summary>Small filled circle used as status dot next to a status text.</summary>
         public static void DrawStatusDot(Graphics g, Color c, int x, int yCenter, int size = 8)
         {
@@ -184,6 +248,9 @@ namespace AmbiBack
         /// <summary>Tag of tool strip buttons drawn as segment (checked = accent background).</summary>
         public const string SegmentTag = "segment";
 
+        /// <summary>Tag of the one prominent tool strip button (accent background, white text).</summary>
+        public const string PrimaryTag = "primary";
+
         public FlatToolStripRenderer() : base(new FlatColorTable()) { RoundedEdges = false; }
 
         protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
@@ -214,10 +281,31 @@ namespace AmbiBack
         {
             var btn = e.Item as ToolStripButton;
             bool on = btn != null && btn.Checked;
+            if (PrimaryTag.Equals(e.Item.Tag))
+            {
+                Color back = !e.Item.Enabled ? Theme.AccentDisabled : (e.Item.Selected || e.Item.Pressed ? Theme.AccentHover : Theme.Accent);
+                var r = new Rectangle(0, 0, e.Item.Width - 1, e.Item.Height - 1);
+                var old = e.Graphics.SmoothingMode;
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (var b = new SolidBrush(back))
+                using (var path = Theme.RoundedRect(r, Math.Max(2, e.Item.Height / 8)))
+                    e.Graphics.FillPath(b, path);
+                e.Graphics.SmoothingMode = old;
+                return;
+            }
             if (on && SegmentTag.Equals(e.Item.Tag))
             {
                 using (var b = new SolidBrush(e.Item.Selected ? Theme.AccentHover : Theme.Accent))
                     e.Graphics.FillRectangle(b, new Rectangle(Point.Empty, e.Item.Size));
+                return;
+            }
+            if (SegmentTag.Equals(e.Item.Tag))
+            {
+                // Unselected segment: framed, so the pair reads as one switch
+                using (var b = new SolidBrush(e.Item.Pressed ? Theme.PressedBack : (e.Item.Selected ? Theme.HoverBack : Theme.Card)))
+                    e.Graphics.FillRectangle(b, new Rectangle(Point.Empty, e.Item.Size));
+                using (var p = new Pen(Theme.ControlBorder))
+                    e.Graphics.DrawRectangle(p, 0, 0, e.Item.Width - 1, e.Item.Height - 1);
                 return;
             }
             if (!e.Item.Selected && !e.Item.Pressed && !on) return;
@@ -228,7 +316,8 @@ namespace AmbiBack
 
         protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
         {
-            if (!e.Item.Enabled) e.TextColor = Theme.SecondaryText;
+            if (PrimaryTag.Equals(e.Item.Tag)) e.TextColor = Color.White;
+            else if (!e.Item.Enabled) e.TextColor = Theme.SecondaryText;
             base.OnRenderItemText(e);
         }
 

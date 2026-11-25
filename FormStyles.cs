@@ -100,31 +100,148 @@ namespace AmbiBack
     public partial class frmConnectHue
     {
         private Label lblHint;
+        private Label lblAreas;
+        private Label lblHueStatus;
+        private Label lblNoAreas;
+        private ListView lvAreas;
+        private Button cmdRefresh;
+        private Button cmdAddArea;
+        private Button cmdNewArea;
+        private Button cmdDeleteArea;
+        private ComboBox cbBridge;
+        private Button cmdLamps;
+        private Button cmdSearch;
 
         private void ApplyStyle()
         {
             Theme.ApplyForm(this);
             Text = L.T("hue_title");
-            int pad = DialogStyle.Px(this, 16);
-            ClientSize = new Size(DialogStyle.Px(this, 440), DialogStyle.Px(this, 250));
+            int pad = DialogStyle.Px(this, 16), gap = DialogStyle.Px(this, 8);
+            int btnW = DialogStyle.Px(this, 110), btnH = DialogStyle.Px(this, 30);
+            ClientSize = new Size(DialogStyle.Px(this, 560), DialogStyle.Px(this, 520));
             DialogStyle.Header(this, lblTitle, pbIcon, L.T("hue_heading"));
+
+            // Pairing: bridge (found ones in the list, or an address typed in), Search and Connect in one row
             DialogStyle.FieldLabel(label1, L.T("hue_prompt"));
             label1.Location = new Point(pad, lblTitle.Bottom + pad);
-            txtDevice.Location = new Point(pad, label1.Bottom + DialogStyle.Px(this, 4));
-            txtDevice.Width = ClientSize.Width - 2 * pad;
+            int searchW = DialogStyle.Px(this, 90);
+            txtDevice.Visible = false;
+            cbBridge = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDown,
+                Location = new Point(pad, label1.Bottom + DialogStyle.Px(this, 4)),
+                Width = ClientSize.Width - 2 * pad - btnW - searchW - 2 * gap,
+                MaxLength = 256,
+                TabIndex = txtDevice.TabIndex,
+            };
+            Controls.Add(cbBridge);
+            cmdSearch = new Button { Text = L.T("hue_search"), Size = new Size(searchW, btnH) };
+            cmdSearch.Location = new Point(cbBridge.Right + gap, cbBridge.Top + (cbBridge.Height - btnH) / 2);
+            Theme.StyleSecondary(cmdSearch);
+            cmdSearch.Click += (s, e) => SearchBridges(false);
+            Controls.Add(cmdSearch);
+            cmdOK.Text = L.T("connect");
+            cmdOK.Size = new Size(btnW, btnH);
+            cmdOK.Location = new Point(cmdSearch.Right + gap, cmdSearch.Top);
+            Theme.StylePrimary(cmdOK);
             Theme.StyleHint(label2);
             label2.AutoSize = true;
             label2.Text = L.T("example_host");
-            label2.Location = new Point(pad, txtDevice.Bottom + DialogStyle.Px(this, 4));
+            label2.Location = new Point(pad, cbBridge.Bottom + DialogStyle.Px(this, 4));
             lblHint = new Label
             {
                 Text = L.T("hue_hint"),
-                Location = new Point(pad, label2.Bottom + DialogStyle.Px(this, 12)),
+                Location = new Point(pad, label2.Bottom + DialogStyle.Px(this, 8)),
                 Size = new Size(ClientSize.Width - 2 * pad, DialogStyle.Px(this, 36)),
                 ForeColor = Theme.PrimaryText,
             };
             Controls.Add(lblHint);
-            DialogStyle.Buttons(this, cmdOK, L.T("connect"), cmdCancel, ClientSize.Height - DialogStyle.Px(this, 46));
+
+            // Entertainment areas (streaming)
+            lblAreas = new Label
+            {
+                Text = L.T("hue_areas"),
+                Font = Theme.SectionFont,
+                ForeColor = Theme.PrimaryText,
+                AutoSize = true,
+                Location = new Point(pad, lblHint.Bottom + DialogStyle.Px(this, 10)),
+            };
+            Controls.Add(lblAreas);
+            lblHueStatus = new Label
+            {
+                Location = new Point(pad, lblAreas.Bottom + DialogStyle.Px(this, 4)),
+                Size = new Size(ClientSize.Width - 2 * pad, DialogStyle.Px(this, 34)),
+            };
+            Controls.Add(lblHueStatus);
+
+            int bottomRow = ClientSize.Height - DialogStyle.Px(this, 46);
+            int listTop = lblHueStatus.Bottom + DialogStyle.Px(this, 4);
+            int actionRow = bottomRow - btnH - gap;
+            lvAreas = new ListView
+            {
+                View = View.Details,
+                FullRowSelect = true,
+                HideSelection = false,
+                MultiSelect = true,
+                HeaderStyle = ColumnHeaderStyle.Nonclickable,
+                BorderStyle = BorderStyle.FixedSingle,
+                Location = new Point(pad, listTop),
+                Size = new Size(ClientSize.Width - 2 * pad, actionRow - gap - listTop),
+                Font = Theme.BaseFont,
+            };
+            int listW = lvAreas.ClientSize.Width;
+            lvAreas.Columns.Add(L.T("hue_col_area"), listW * 34 / 100);
+            lvAreas.Columns.Add(L.T("hue_col_channels"), listW * 14 / 100, HorizontalAlignment.Right);
+            lvAreas.Columns.Add(L.T("hue_col_bridge"), listW * 20 / 100);
+            lvAreas.Columns.Add(L.T("hue_col_ambiback"), listW * 30 / 100);
+            lvAreas.SelectedIndexChanged += lvAreas_SelectedIndexChanged;
+            lvAreas.DoubleClick += cmdAddArea_Click;
+            Controls.Add(lvAreas);
+
+            lblNoAreas = new Label
+            {
+                Text = L.T("hue_no_areas"),
+                ForeColor = Theme.SecondaryText,
+                BackColor = SystemColors.Window,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Location = new Point(lvAreas.Left + 1, lvAreas.Top + DialogStyle.Px(this, 26)),
+                Size = new Size(lvAreas.Width - 2, DialogStyle.Px(this, 40)),
+                Visible = false,
+            };
+            Controls.Add(lblNoAreas);
+            lblNoAreas.BringToFront();
+
+            cmdAddArea = new Button { Text = L.T("hue_add_area"), Size = new Size(btnW, btnH), Location = new Point(pad, actionRow), Enabled = false };
+            Theme.StyleSecondary(cmdAddArea);
+            cmdAddArea.Click += cmdAddArea_Click;
+            Controls.Add(cmdAddArea);
+            cmdRefresh = new Button { Text = L.T("hue_refresh"), Size = new Size(btnW, btnH), Location = new Point(cmdAddArea.Right + gap, actionRow), Enabled = false };
+            Theme.StyleSecondary(cmdRefresh);
+            cmdRefresh.Click += cmdRefresh_Click;
+            Controls.Add(cmdRefresh);
+            cmdNewArea = new Button { Text = L.T("hue_new_area"), Size = new Size(btnW + DialogStyle.Px(this, 30), btnH), Enabled = false };
+            cmdNewArea.Location = new Point(ClientSize.Width - pad - cmdNewArea.Width, actionRow);
+            Theme.StyleSecondary(cmdNewArea);
+            cmdNewArea.Click += cmdNewArea_Click;
+            Controls.Add(cmdNewArea);
+            cmdDeleteArea = new Button { Text = L.T("hue_delete_area"), Size = new Size(btnW, btnH), Enabled = false };
+            cmdDeleteArea.Location = new Point(cmdNewArea.Left - gap - cmdDeleteArea.Width, actionRow);
+            Theme.StyleSecondary(cmdDeleteArea);
+            cmdDeleteArea.Click += cmdDeleteArea_Click;
+            Controls.Add(cmdDeleteArea);
+
+            // Close at the bottom right; Connect is the default button while the address field has focus
+            cmdCancel.Text = L.T("close");
+            cmdCancel.Size = new Size(DialogStyle.Px(this, 96), btnH);
+            cmdCancel.Location = new Point(ClientSize.Width - pad - cmdCancel.Width, bottomRow);
+            Theme.StyleSecondary(cmdCancel);
+
+            // Light assistant: the main action of the dialog once the bridge is connected
+            cmdLamps = new Button { Text = L.T("hue_lamps_button"), Size = new Size(DialogStyle.Px(this, 190), btnH), Enabled = false };
+            cmdLamps.Location = new Point(pad, bottomRow);
+            Theme.StylePrimary(cmdLamps);
+            cmdLamps.Click += (s, e) => ChooseLamps();
+            Controls.Add(cmdLamps);
         }
     }
 

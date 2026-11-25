@@ -28,8 +28,13 @@ namespace AmbiBack.PhilipsHue
         public static IPAddress DeviceIP { get; set; }
         public static string AppID { get; set; }
         public static string Username { get; set; }
+        /// <summary>PSK for the Entertainment API (32 hex characters), null when the bridge gave none. Secret: never log it.</summary>
+        public static string ClientKey { get; set; }
 
-        /// <summary>Registers this app. The link button on the bridge must be pressed first.</summary>
+        /// <summary>
+        /// Registers this app. The link button on the bridge must be pressed first. Also requests the
+        /// client key for entertainment streaming (bridges with API 1.22 and later return it).
+        /// </summary>
         /// <returns>True when the bridge returned a username.</returns>
         public static bool RegisterNewUser()
         {
@@ -37,95 +42,22 @@ namespace AmbiBack.PhilipsHue
             if (deviceType.Length > MaxDeviceTypeLength)
                 deviceType = deviceType.Substring(0, MaxDeviceTypeLength);
 
-            JObject body = new JObject { ["devicetype"] = deviceType };
+            JObject body = new JObject { ["devicetype"] = deviceType, ["generateclientkey"] = true };
             JToken response = HueHttp.Send("POST", "/api", body.ToString(Newtonsoft.Json.Formatting.None));
             HueHttp.ThrowOnError(response);
 
-            string username = response is JArray items && items.Count > 0
-                ? (string)items[0]["success"]?["username"]
-                : null;
+            JToken success = response is JArray items && items.Count > 0 ? items[0]["success"] : null;
+            string username = (string)success?["username"];
             if (string.IsNullOrEmpty(username))
                 return false;
 
             Username = username;
+            ClientKey = (string)success["clientkey"];
             return true;
         }
     }
 
-    /// <summary>Collects the values for one light state update.</summary>
-    public class LightStateBuilder
-    {
-        private const int MinBrightness = 1;
-        private const int MaxBrightness = 254;
-
-        private readonly JObject _state = new JObject();
-
-        internal string ToJson()
-        {
-            return _state.ToString(Newtonsoft.Json.Formatting.None);
-        }
-
-        public LightStateBuilder TurnOn()
-        {
-            _state["on"] = true;
-            return this;
-        }
-
-        public LightStateBuilder TurnOff()
-        {
-            _state["on"] = false;
-            return this;
-        }
-
-        /// <summary>Sets the transition time in steps of 100 ms.</summary>
-        public LightStateBuilder TransitionTime(ushort steps)
-        {
-            _state["transitiontime"] = steps;
-            return this;
-        }
-
-        /// <summary>Sets the color temperature in mired.</summary>
-        public LightStateBuilder ColorTemperature(ushort mired)
-        {
-            _state["ct"] = mired;
-            return this;
-        }
-
-        public LightStateBuilder Brightness(byte value)
-        {
-            _state["bri"] = Math.Max(MinBrightness, Math.Min(MaxBrightness, (int)value));
-            return this;
-        }
-
-        public LightStateBuilder Color(Color color)
-        {
-            double[] xy = RgbToXy(color);
-            _state["xy"] = new JArray(Math.Round(xy[0], 4), Math.Round(xy[1], 4));
-            return this;
-        }
-
-        /// <summary>Converts sRGB to CIE xy. Black maps to the D65 white point.</summary>
-        internal static double[] RgbToXy(Color color)
-        {
-            double red = ToLinear(color.R / 255.0);
-            double green = ToLinear(color.G / 255.0);
-            double blue = ToLinear(color.B / 255.0);
-
-            double x = red * 0.4124 + green * 0.3576 + blue * 0.1805;
-            double y = red * 0.2126 + green * 0.7152 + blue * 0.0722;
-            double z = red * 0.0193 + green * 0.1192 + blue * 0.9505;
-            double sum = x + y + z;
-
-            return sum <= 0 ? new[] { 0.3127, 0.3290 } : new[] { x / sum, y / sum };
-        }
-
-        private static double ToLinear(double channel)
-        {
-            return channel <= 0.04045 ? channel / 12.92 : Math.Pow((channel + 0.055) / 1.055, 2.4);
-        }
-    }
-
-    /// <summary>One light known to the bridge.</summary>
+    /// <summary>One light known to the bridge (colors go only through entertainment streaming).</summary>
     public class Light
     {
         public string ID { get; internal set; }
@@ -134,16 +66,12 @@ namespace AmbiBack.PhilipsHue
         public string ModelID { get; internal set; }
         public string UniqueID { get; internal set; }
 
-        public void SetState(LightStateBuilder state)
+        /// <summary>True for lights with a color gamut ("Extended color light", "Color light").</summary>
+        public bool IsColorLight
         {
-            string path = "/api/" + Uri.EscapeDataString(Configuration.Username ?? "") + "/lights/"
-                + Uri.EscapeDataString(ID) + "/state";
-            JToken response = HueHttp.Send("PUT", path, state.ToJson());
-
-            // A light that is off or unreachable reports an error for every frame, so keep running.
-            if (HueHttp.FirstError(response) is JToken error)
-                CGlobals.DebugOutput("Hue|SetState|" + ID + "|" + (string)error["description"]);
+            get { return Type != null && Type.IndexOf("color light", StringComparison.OrdinalIgnoreCase) >= 0; }
         }
+
     }
 
     /// <summary>Loads the lights from the bridge once on creation.</summary>

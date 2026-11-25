@@ -10,6 +10,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Xml;
 using System.Threading;
+using System.Diagnostics;
 using System.Windows.Forms;
 using AmbiBack.PhilipsHue;
 
@@ -18,8 +19,6 @@ namespace AmbiBack
     [Serializable]
     public class CDevicePhilipsHueLight : CDevice
     {
-        bool bInitDone = false;
-        bool bTurnedOn = false; 
 
         #region public get/set variables
         public string HueBridge { get; set; }
@@ -30,6 +29,9 @@ namespace AmbiBack
         public byte[] ScreenSectors { get; set; } = null;
         public byte PixelVert { get; set; } = 3;
         public byte PixelHori { get; set; } = 3;
+
+        /// <summary>Member of the PC entertainment group (checkbox in the device list).</summary>
+        public bool InGroup { get; set; } = false;
 
         // Reference to Hue Object!
         public Light HueLight { get; set; } = null;
@@ -65,9 +67,10 @@ namespace AmbiBack
             this.InitScreenSectors();
 
             // Set other defaults
-            this.FramesPerSecond = 5;
-            this.MaxFramesPerSecond = 10;
-            this.StepFramesPerSecond = 1; 
+            // Entertainment streaming (DTLS) through the PC group (HuePcGroup)
+            this.FramesPerSecond = 25;
+            this.MaxFramesPerSecond = 50;
+            this.StepFramesPerSecond = 5;
 
             this.FrameDelay = 200;
             this.MinFrameDelay = 100;
@@ -81,9 +84,10 @@ namespace AmbiBack
             this.EditColorBoostPercent = true;
             this.EditMaxBrightnessPercent = true;
             this.EditMinimumLuminosityPercent = true;
+            this.EditValueGainPercent = true;      // applied by the PC group for this light
 
-            this.EditFrameDelay = true;
-            this.EditFramesPerSecond = true; 
+            this.EditFrameDelay = false;       // the bridge smooths the stream by itself
+            this.EditFramesPerSecond = false;  // the group device sets the frame rate
         }
 
         // Process Payload data for devices
@@ -116,6 +120,7 @@ namespace AmbiBack
                 this.WriteXmlElement(writer, "FrameLength", this.FrameLength);
                 this.WriteXmlElement(writer, "FrameDelay", this.FrameDelay);
                 this.WriteXmlElement(writer, "ValueGainPercent", this.ValueGainPercent);
+                this.WriteXmlElement(writer, "InGroup", this.InGroup);
             }
             catch (Exception ex)
             {
@@ -144,6 +149,15 @@ namespace AmbiBack
                 this.FrameLength = this.ReadXmlElementAsByte(reader, "FrameLength", 10);
                 this.FrameDelay = this.ReadXmlElementAsInt(reader, "FrameDelay", 60);
                 this.ValueGainPercent = this.ReadXmlElementAsInt(reader, "ValueGainPercent", 100);
+                // Older versions read every number as 0 and saved it back; the slider starts at 100 %
+                if (this.ValueGainPercent < 100)
+                    this.ValueGainPercent = 100;
+                if (reader.IsStartElement("InGroup"))
+                    this.InGroup = this.ReadXmlElementAsBool(reader, "InGroup");
+
+                // Settings from the HTTP times (5 to 10 fps) are too slow for streaming
+                if (this.FramesPerSecond < 15 || this.FramesPerSecond > this.MaxFramesPerSecond)
+                    this.FramesPerSecond = 25;
 
                 // Correct internal parameters
                 this.CheckInternalValues(); 
@@ -181,6 +195,7 @@ namespace AmbiBack
             this.HueType = myDevCopyFrom.HueType;
             this.HueModelID = myDevCopyFrom.HueModelID;
             this.ScreenSectors = myDevCopyFrom.ScreenSectors;
+            this.InGroup = myDevCopyFrom.InGroup;
 
             this.FramesPerSecond = myDevCopyFrom.FramesPerSecond;
             this.InnerSizePercent = myDevCopyFrom.InnerSizePercent;
@@ -206,316 +221,37 @@ namespace AmbiBack
         #endregion
 
         #region Virtual Public Threading functions
+        /// <summary>
+        /// Single lights do not stream by themselves: they are members of the PC group
+        /// (<see cref="HuePcGroup"/>), whose device streams all of them in one DTLS session.
+        /// </summary>
         public override void HandleThread()
         {
-            DoDebugOutput("CDevicePhilipsHueLight|HandleThread|Begin Thread");
-
-            while (bAbortThread == false)
-            {
-                try
-                {
-                    int iFrameTimeMs = 1000 / FramesPerSecond;
-                    int iLastSecond = DateTime.Now.Second;
-                    int iLastMilliSec = DateTime.Now.Millisecond;
-                    int iFramesPerSec = 0;
-
-                    while (true)
-                    {
-                        if (!this.bTurnedOn)
-                            this.TurnLightOn(); 
-
-                        // (RE)Init Helper Variables!
-                        if (!this.bInitDone)
-                        {
-                            try
-                            {
-                                InitHelpers();
-                            }
-                            catch (Exception ex)
-                            {
-                                CGlobals.DebugOutput(ex);
-                            }
-                        }
-
-                        // Colors of all sectors from the monitor's frame buffer; skipped when there is no new frame
-                        if (this.rectScanPixels != null)
-                            this.CalcColorsFromFrame(this.ScreenSectors.Length, this.brPixels, this.UpdateScanAreas);
-
-                        // Finally send calced pixels to DS!
-                        this.SendLEDData();
-
-                        // Do Frame time Processing
-                        if (DateTime.Now.Second == iLastSecond)
-                        {
-                            // Add little sleeptime if necessary!
-                            int iMillSecondsDone = DateTime.Now.Millisecond - iLastMilliSec;
-                            if (iMillSecondsDone < iFrameTimeMs)
-                                Thread.Sleep(iFrameTimeMs - iMillSecondsDone);
-
-                            // Safe last millsec now
-                            iLastMilliSec = DateTime.Now.Millisecond;
-
-                            // Increment Counter
-                            iFramesPerSec++;
-                        }
-                        else
-                        {
-                            DoUpdateStatus("Framerate send: " + iFramesPerSec + " - Target: " + this.GetDeviceName());
-
-                            // Reset variables
-                            iLastSecond = DateTime.Now.Second;
-                            iLastMilliSec = DateTime.Now.Millisecond;
-                            iFramesPerSec = 0;
-
-                            // Update Frame Sleeptime 
-                            iFrameTimeMs = 1000 / FramesPerSecond;
-                        }
-
-                        // Loop to avoid running wenn Monitor is turned off
-                        while (!CGlobals.monitorPowerStatus)
-                        {
-                            // Turn light off
-                            if (this.bTurnedOn)
-                                this.TurnLightOff();
-
-                            // Wait for monitor to come back online
-                            CGlobals.DebugOutput("CDevicePhilipsHueLight:HandleThread:WaitForMonitorLoop");
-
-                            // Sleep for a second
-                            Thread.Sleep(1000);
-                        }
-                    }
-                }
-                catch (ThreadInterruptedException)
-                {
-                    // Interrupted
-                    DoDebugOutput("CDevicePhilipsHueLight|HandleThread|Interrupted");
-
-                    while (bSleepThread)
-                    {
-                        // Use Sleep instead of SpinWait 
-                        Thread.Sleep(1);
-                        // Thread.SpinWait(10000000);
-                    }
-
-                    // Interrupted
-                    DoDebugOutput("CDevicePhilipsHueLight|HandleThread|Restart");
-
-                    // this.SetAbortThread(true);
-                }
-                catch (ThreadAbortException)
-                {
-                    // Aborted
-                    DoDebugOutput("CDevicePhilipsHueLight|HandleThread|Aborted");
-
-                    this.SetAbortThread(true);
-                }
-                catch (Exception ex)
-                {
-                    CGlobals.DebugOutput(ex);
-                    DoDebugOutput("CDevicePhilipsHueLight|HandleThread|Exception: " + ex.ToString());
-
-                    this.SetAbortThread(true);
-                }
-                finally
-                {
-                    // Turn light off
-                    if (this.bTurnedOn)
-                        this.TurnLightOff();
-                }
-            }
-
-            DoDebugOutput("CDevicePhilipsHueLight|HandleThread|Finished Thread");
         }
+
         public override void StartThread()
         {
-            try
-            {
-                // Reset Abort Thread
-                this.SetAbortThread(false);
-                this.SetSleepThread(false);
-
-                // Create new Thread each time we start!
-                CreateThread();
-
-                if (myThread.ThreadState == System.Threading.ThreadState.Unstarted)
-                {
-                    // Start the Thread
-                    myThread.Start();
-                }
-                else if (myThread.ThreadState == System.Threading.ThreadState.Stopped)
-                {
-                    myThread.Join(500);    // Wait max 1 second until the thread is gone...
-                }
-                else if (myThread.ThreadState == System.Threading.ThreadState.Running)
-                {
-                    // Continue thread
-                    this.SetSleepThread(false);
-                }
-
-                else if (myThread.ThreadState == System.Threading.ThreadState.Aborted)
-                {
-                    // Start the Thread
-                    myThread.Start();
-                }
-                else
-                {
-                    DoDebugOutput("CDevicePhilipsHueLight|StartThread|Unexpected Thread STATE: " + myThread.ThreadState.ToString());
-                }
-            }
-            catch (System.InvalidOperationException)
-            {
-                // Bla we don't care
-            }
-            catch (Exception ex)
-            {
-                CGlobals.DebugOutput(ex);
-                DoDebugOutput("CDevicePhilipsHueLight|StartThread|Exception: " + ex.ToString());
-            }
+            DoDebugOutput("CDevicePhilipsHueLight|" + this.GetDeviceName() + " streams through the group \"" + HuePcGroup.AreaName + "\"");
         }
-        private void TurnLightOff()
-        {
-            try
-            {
-                if (HueLight != null)
-                {
-                    /* Send new Color State */
-                    LightStateBuilder lightStateBuilder = new LightStateBuilder();
-                    lightStateBuilder.TurnOff();
 
-                    // lightStateBuilder.ColorTemperature
-                    HueLight.SetState(lightStateBuilder);
-                    this.bTurnedOn = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                CGlobals.DebugOutput(ex);
-                DoDebugOutput("TurnLightOff|Exception: " + ex.ToString());
-            }
-        }
-        private void TurnLightOn()
-        {
-            try
-            {
-                if (HueLight != null)
-                {
-                    /* Send new Color State */
-                    LightStateBuilder lightStateBuilder = new LightStateBuilder();
-                    lightStateBuilder.TurnOn();
-                    lightStateBuilder.TransitionTime((ushort)(FrameDelay >= 100 ? (FrameDelay <= 1000 ? FrameDelay / 100 : 10) : 1)); //(/ 2);
-                    lightStateBuilder.ColorTemperature(150);
-
-                    // lightStateBuilder.ColorTemperature
-                    HueLight.SetState(lightStateBuilder);
-                    this.bTurnedOn = true;
-                }
-            }
-            catch (Exception ex)
-            {
-                CGlobals.DebugOutput(ex);
-                DoDebugOutput("TurnLightOn|Exception: " + ex.ToString());
-            }
-        }
         public void SendFrameDelay()
         {
-            if (HueLight != null)
-            {
-                // Get TransTime Value for Hue API
-                ushort usTransTime = (ushort)(FrameDelay >= 100 ? (FrameDelay <= 1000 ? FrameDelay / 100 : 10) : 1);
-            }
         }
+
         public void SendDeviceName()
         {
-            // TODO 
-            if (HueLight != null)
-            {
-                try
-                {
-                }
-                catch (Exception ex)
-                {
-                    CGlobals.DebugOutput(ex);
-                    DoDebugOutput("SendDeviceName|Exception: " + ex.ToString());
-                }
-            }
         }
-        private void SendLEDData()
+
+        /// <summary>Screen rectangles of the selected sectors for a frame of this size.</summary>
+        public List<Rectangle> SelectedSectorRectangles(int width, int height)
         {
-            // Payload helpers 
-            try
-            {
-                if (HueLight != null) {
-                    int iRed = 0;
-                    int iGreen = 0;
-                    int iBlue = 0;
-                    int iSectors = 0;
-
-                    /* Loop through enabled sectors*/
-                    for (int iNum = 0; iNum < ScreenSectors.Length; iNum++)
-                    {
-                        if (ScreenSectors[iNum] == 1)
-                        {
-                            iRed += brPixels[iNum].R;
-                            iGreen += brPixels[iNum].G;
-                            iBlue += brPixels[iNum].B;
-                            iSectors++; 
-                        }
-                    }
-
-                    /* Calc avarage color */
-                    iRed = (iRed > 0 ? iRed / iSectors : 0);
-                    iGreen = (iGreen > 0 ? iGreen / iSectors : 0);
-                    iBlue = (iBlue > 0 ? iBlue / iSectors : 0);
-
-                    // Calc Color percent rate here!
-                    if (this.ColorRedPercent < 100)
-                        iRed = (iRed * this.ColorRedPercent) / 100;
-                    if (this.ColorGreenPercent < 100)
-                        iGreen = (iGreen * this.ColorGreenPercent) / 100;
-                    if (this.ColorBluePercent < 100)
-                        iBlue = (iBlue * this.ColorBluePercent) / 100;
-                    
-                    // Final color
-                    Color myColor = System.Drawing.Color.FromArgb(255, iRed, iGreen, iBlue);
-
-                    /* Send new Color State */
-                    LightStateBuilder lightStateBuilder = new LightStateBuilder();
-                    /*
-                     * 	The duration of the transition from the light’s current state to the new state. 
-                     * 	This is given as a multiple of 100ms and defaults to 4 (400ms). 
-                     * 	For example, setting transitiontime:10 will make the transition last 1 second.
-                     * */
-                    lightStateBuilder.Color(myColor);
-                    if (iRed == 0 && iGreen == 0 && iBlue == 0)
-                        lightStateBuilder.Brightness(0);
-                    else
-                        lightStateBuilder.Brightness((byte)((this.MaxBrightnessPercent * 255) / 100));
-
-                    HueLight.SetState(lightStateBuilder);
-                }
-
-                    // UNCOMMENT VERBOSE
-                    //                DoDebugOutput("CDevicePhilipsHueLight|AmbientManagerSendLEDData: TcpClient received '" + responseData + "'");
-                }
-            catch (ThreadAbortException ex)
-            {
-                // Aborted
-                DoDebugOutput("CDevicePhilipsHueLight|SendLEDData|Aborted");
-                throw (ex);
-            }
-            catch (IOException ex)
-            {
-                // Happens on disconnect 
-                CGlobals.DebugOutput(ex);
-            }
-            catch (Exception ex)
-            {
-                if (brPixels == null)
-                    throw (new Exception("ERROR PIXELS NOT INITIALIZED"));
-
-                CGlobals.DebugOutput(ex);
-            }
+            var all = new Rectangle[(this.PixelHori * 2) + (this.PixelVert * 2)];
+            this.CalcRectangles(0, 0, width, height, 0, all);
+            var result = new List<Rectangle>();
+            for (int i = 0; ScreenSectors != null && i < all.Length && i < ScreenSectors.Length; i++)
+                if (ScreenSectors[i] == 1)
+                    result.Add(all[i]);
+            return result;
         }
         #endregion
 
@@ -570,8 +306,6 @@ namespace AmbiBack
                     rectScanPixels = new Rectangle[this.ScreenSectors.Length];
                     this.UpdateScanAreas(iScreenWidth, iScreenHeight);
 
-                    // Init finished
-                    this.bInitDone = true;
                 }
                 catch (Exception ex)
                 {
