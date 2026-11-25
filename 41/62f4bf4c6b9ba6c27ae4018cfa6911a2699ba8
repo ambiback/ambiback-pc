@@ -1,0 +1,30 @@
+CDevicePhilipsHueLight.cs
+  s_486f8d5707266f::t_e8ab5db11d7976 87
+  s_486f8d5707266f::t_91616b3a9aef41 152-154
+frmMain.cs
+  s_486f8d5707266f::t_e8ab5db11d7976 1397,1401,1795,1812
+CDeviceHueEntertainment.cs
+  s_486f8d5707266f::t_91616b3a9aef41 135
+  s_486f8d5707266f::t_e8ab5db11d7976 84,109,134,170,475-479,541-572
+CDevice.cs
+  s_486f8d5707266f::t_91616b3a9aef41 819
+HueSelfTest.cs
+  s_486f8d5707266f::t_53f8809754a043 51,387-401
+  s_486f8d5707266f::t_5b585bd71dba19 471,484
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4162f4bf4c6b9ba6c27ae4018cfa6911a2699ba8",
+  "prompts": {},
+  "sessions": {
+    "s_486f8d5707266f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "584fa5f7-1b21-4403-9105-099ef4abe917",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
