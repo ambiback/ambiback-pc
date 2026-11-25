@@ -251,6 +251,10 @@ namespace AmbiBack
             { "hue_pos_bottom", "Bottom" },
             { "hue_pos_bottom_left", "Bottom left" },
             { "hue_pos_center", "Center" },
+            { "hue_delete_area", "Delete…" },
+            { "hue_delete_title", "Delete entertainment area" },
+            { "hue_delete_q", "Delete {0} on the Hue bridge? This cannot be undone. The lights themselves stay." },
+            { "hue_area_limit", "The bridge already has 20 entertainment areas, its maximum. Delete unused areas first." },
 
             // Wi-Fi
             { "wifi_title", "Connect to Wi-Fi" },
@@ -489,6 +493,10 @@ namespace AmbiBack
             { "hue_pos_bottom", "Unten" },
             { "hue_pos_bottom_left", "Unten links" },
             { "hue_pos_center", "Mitte" },
+            { "hue_delete_area", "Löschen…" },
+            { "hue_delete_title", "Entertainment-Bereich löschen" },
+            { "hue_delete_q", "{0} auf der Hue Bridge löschen? Das lässt sich nicht rückgängig machen. Die Lampen selbst bleiben erhalten." },
+            { "hue_area_limit", "Die Bridge hat schon 20 Entertainment-Bereiche, ihr Maximum. Lösche zuerst nicht benötigte Bereiche." },
 
             { "wifi_title", "Mit WLAN verbinden" },
             { "wifi_heading", "WLAN-Daten an das Gerät senden" },

@@ -1003,6 +1003,8 @@ namespace AmbiBack
             Stopwatch hueWait = Stopwatch.StartNew();
             foreach (CDeviceHueEntertainment hueArea in hueAreas)
                 hueArea.WaitForShutdown(6000 - (int)hueWait.ElapsedMilliseconds);
+            // Single lights stream through the shared streamer: same there
+            AmbiBack.PhilipsHue.HueLampStreamer.Shutdown(6000 - (int)hueWait.ElapsedMilliseconds);
 
             // Stop Device Threads!
             foreach (CDevice myDevice in CGlobals.mainConfig.Devices.GetDeviceList())

@@ -240,7 +240,7 @@ namespace AmbiBack
             catch (Exception ex)
             {
                 CGlobals.DebugOutput("frmHueCreateArea|Create: " + ex.Message);
-                ShowError(L.F("hue_new_err", ex.Message));
+                ShowError(HueClipV2.IsAreaLimitError(ex) ? L.T("hue_area_limit") : L.F("hue_new_err", ex.Message));
             }
             finally
             {

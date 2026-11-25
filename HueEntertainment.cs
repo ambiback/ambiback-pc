@@ -20,6 +20,8 @@ namespace AmbiBack.PhilipsHue
         public double Y { get; set; }
         /// <summary>-1 = bottom, +1 = top.</summary>
         public double Z { get; set; }
+        /// <summary>Entertainment service ids of the lights in this channel (not stored in the device XML).</summary>
+        public List<string> MemberServices { get; } = new List<string>();
 
         public override string ToString()
         {
@@ -57,6 +59,10 @@ namespace AmbiBack.PhilipsHue
     {
         /// <summary>Id of the entertainment service (not the light or device id).</summary>
         public string ServiceID { get; set; }
+        /// <summary>CLIP v2 light resource id (on/off).</summary>
+        public string LightID { get; set; }
+        /// <summary>Light id of the old API (v1 "/lights/{id}"), to match the light devices.</summary>
+        public string V1ID { get; set; }
         public string Name { get; set; }
         public string Product { get; set; }
 
@@ -105,13 +111,18 @@ namespace AmbiBack.PhilipsHue
             {
                 foreach (JToken ch in channels)
                 {
-                    area.Channels.Add(new EntertainmentChannel
+                    var channel = new EntertainmentChannel
                     {
                         ID = (byte)((int?)ch["channel_id"] ?? 0),
                         X = (double?)ch["position"]?["x"] ?? 0,
                         Y = (double?)ch["position"]?["y"] ?? 0,
                         Z = (double?)ch["position"]?["z"] ?? 0,
-                    });
+                    };
+                    if (ch["members"] is JArray members)
+                        foreach (JToken m in members)
+                            if ((string)m["service"]?["rid"] != null)
+                                channel.MemberServices.Add((string)m["service"]["rid"]);
+                    area.Channels.Add(channel);
                 }
             }
             return area;
@@ -159,6 +170,14 @@ namespace AmbiBack.PhilipsHue
                     if ((string)d["id"] != null)
                         devices[(string)d["id"]] = d;
 
+            // Light resources by owner device: v2 light id and the v1 id ("/lights/3")
+            var lightsByDevice = new Dictionary<string, JToken>();
+            JToken lightResponse = Send("GET", "/clip/v2/resource/light", null);
+            if (lightResponse["data"] is JArray lightData)
+                foreach (JToken l in lightData)
+                    if ((string)l["owner"]?["rid"] != null)
+                        lightsByDevice[(string)l["owner"]["rid"]] = l;
+
             var result = new List<StreamingLight>();
             JToken response = Send("GET", "/clip/v2/resource/entertainment", null);
             if (response["data"] is JArray data)
@@ -169,9 +188,13 @@ namespace AmbiBack.PhilipsHue
                         continue;
                     string owner = (string)e["owner"]?["rid"];
                     devices.TryGetValue(owner ?? "", out JToken device);
+                    lightsByDevice.TryGetValue(owner ?? "", out JToken light);
+                    string v1 = (string)light?["id_v1"];
                     result.Add(new StreamingLight
                     {
                         ServiceID = (string)e["id"],
+                        LightID = (string)light?["id"],
+                        V1ID = v1 != null && v1.StartsWith("/lights/", StringComparison.Ordinal) ? v1.Substring(8) : null,
                         Name = (string)device?["metadata"]?["name"] ?? (string)e["id"],
                         Product = (string)device?["product_data"]?["product_name"] ?? "",
                     });
@@ -183,6 +206,29 @@ namespace AmbiBack.PhilipsHue
 
         /// <summary>Creates a screen entertainment area with the given lights and positions; returns its id.</summary>
         public static string CreateEntertainmentArea(string name, IList<KeyValuePair<StreamingLight, EntertainmentChannel>> lights)
+        {
+            JObject body = new JObject
+            {
+                ["type"] = "entertainment_configuration",
+                ["metadata"] = new JObject { ["name"] = name },
+                ["configuration_type"] = "screen",
+                ["locations"] = new JObject { ["service_locations"] = BuildLocations(lights) },
+            };
+            JToken response = Send("POST", "/clip/v2/resource/entertainment_configuration", body.ToString(Newtonsoft.Json.Formatting.None));
+            string id = response["data"] is JArray data && data.Count > 0 ? (string)data[0]["rid"] : null;
+            if (string.IsNullOrEmpty(id))
+                throw new HueException(0, "Hue bridge did not return the new entertainment area.");
+            return id;
+        }
+
+        /// <summary>Replaces the lights and positions of an area (only while it is not streaming).</summary>
+        public static void UpdateEntertainmentArea(string id, IList<KeyValuePair<StreamingLight, EntertainmentChannel>> lights)
+        {
+            JObject body = new JObject { ["locations"] = new JObject { ["service_locations"] = BuildLocations(lights) } };
+            Send("PUT", "/clip/v2/resource/entertainment_configuration/" + Uri.EscapeDataString(id), body.ToString(Newtonsoft.Json.Formatting.None));
+        }
+
+        private static JArray BuildLocations(IList<KeyValuePair<StreamingLight, EntertainmentChannel>> lights)
         {
             var locations = new JArray();
             foreach (var entry in lights)
@@ -198,18 +244,7 @@ namespace AmbiBack.PhilipsHue
                     }),
                 });
             }
-            JObject body = new JObject
-            {
-                ["type"] = "entertainment_configuration",
-                ["metadata"] = new JObject { ["name"] = name },
-                ["configuration_type"] = "screen",
-                ["locations"] = new JObject { ["service_locations"] = locations },
-            };
-            JToken response = Send("POST", "/clip/v2/resource/entertainment_configuration", body.ToString(Newtonsoft.Json.Formatting.None));
-            string id = response["data"] is JArray data && data.Count > 0 ? (string)data[0]["rid"] : null;
-            if (string.IsNullOrEmpty(id))
-                throw new HueException(0, "Hue bridge did not return the new entertainment area.");
-            return id;
+            return locations;
         }
 
         /// <summary>Switches a light (CLIP v2 light resource id) on or off.</summary>
@@ -217,6 +252,18 @@ namespace AmbiBack.PhilipsHue
         {
             JObject body = new JObject { ["on"] = new JObject { ["on"] = on } };
             Send("PUT", "/clip/v2/resource/light/" + Uri.EscapeDataString(lightId), body.ToString(Newtonsoft.Json.Formatting.None));
+        }
+
+        /// <summary>Deletes an entertainment area on the bridge.</summary>
+        public static void DeleteEntertainmentArea(string id)
+        {
+            Send("DELETE", "/clip/v2/resource/entertainment_configuration/" + Uri.EscapeDataString(id), null);
+        }
+
+        /// <summary>The bridge holds at most 20 entertainment areas; creating one more fails with this text.</summary>
+        public static bool IsAreaLimitError(Exception ex)
+        {
+            return ex != null && ex.Message.IndexOf("Insufficient resources", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         /// <summary>Starts (true) or stops (false) streaming mode of the area.</summary>
@@ -265,11 +312,12 @@ namespace AmbiBack.PhilipsHue
             }
             catch (WebException ex) when (ex.Response is HttpWebResponse error)
             {
+                int status = (int)error.StatusCode;    // read before the response is disposed
                 using (error)
                 using (StreamReader reader = new StreamReader(error.GetResponseStream(), Encoding.UTF8))
                     text = reader.ReadToEnd();
-                ThrowOnErrors(SafeParse(text), (int)error.StatusCode);
-                throw new HueException((int)error.StatusCode, "Hue bridge: HTTP " + (int)error.StatusCode);
+                ThrowOnErrors(SafeParse(text), status);
+                throw new HueException(status, "Hue bridge: HTTP " + status + " " + (text.Length > 200 ? text.Substring(0, 200) : text));
             }
 
             JToken json = SafeParse(text);

@@ -45,7 +45,7 @@ namespace AmbiBack.PhilipsHue
                 Test("Entertainment device XML round trip", TestDeviceXml),
                 Test("New area: light positions", TestNewAreaPositions),
                 Test("Only color lights are listed", TestColorLight),
-                Test("REST light brightness follows the picture", TestRestBrightness),
+                Test("Light position from screen sectors", TestPositionFromSectors),
             };
 
             int failed = 0;
@@ -381,12 +381,17 @@ namespace AmbiBack.PhilipsHue
             Equal(1.0, p[3].Y);
         }
 
-        private static void TestRestBrightness()
+        private static void TestPositionFromSectors()
         {
-            Equal((byte)35, CDevicePhilipsHueLight.HueBrightness(35, 35, 35, 100));     // dark grey stays dark
-            Equal((byte)255, CDevicePhilipsHueLight.HueBrightness(255, 10, 0, 100));
-            Equal((byte)127, CDevicePhilipsHueLight.HueBrightness(255, 255, 255, 50));
-            Equal((byte)0, CDevicePhilipsHueLight.HueBrightness(0, 0, 0, 100));
+            // Sectors 0-2: right edge -> x = 1, z = 0
+            EntertainmentChannel right = HueLampStreamer.PositionFromSectors(new byte[] { 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
+            Equal(1.0, right.X); Equal(0.0, Math.Round(right.Z, 3));
+            // Sector 4: top center
+            EntertainmentChannel top = HueLampStreamer.PositionFromSectors(new byte[] { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 });
+            Equal(0.0, top.X); Equal(1.0, top.Z);
+            // Sectors 6-8: left edge
+            Equal(-1.0, HueLampStreamer.PositionFromSectors(new byte[] { 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0 }).X);
+            True(HueLampStreamer.AreaName.StartsWith("AmbiBack PC ") && HueLampStreamer.AreaName.Length <= 32, "area name");
         }
 
         private static void TestColorLight()

@@ -107,6 +107,7 @@ namespace AmbiBack
         private Button cmdRefresh;
         private Button cmdAddArea;
         private Button cmdNewArea;
+        private Button cmdDeleteArea;
 
         private void ApplyStyle()
         {
@@ -206,6 +207,11 @@ namespace AmbiBack
             Theme.StyleSecondary(cmdNewArea);
             cmdNewArea.Click += cmdNewArea_Click;
             Controls.Add(cmdNewArea);
+            cmdDeleteArea = new Button { Text = L.T("hue_delete_area"), Size = new Size(btnW, btnH), Enabled = false };
+            cmdDeleteArea.Location = new Point(cmdNewArea.Left - gap - cmdDeleteArea.Width, actionRow);
+            Theme.StyleSecondary(cmdDeleteArea);
+            cmdDeleteArea.Click += cmdDeleteArea_Click;
+            Controls.Add(cmdDeleteArea);
 
             // Close at the bottom right; Connect is the default button while the address field has focus
             cmdCancel.Text = L.T("close");

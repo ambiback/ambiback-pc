@@ -194,6 +194,7 @@
     <Compile Include="HueDtlsClient.cs" />
     <Compile Include="HueEntertainment.cs" />
     <Compile Include="HueEntertainmentSession.cs" />
+    <Compile Include="HueLampStreamer.cs" />
     <Compile Include="HueSelfTest.cs" />
     <Compile Include="json.cs" />
     <Compile Include="Program.cs" />

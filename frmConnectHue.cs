@@ -116,6 +116,7 @@ namespace AmbiBack
             }
             cmdRefresh.Enabled = CanStream() && !loadingAreas;
             cmdNewArea.Enabled = CanStream();
+            cmdDeleteArea.Enabled = CanStream() && lvAreas.SelectedItems.Count > 0;
             cmdAddArea.Enabled = CanStream() && lvAreas.SelectedItems.Count > 0;
         }
 
@@ -223,6 +224,46 @@ namespace AmbiBack
         private void lvAreas_SelectedIndexChanged(object sender, EventArgs e)
         {
             cmdAddArea.Enabled = CanStream() && lvAreas.SelectedItems.Count > 0;
+            cmdDeleteArea.Enabled = CanStream() && lvAreas.SelectedItems.Count > 0;
+        }
+
+        /// <summary>Deletes the selected areas on the bridge (it holds at most 20) after asking.</summary>
+        private void cmdDeleteArea_Click(object sender, EventArgs e)
+        {
+            var selected = new List<EntertainmentArea>();
+            foreach (ListViewItem item in lvAreas.SelectedItems)
+                selected.Add((EntertainmentArea)item.Tag);
+            if (selected.Count == 0)
+                return;
+            string names = selected.Count == 1 ? "„" + selected[0].Name + "“" : selected.Count.ToString();
+            if (MessageBox.Show(this, L.F("hue_delete_q", names), L.T("hue_delete_title"),
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+                return;
+
+            Cursor = Cursors.WaitCursor;
+            Enabled = false;
+            string error = null;
+            try
+            {
+                foreach (EntertainmentArea area in selected)
+                {
+                    try
+                    {
+                        HueClipV2.DeleteEntertainmentArea(area.ID);
+                    }
+                    catch (Exception ex)
+                    {
+                        error = ex.Message;
+                        CGlobals.DebugOutput("frmConnectHue|Delete " + area.ID + ": " + ex.Message);
+                    }
+                }
+            }
+            finally
+            {
+                Cursor = Cursors.Default;
+                Enabled = true;
+            }
+            RefreshAreas(list => { if (error != null) UpdateHueStatus(error); });
         }
     }
 }
