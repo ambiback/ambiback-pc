@@ -1,0 +1,37 @@
+CDeviceDreamScreen.cs
+  s_a59843c0379039::t_7a4b7ba4fed78e 586-588,749,756,762,764-765,769-770
+AmbiBack.PC.csproj
+  s_a59843c0379039::t_17d615eb0991f1 119
+CDevicePhilipsHueLight.cs
+  s_a59843c0379039::t_7a4b7ba4fed78e 240-242,459-461,479-480,489,546,553,559,561-562,566-567
+AmbiMonitor.cs
+  s_a59843c0379039::t_ed9bb5f7f99b69 28,30-33,275-276,279,281,284,288-290,292-293,295-296,298-303,309,773-774
+frmMain.cs
+  s_a59843c0379039::t_33e3d9a792b92b 1579-1580
+CDeviceAmbiBack.cs
+  s_a59843c0379039::t_33e3d9a792b92b 250
+  s_a59843c0379039::t_7a4b7ba4fed78e 389-391,777-779,1465,1472,1478,1480-1481,1485-1486
+frmMain.Style.cs
+  s_a59843c0379039::t_33e3d9a792b92b 229,236-237,257-272
+FrameBuffer.cs
+  s_a59843c0379039::t_17d615eb0991f1 1-55
+CDevice.cs
+  s_a59843c0379039::t_33e3d9a792b92b 124
+  s_a59843c0379039::t_241aecc7b32bca 34-37,62,305,365-370,411-412,414-458,460-461
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bbfbfb2faa56bebe0ed0cf4791bbdf2d122eb8bf",
+  "prompts": {},
+  "sessions": {
+    "s_a59843c0379039": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1919d5b9-18dc-41a9-86c2-cd5f4f3802e7",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
