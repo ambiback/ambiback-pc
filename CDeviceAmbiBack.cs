@@ -389,8 +389,12 @@ namespace AmbiBack
                         // The monitor replaces and disposes bmpScreenCopy under bmpLock
                         lock (CGlobals.bmpLock)
                         {
-                            if (this.bmpScreenCopy != null)
+                            if (this.bmpScreenCopy != null && this.rectScanPixels != null)
                             {
+                                // The desktop resolution changed: recalculate the scan rectangles
+                                if (this.bmpScreenCopy.Width != this.iScanAreaWidth || this.bmpScreenCopy.Height != this.iScanAreaHeight)
+                                    this.UpdateScanAreas(this.bmpScreenCopy.Width, this.bmpScreenCopy.Height);
+
                                 // Scan Images by each Pixel for Colors
                                 this.CalcColorsRectangles(this.PixelTotalPort1, this.bmpScreenCopy, this.brPixels);
                             }
@@ -1455,6 +1459,15 @@ namespace AmbiBack
             }
         }
 
+        /// <summary>Scan rectangles for a screenshot of this size (also after a resolution change).</summary>
+        private void UpdateScanAreas(int iScreenWidth, int iScreenHeight)
+        {
+            this.CalcRectangles(0, 0, iScreenWidth, iScreenHeight, 0, this.rectScanPixels);
+            this.CalcCorners(this.PixelTotalPort1, this.rectScanPixels);
+            this.iScanAreaWidth = iScreenWidth;
+            this.iScanAreaHeight = iScreenHeight;
+        }
+
         public void InitHelpers()
         {
             // Wait for first screenshot
@@ -1483,8 +1496,7 @@ namespace AmbiBack
 
                     // Init Screen Scan Areas
                     rectScanPixels = new Rectangle[this.PixelTotalPort1];
-                    this.CalcRectangles(0, 0, iScreenWidth, iScreenHeight, 0, this.rectScanPixels);
-                    this.CalcCorners(this.PixelTotalPort1, this.rectScanPixels);
+                    this.UpdateScanAreas(iScreenWidth, iScreenHeight);
 
                     // Init finished
                     this.bInitDone = true;

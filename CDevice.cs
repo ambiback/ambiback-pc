@@ -33,6 +33,10 @@ namespace AmbiBack
         // Global Screen Bitmaps Helpers
         public Bitmap bmpScreenCopy = null;
 
+        // Bitmap size the scan rectangles were calculated for; they are recalculated when it changes
+        protected int iScanAreaWidth = 0;
+        protected int iScanAreaHeight = 0;
+
         public bool GetAbortThread() { return bAbortThread; }
         public void SetAbortThread(bool bNew) { bAbortThread = bNew; }
         public bool GetSleepThread() { return bSleepThread; }
