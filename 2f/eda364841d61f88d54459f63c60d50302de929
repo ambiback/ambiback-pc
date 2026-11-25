@@ -1,0 +1,75 @@
+docs/en/development.md
+  s_997c07f5a28628::t_18ee18ad5d21f4 38
+docs/en/wled.md
+  s_997c07f5a28628::t_18ee18ad5d21f4 32,36
+  s_997c07f5a28628::t_1931c585c7bb32 50
+  s_997c07f5a28628::t_5795a34d494af4 1-31,33-35,37-49,51-60
+frmAddDevice.cs
+  s_997c07f5a28628::t_fa2f4bd37ef84e 41-64,161-177,207-209
+docs/en/settings.md
+  s_997c07f5a28628::t_18ee18ad5d21f4 25-26
+ILedStripLayout.cs
+  s_997c07f5a28628::t_721191e5de2709 1-26
+README.de.md
+  s_997c07f5a28628::t_18ee18ad5d21f4 5,23,36,44,57,65
+Program.cs
+  s_997c07f5a28628::t_b94b792778709d 21-22,190-195,220
+README.md
+  s_997c07f5a28628::t_18ee18ad5d21f4 5,23,36,44,57,65
+HueDiscovery.cs
+  s_997c07f5a28628::t_9846fb652c73a7 1,67-68,71,81-82,85,119-120
+docs/user-guide.md
+  s_997c07f5a28628::t_18ee18ad5d21f4 5,18
+CDeviceWled.cs
+  s_997c07f5a28628::t_b94b792778709d 543-627
+  s_997c07f5a28628::t_291ef277bbb7a9 404-406,411
+  s_997c07f5a28628::t_98b9adc209429a 26-28,272,347-353,355-358,628-629,636-638
+  s_997c07f5a28628::t_323873dc5fdb7b 1-25,29-39,41-271,273-346,354,359-403,407-410,412-542,630-635,639-645
+  s_997c07f5a28628::t_de445f68967bc4 40
+CDevice.cs
+  s_997c07f5a28628::t_914493df05b36c 619-717
+CDevicesController.cs
+  s_997c07f5a28628::t_fa2f4bd37ef84e 223-243,412-414
+CDevicesList.cs
+  s_997c07f5a28628::t_e332da2617db54 99-104
+AmbiBack.PC.csproj
+  s_997c07f5a28628::t_e332da2617db54 128-129
+docs/de/development.md
+  s_997c07f5a28628::t_18ee18ad5d21f4 38
+docs/de/settings.md
+  s_997c07f5a28628::t_18ee18ad5d21f4 25-26
+frmMain.cs
+  s_997c07f5a28628::t_8e48350b5e0fcf 521-545,1209-1212,1250-1253,1285,1291-1294,1332-1335,1373-1376,1411-1414,1452-1455,1504-1507,1554-1557,1601-1605,1883-1898,2058-2061
+HueSelfTest.cs
+  s_997c07f5a28628::t_328b31701d8b78 587
+  s_997c07f5a28628::t_740070d8fbf2ed 52-59,495-586,588-602
+CDeviceAmbiBack.cs
+  s_997c07f5a28628::t_914493df05b36c 1311
+  s_997c07f5a28628::t_df7fba65c30691 24
+AmbiMonitor.cs
+  s_997c07f5a28628::t_a557a1c815b5dc 117-118,408,470,630-631,708,726,802,826,850,874
+docs/de/wled.md
+  s_997c07f5a28628::t_1931c585c7bb32 50
+  s_997c07f5a28628::t_ad2ad8b3c06441 1-31,33-35,37-49,51-60
+  s_997c07f5a28628::t_18ee18ad5d21f4 32,36
+docs/benutzerhandbuch.md
+  s_997c07f5a28628::t_18ee18ad5d21f4 5,18
+CGlobals.cs
+  s_997c07f5a28628::t_e332da2617db54 280,415,440
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2feda364841d61f88d54459f63c60d50302de929",
+  "prompts": {},
+  "sessions": {
+    "s_997c07f5a28628": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "acceca07-2c2b-4a31-b332-385685d6f272",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
