@@ -47,6 +47,7 @@ namespace AmbiBack.PhilipsHue
                 Test("Only color lights are listed", TestColorLight),
                 Test("Light position from screen sectors", TestPositionFromSectors),
                 Test("mDNS query for _hue._tcp.local", TestMdnsQuery),
+                Test("Light assistant: automatic places", TestAutoPlaces),
             };
 
             int failed = 0;
@@ -380,6 +381,15 @@ namespace AmbiBack.PhilipsHue
             Equal(0.5, p[2].X);
             Equal(1.0, p[3].X); Equal(1.0, p[3].Z);
             Equal(1.0, p[3].Y);
+        }
+
+        private static void TestAutoPlaces()
+        {
+            Equal("3", string.Join(",", frmHueLamps.AutoPlaces(1)));          // top
+            Equal("1,5", string.Join(",", frmHueLamps.AutoPlaces(2)));        // left, right
+            Equal("1,3,5", string.Join(",", frmHueLamps.AutoPlaces(3)));
+            Equal("1,3,5,7", string.Join(",", frmHueLamps.AutoPlaces(4)));
+            Equal(10, frmHueLamps.AutoPlaces(10).Length);
         }
 
         private static void TestMdnsQuery()

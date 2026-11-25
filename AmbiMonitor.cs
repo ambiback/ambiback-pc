@@ -91,6 +91,9 @@ namespace AmbiBack
                     m_aDevices.Remove(newDevice);
             }
         }
+        /// <summary>Title shown on the card, e.g. "Monitor 1".</summary>
+        public string Title { get { return lblTitel.Text; } }
+
         public void SetTitel(string szTitel) {
             lblTitel.Text = szTitel; 
         }

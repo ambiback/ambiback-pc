@@ -109,6 +109,7 @@ namespace AmbiBack
         private Button cmdNewArea;
         private Button cmdDeleteArea;
         private ComboBox cbBridge;
+        private Button cmdLamps;
         private Button cmdSearch;
 
         private void ApplyStyle()
@@ -234,6 +235,13 @@ namespace AmbiBack
             cmdCancel.Size = new Size(DialogStyle.Px(this, 96), btnH);
             cmdCancel.Location = new Point(ClientSize.Width - pad - cmdCancel.Width, bottomRow);
             Theme.StyleSecondary(cmdCancel);
+
+            // Light assistant: the main action of the dialog once the bridge is connected
+            cmdLamps = new Button { Text = L.T("hue_lamps_button"), Size = new Size(DialogStyle.Px(this, 190), btnH), Enabled = false };
+            cmdLamps.Location = new Point(pad, bottomRow);
+            Theme.StylePrimary(cmdLamps);
+            cmdLamps.Click += (s, e) => ChooseLamps();
+            Controls.Add(cmdLamps);
         }
     }
 

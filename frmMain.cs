@@ -453,6 +453,7 @@ namespace AmbiBack
                     deviceListItem.Text = CGlobals.DEVICETYPESDISPLAYNAME[(int)philipsHueLightDevice.GetDeviceType()];
                     deviceListItem.SubItems[1].Text = philipsHueLightDevice.GetDeviceName();
                     deviceListItem.SubItems[2].Text = philipsHueLightDevice.HueUniqueID;
+                    deviceListItem.Checked = philipsHueLightDevice.InGroup;
                 }
                 else
                 {

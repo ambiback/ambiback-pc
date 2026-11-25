@@ -532,6 +532,49 @@ namespace AmbiBack
             tbStartStop.Enabled = total > 0;
         }
 
+        /// <summary>The monitor cards in their order.</summary>
+        internal System.Collections.Generic.List<AmbiMonitor> GetMonitors()
+        {
+            var list = new System.Collections.Generic.List<AmbiMonitor>();
+            foreach (Control c in panScreens.Controls)
+                if (c is AmbiMonitor mon)
+                    list.Add(mon);
+            return list;
+        }
+
+        /// <summary>Links a device to one monitor only (removed from the others) and starts it when that monitor runs.</summary>
+        internal void AssignDeviceToMonitor(CDevice device, AmbiMonitor target)
+        {
+            foreach (AmbiMonitor mon in GetMonitors())
+            {
+                if (mon != target && mon.GetDevices().Contains(device))
+                {
+                    mon.RemoveDevice(device);
+                    if (mon.AmbiBackRunning)
+                        device.AbortThread();
+                }
+            }
+            if (!target.GetDevices().Contains(device))
+            {
+                target.AddDevice(device);
+                if (target.MonitorEnabled && target.AmbiBackRunning)
+                    device.StartThread();
+            }
+            foreach (ListViewItem item in LVDevices.Items)
+                if (item.Tag == device && selectedAmbiScreen != null)
+                    item.Checked = selectedAmbiScreen.GetDevices().Contains(device);
+        }
+
+        /// <summary>Checkboxes of the Hue lights show their group membership.</summary>
+        internal void RefreshHueLampChecks()
+        {
+            foreach (ListViewItem item in LVDevices.Items)
+                if (item.Tag is CDevicePhilipsHueLight lamp && item.Checked != lamp.InGroup)
+                    item.Checked = lamp.InGroup;
+            if (selectedAmbiScreen != null)
+                selectedAmbiScreen.SetControlsBySelectedDevice();
+        }
+
         private void UpdateTrayMenu()
         {
             int total, running = RunningMonitors(out total);

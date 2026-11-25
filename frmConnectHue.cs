@@ -53,6 +53,10 @@ namespace AmbiBack
                 // Stay open: the entertainment areas can be chosen now
                 UpdateHueStatus(null);
                 ShowAreas(CGlobals.HueEntertainmentAreas);
+
+                // Next step: which lights light up, where, and on which monitor
+                if (CanStream())
+                    BeginInvoke((Action)(() => ChooseLamps()));
             }
             catch (Exception ex)
             {
@@ -64,6 +68,16 @@ namespace AmbiBack
             finally {
                 this.Cursor = Cursors.Default;
                 this.Enabled = true;
+            }
+        }
+
+        /// <summary>Opens the light assistant (members of the PC group, places, monitor).</summary>
+        private void ChooseLamps()
+        {
+            using (var dlg = new frmHueLamps(m_ParentForm))
+            {
+                if (dlg.ShowDialog(this) == DialogResult.OK)
+                    RefreshAreas();
             }
         }
 
@@ -186,6 +200,7 @@ namespace AmbiBack
             }
             cmdRefresh.Enabled = CanStream() && !loadingAreas;
             cmdNewArea.Enabled = CanStream();
+            cmdLamps.Enabled = CanStream();
             cmdDeleteArea.Enabled = CanStream() && lvAreas.SelectedItems.Count > 0;
             cmdAddArea.Enabled = CanStream() && lvAreas.SelectedItems.Count > 0;
         }
