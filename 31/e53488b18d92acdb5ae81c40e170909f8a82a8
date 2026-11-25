@@ -1,0 +1,24 @@
+CDeviceHueEntertainment.cs
+  s_486f8d5707266f::t_b2d9bf86e1550a 375,397
+  s_486f8d5707266f::t_a996f3d4318e3b 398-420
+HueSelfTest.cs
+  s_486f8d5707266f::t_578444e338d18c 103-239,326-333
+Program.cs
+  s_486f8d5707266f::t_df7b0d6dedf2ee 129-143,147
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "31e53488b18d92acdb5ae81c40e170909f8a82a8",
+  "prompts": {},
+  "sessions": {
+    "s_486f8d5707266f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "584fa5f7-1b21-4403-9105-099ef4abe917",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
