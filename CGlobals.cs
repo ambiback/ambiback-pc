@@ -1015,30 +1015,81 @@ namespace AmbiBack
         #endregion
 
         #region Other Helper Functions
-        static public void SetLoadWindowsStartup()
-        {
-            // Base Regkey
-            string szRegBaseKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
+        /// <summary>Run key in HKCU that holds the Windows autostart entries.</summary>
+        private const string RunKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
 
+        /// <summary>
+        /// Program the autostart entry "AmbiBack" points to, without quotes and arguments.
+        /// Null when there is no entry.
+        /// </summary>
+        static public string GetWindowsStartupPath()
+        {
             try
             {
-                RegistryKey rk = Registry.CurrentUser.OpenSubKey(szRegBaseKey, true);
-
-                // Continue if access succeeded
-                if (rk != null)
+                using (RegistryKey rk = Registry.CurrentUser.OpenSubKey(RunKey, false))
                 {
-                    if (Properties.Settings.Default.bLoadAmbiBackOnWindowsStartup)
+                    string value = rk?.GetValue("AmbiBack") as string;
+                    if (string.IsNullOrWhiteSpace(value))
+                        return null;
+                    value = value.Trim();
+                    if (value.StartsWith("\""))
                     {
-                        string szExisting = rk.GetValue("AmbiBack", "").ToString(); 
-
-                        if (szExisting.Length <= 0 || szExisting != Application.ExecutablePath)
-                            rk.SetValue("AmbiBack", Application.ExecutablePath);
+                        int end = value.IndexOf('"', 1);
+                        return end > 1 ? value.Substring(1, end - 1) : value.Trim('"');
                     }
-                    else
-                        rk.DeleteValue("AmbiBack", false);
+                    int exe = value.IndexOf(".exe", StringComparison.OrdinalIgnoreCase);
+                    return exe > 0 ? value.Substring(0, exe + 4) : value;
+                }
+            }
+            catch (Exception ex)
+            {
+                CGlobals.DebugOutput(ex);
+                return null;
+            }
+        }
 
-                    // Close Registry
-                    rk.Close();
+        /// <summary>True when the autostart entry points to this copy of AmbiBack.</summary>
+        static public bool IsWindowsStartupThisCopy()
+        {
+            return IsThisCopy(GetWindowsStartupPath());
+        }
+
+        static public bool IsThisCopy(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return false;
+            try
+            {
+                return string.Equals(System.IO.Path.GetFullPath(path), System.IO.Path.GetFullPath(Application.ExecutablePath), StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Adds this copy to the Windows autostart or removes the entry. Only called when the user
+        /// changes the option or the setup passes its choice on; a plain start never touches the
+        /// entry, so a second copy (portable ZIP, build folder) does not take the autostart over.
+        /// </summary>
+        static public void SetLoadWindowsStartup(bool enable)
+        {
+            try
+            {
+                using (RegistryKey rk = Registry.CurrentUser.OpenSubKey(RunKey, true))
+                {
+                    // Continue if access succeeded
+                    if (rk != null)
+                    {
+                        if (enable)
+                        {
+                            if (!IsWindowsStartupThisCopy())
+                                rk.SetValue("AmbiBack", Application.ExecutablePath);
+                        }
+                        else
+                            rk.DeleteValue("AmbiBack", false);
+                    }
                 }
             }
             catch (SecurityException)

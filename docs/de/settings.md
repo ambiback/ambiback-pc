@@ -40,7 +40,7 @@ Klicke in der Toolbar auf **Optionen**.
 | --- | --- |
 | Ausgeblendet im Infobereich starten | Das Fenster bleibt beim Start verborgen; AmbiBack läuft im Infobereich. |
 | Beim Schließen des Fensters im Infobereich weiterlaufen | Das Schließen-Kreuz blendet das Fenster nur aus. Beenden über *Datei › Beenden* oder das Tray-Menü. |
-| AmbiBack mit Windows starten | Trägt AmbiBack in den Windows-Autostart ein. |
+| AmbiBack mit Windows starten | Trägt diese Kopie von AmbiBack in den Windows-Autostart ein. Die Zeile darunter zeigt, welches Programm Windows derzeit startet. Ist es eine andere Kopie, setze den Haken, um stattdessen diese Kopie zu starten. |
 | Sprache | Deutsch, Englisch oder die Windows-Sprache. |
 | Debug-Protokoll | Schreibt ein Protokoll zur Fehlersuche; leer = Standardpfad. Hue-Schlüssel werden nie protokolliert. |
 

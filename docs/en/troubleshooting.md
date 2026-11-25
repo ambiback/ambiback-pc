@@ -9,6 +9,7 @@
 | "Windows protected your PC" (SmartScreen) | The files are not code-signed. Click **More info**, then **Run anyway**. Download only from the [releases page](https://github.com/ambiback/ambiback-pc/releases). |
 | AmbiBack does not start after the setup | The .NET Framework is probably missing or Windows still needs a restart after installing it. Restart Windows; otherwise install the [.NET Framework 4.8.1](https://dotnet.microsoft.com/download/dotnet-framework). |
 | Device web pages or *Details* stay empty | The WebView2 Runtime is missing. Run the setup again or install the [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/). |
+| Windows starts the wrong copy of AmbiBack | Open *Options* in the copy that should start. The line under *Start AmbiBack when Windows starts* shows which program Windows starts. Tick the box there and click **OK**. |
 | Starting AmbiBack again does nothing | Only one AmbiBack runs. It is probably hidden in the notification area: click the arrow `^` in the taskbar and double-click the AmbiBack icon. |
 
 ## Windows Firewall
