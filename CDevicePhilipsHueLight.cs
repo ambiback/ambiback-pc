@@ -19,7 +19,15 @@ namespace AmbiBack
     public class CDevicePhilipsHueLight : CDevice
     {
         bool bInitDone = false;
-        bool bTurnedOn = false; 
+        bool bTurnedOn = false;
+
+        // Last state sent to the light, to skip repeated commands on a still picture
+        private const double XyThreshold = 0.003;
+        private const int BriThreshold = 2;
+        private const int RefreshMs = 5000;
+        private double dLastX = -1, dLastY = -1;
+        private int iLastBri = -100;
+        private readonly System.Diagnostics.Stopwatch lastStateSent = new System.Diagnostics.Stopwatch();
 
         #region public get/set variables
         public string HueBridge { get; set; }
@@ -409,6 +417,10 @@ namespace AmbiBack
                     // lightStateBuilder.ColorTemperature
                     HueLight.SetState(lightStateBuilder);
                     this.bTurnedOn = true;
+
+                    // Send the next color in any case
+                    lastStateSent.Reset();
+                    dLastX = -1;
                 }
             }
             catch (Exception ex)
@@ -486,12 +498,28 @@ namespace AmbiBack
                      * 	This is given as a multiple of 100ms and defaults to 4 (400ms). 
                      * 	For example, setting transitiontime:10 will make the transition last 1 second.
                      * */
-                    lightStateBuilder.Color(myColor);
                     // xy carries only the hue; the brightness has to follow the picture, otherwise a dark
                     // grey screen shows as full white
-                    lightStateBuilder.Brightness(HueBrightness(iRed, iGreen, iBlue, this.MaxBrightnessPercent));
+                    byte bri = HueBrightness(iRed, iGreen, iBlue, this.MaxBrightnessPercent);
+                    double[] xy = LightStateBuilder.RgbToXy(myColor);
+
+                    // Same state again (still picture): skip it. Every command restarts the transition on the
+                    // light and the bridge takes only about 10 commands per second, which made the light pulse.
+                    bool changed = Math.Abs(xy[0] - dLastX) > XyThreshold || Math.Abs(xy[1] - dLastY) > XyThreshold
+                        || Math.Abs(bri - iLastBri) > BriThreshold;
+                    if (!changed && lastStateSent.IsRunning && lastStateSent.ElapsedMilliseconds < RefreshMs)
+                        return;
+
+                    lightStateBuilder.Color(myColor);
+                    lightStateBuilder.Brightness(bri);
+                    // Transition from the smoothing slider (FrameDelay, 100..1000 ms) instead of the bridge default of 400 ms
+                    lightStateBuilder.TransitionTime((ushort)Math.Max(1, Math.Min(10, this.FrameDelay / 100)));
 
                     HueLight.SetState(lightStateBuilder);
+                    dLastX = xy[0];
+                    dLastY = xy[1];
+                    iLastBri = bri;
+                    lastStateSent.Restart();
                 }
 
                     // UNCOMMENT VERBOSE
