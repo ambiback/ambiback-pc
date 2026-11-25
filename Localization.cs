@@ -92,6 +92,12 @@ namespace AmbiBack
             { "mode_advanced", "Advanced" },
 
             // Device toolbar and list
+            { "tb_hue", "Hue Bridge" },
+            { "tb_hue_tip", "Connect the Hue Bridge and choose entertainment areas" },
+            { "tb_options", "Options" },
+            { "tb_options_tip", "Start with Windows, language and other options" },
+            { "tb_start_all", "Start All" },
+            { "tb_stop_all", "Stop All" },
             { "tb_find", "Find Devices" },
             { "tb_add", "Add" },
             { "tb_details", "Details" },
@@ -341,6 +347,12 @@ namespace AmbiBack
             { "mode_easy", "Einfach" },
             { "mode_advanced", "Erweitert" },
 
+            { "tb_hue", "Hue Bridge" },
+            { "tb_hue_tip", "Hue Bridge verbinden und Entertainment-Bereiche wählen" },
+            { "tb_options", "Optionen" },
+            { "tb_options_tip", "Autostart, Sprache und weitere Optionen" },
+            { "tb_start_all", "Alle starten" },
+            { "tb_stop_all", "Alle stoppen" },
             { "tb_find", "Geräte suchen" },
             { "tb_add", "Hinzufügen" },
             { "tb_details", "Details" },
