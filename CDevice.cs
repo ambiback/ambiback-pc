@@ -31,7 +31,10 @@ namespace AmbiBack
         public bool bIsSerialDebug = false;             // Serial Debug Capture enabled?
 
         // Global Screen Bitmaps Helpers
-        public Bitmap bmpScreenCopy = null;
+        // Latest frame of the monitor this device is linked to (set by AmbiMonitor)
+        public FrameBuffer Frame = null;
+        // Frame number the colors in brPixels were calculated from
+        protected long lColorsFrameNumber = -1;
 
         // Bitmap size the scan rectangles were calculated for; they are recalculated when it changes
         protected int iScanAreaWidth = 0;
@@ -56,7 +59,7 @@ namespace AmbiBack
         public int[] aTop;
         public int[] aBottom;
         // Helper Attay to store calculated pixels
-        public Brush[] brPixels;
+        public Color[] brPixels;   // LED colors (plain values, no GDI+ brushes)
 #endregion
 
 #region private variables
@@ -118,7 +121,7 @@ namespace AmbiBack
         public int StepFramesPerSecond { get; set; } = 5;
         public byte InnerSizePercent { get; set; } = 10;
         // Supported Properties
-        public byte ConnectionType { get; set; } = (byte)ConnectionTypes.TCP;
+        public byte ConnectionType { get; set; } = (byte)ConnectionTypes.UDP;   // UDP works on any Wi-Fi
         
         public bool EditDeviceName { get; set; } = false;
         public bool EditFrameDelay { get; set; } = false;
@@ -299,9 +302,8 @@ namespace AmbiBack
                 aBottom[n] = myRect.Bottom;
             }
         }
-        public Brush getColorFromPixelRregion(System.Drawing.Bitmap myScreenshot, int iLeft, int iTop, int iWidth, int iHeight)
+        public Color getColorFromPixelRregion(System.Drawing.Bitmap myScreenshot, int iLeft, int iTop, int iWidth, int iHeight)
         {
-            System.Drawing.Brush myBrush = null;
             int iRed = 0;
             int iGreen = 0;
             int iBlue = 0;
@@ -360,6 +362,12 @@ namespace AmbiBack
             iGreen = (iGreen > 0 ? iGreen / iPixels : 0);
             iBlue = (iBlue > 0 ? iBlue / iPixels : 0);
 
+            return AdjustColor(iRed, iGreen, iBlue);
+        }
+
+        /// <summary>Value gain and color boost (when the device does not do it), clamped to 0..255.</summary>
+        private Color AdjustColor(int iRed, int iGreen, int iBlue)
+        {
             /* Check for Value Gain */
             if (!this.UseDeviceValueGainPercent && this.ValueGainPercent > 100)
             {
@@ -400,12 +408,57 @@ namespace AmbiBack
                 iBlue = 255;
 
 
-            /* Create solid brush from avarage color */
-            myBrush = new SolidBrush(System.Drawing.Color.FromArgb(255, iRed, iGreen, iBlue));
-
-            return myBrush;
+            return System.Drawing.Color.FromArgb(255, iRed, iGreen, iBlue);
         }
-        public void CalcColorsRectangles(byte PixelTotal, System.Drawing.Bitmap myScreenshot, System.Drawing.Brush[] brPixels)
+
+        /// <summary>
+        /// Average color of every scan rectangle, read directly from the monitor's frame buffer under its
+        /// lock (no LockBits, no allocations). Returns false when there is no new frame since the last call.
+        /// Recalculates the scan rectangles when the frame size changed.
+        /// </summary>
+        public unsafe bool CalcColorsFromFrame(int PixelTotal, Color[] colors, Action<int, int> updateScanAreas)
+        {
+            FrameBuffer f = this.Frame;
+            if (f == null || colors == null || aLeft == null)
+                return false;
+            lock (f.Sync)
+            {
+                if (f.Pixels == null || f.FrameNumber == lColorsFrameNumber)
+                    return false;
+                if (f.Width != iScanAreaWidth || f.Height != iScanAreaHeight)
+                    updateScanAreas(f.Width, f.Height);
+
+                int w = f.Width, h = f.Height, stride = w * 4;
+                int n = Math.Min(PixelTotal, Math.Min(colors.Length, aLeft.Length));
+                fixed (byte* p = f.Pixels)
+                {
+                    for (int i = 0; i < n; i++)
+                    {
+                        // Clamp to the frame: a zero sized or outside rectangle gives black
+                        int x0 = Math.Max(0, aLeft[i]), x1 = Math.Min(w, aRight[i]);
+                        int y0 = Math.Max(0, aTop[i]), y1 = Math.Min(h, aBottom[i]);
+                        long r = 0, g = 0, b = 0;
+                        int count = (x1 > x0 && y1 > y0) ? (x1 - x0) * (y1 - y0) : 0;
+                        for (int y = y0; y < y1; y++)
+                        {
+                            byte* px = p + y * stride + x0 * 4;
+                            for (int x = x0; x < x1; x++, px += 4)
+                            {
+                                b += px[0];
+                                g += px[1];
+                                r += px[2];
+                            }
+                        }
+                        colors[i] = count == 0 ? Color.FromArgb(255, 0, 0, 0)
+                            : AdjustColor((int)(r / count), (int)(g / count), (int)(b / count));
+                    }
+                }
+                lColorsFrameNumber = f.FrameNumber;
+                return true;
+            }
+        }
+
+        public void CalcColorsRectangles(byte PixelTotal, System.Drawing.Bitmap myScreenshot, Color[] brPixels)
         {
             try
             {

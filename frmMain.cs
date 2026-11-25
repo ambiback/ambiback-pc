@@ -1576,20 +1576,8 @@ namespace AmbiBack
                     tcMain.Visible = true;
                     string szSelectedTab = tcMain.SelectedTab.Name;
 
-                    if (selectedDevice.DebugSupport)
-                    {
-                        tcMain.TabPages.Clear();
-                        tcMain.TabPages.Add(tabMain);
-                        tcMain.TabPages.Add(tabAdvanced);
-                        // tcMain.TabPages.Add(tabExpert);
-                        tcMain.TabPages.Add(tabDebug);
-                    }
-                    else
-                    {
-                        tcMain.TabPages.Clear();
-                        tcMain.TabPages.Add(tabMain);
-                        tcMain.TabPages.Add(tabAdvanced);
-                    }
+                    // Tabs depend on the device (debug support) and on Easy / Advanced mode
+                    UpdateTabs(selectedDevice);
                     if (tcMain.TabPages[szSelectedTab] != null)
                         tcMain.SelectedTab = tcMain.TabPages[szSelectedTab];
                     else

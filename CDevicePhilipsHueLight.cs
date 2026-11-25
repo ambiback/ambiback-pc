@@ -237,19 +237,9 @@ namespace AmbiBack
                             }
                         }
 
-                        // The monitor replaces and disposes bmpScreenCopy under bmpLock
-                        lock (CGlobals.bmpLock)
-                        {
-                            if (this.bmpScreenCopy != null && this.rectScanPixels != null)
-                            {
-                                // The desktop resolution changed: recalculate the scan rectangles
-                                if (this.bmpScreenCopy.Width != this.iScanAreaWidth || this.bmpScreenCopy.Height != this.iScanAreaHeight)
-                                    this.UpdateScanAreas(this.bmpScreenCopy.Width, this.bmpScreenCopy.Height);
-
-                                // Scan Images by each Pixel for Colors
-                                this.CalcColorsRectangles((byte)this.ScreenSectors.Length, this.bmpScreenCopy, brPixels);
-                            }
-                        }
+                        // Colors of all sectors from the monitor's frame buffer; skipped when there is no new frame
+                        if (this.rectScanPixels != null)
+                            this.CalcColorsFromFrame(this.ScreenSectors.Length, this.brPixels, this.UpdateScanAreas);
 
                         // Finally send calced pixels to DS!
                         this.SendLEDData();
@@ -466,9 +456,9 @@ namespace AmbiBack
                     {
                         if (ScreenSectors[iNum] == 1)
                         {
-                            iRed += ((SolidBrush)brPixels[iNum]).Color.R;
-                            iGreen += ((SolidBrush)brPixels[iNum]).Color.G;
-                            iBlue += ((SolidBrush)brPixels[iNum]).Color.B;
+                            iRed += brPixels[iNum].R;
+                            iGreen += brPixels[iNum].G;
+                            iBlue += brPixels[iNum].B;
                             iSectors++; 
                         }
                     }
@@ -486,8 +476,8 @@ namespace AmbiBack
                     if (this.ColorBluePercent < 100)
                         iBlue = (iBlue * this.ColorBluePercent) / 100;
                     
-                    // Create final Brush
-                    Brush myBrush = new SolidBrush(System.Drawing.Color.FromArgb(255, iRed, iGreen, iBlue));
+                    // Final color
+                    Color myColor = System.Drawing.Color.FromArgb(255, iRed, iGreen, iBlue);
 
                     /* Send new Color State */
                     LightStateBuilder lightStateBuilder = new LightStateBuilder();
@@ -496,7 +486,7 @@ namespace AmbiBack
                      * 	This is given as a multiple of 100ms and defaults to 4 (400ms). 
                      * 	For example, setting transitiontime:10 will make the transition last 1 second.
                      * */
-                    lightStateBuilder.Color(((SolidBrush)myBrush).Color);
+                    lightStateBuilder.Color(myColor);
                     if (iRed == 0 && iGreen == 0 && iBlue == 0)
                         lightStateBuilder.Brightness(0);
                     else
@@ -553,27 +543,28 @@ namespace AmbiBack
         {
             // Wait for first screenshot
             int iWait = 0;
-            while (this.bmpScreenCopy == null && iWait <= 300)
+            while ((this.Frame == null || this.Frame.Pixels == null) && iWait <= 300)
             {
                 Thread.Sleep(100);
                 iWait++;
             }
 
             /* Calc rectPixels from base image */
-            if (this.bmpScreenCopy != null)
+            if (this.Frame != null && this.Frame.Pixels != null)
             {
                 try
                 {
                     int iScreenWidth;
                     int iScreenHeight;
-                    lock (CGlobals.bmpLock)
+                    lock (this.Frame.Sync)
                     {
-                        iScreenWidth = this.bmpScreenCopy.Width;
-                        iScreenHeight = this.bmpScreenCopy.Height;
+                        iScreenWidth = this.Frame.Width;
+                        iScreenHeight = this.Frame.Height;
                     }
 
                     // Init Pixels Brush helper variables which will contain the color codes!
-                    brPixels = new Brush[this.ScreenSectors.Length];
+                    brPixels = new Color[this.ScreenSectors.Length];
+                    lColorsFrameNumber = -1;   // new (black) colors: calculate on the next call
 
                     // Init Screen Scan Areas
                     rectScanPixels = new Rectangle[this.ScreenSectors.Length];

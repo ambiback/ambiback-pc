@@ -25,8 +25,12 @@ namespace AmbiBack
 
         public ArrayList m_aDevices;
 
-        // Global Bitmaps Helper
+        // Preview image (updated every 100 ms, guarded by previewLock)
         public Bitmap bmpScreen = null;
+        private readonly object previewLock = new object();
+
+        // Latest frame of this monitor for the linked devices
+        private readonly FrameBuffer frameBuffer = new FrameBuffer();
 
         // Private Properties
         private bool _SettingsLoading = false;
@@ -268,50 +272,44 @@ namespace AmbiBack
                 {
                     if (myScreen.GetNumOutput() == ScreenNumber)
                     {
+                        // One copy per frame into the monitor's buffer; the devices read it from there
+                        this.frameBuffer.Update(bmpScreenshot);
                         lock (CGlobals.bmpLock)
                         {
-                            // Clone Image to object, free the previous frame (readers hold bmpLock)
-                            Bitmap oldScreen = this.bmpScreen;
-                            this.bmpScreen = (Bitmap)bmpScreenshot.Clone();
-                            if (oldScreen != null) oldScreen.Dispose();
-                            // this.bmpScreen = new Bitmap((Bitmap)bmpScreenshot, new Size(monPreview.Width, monPreview.Height)); // (Bitmap)bmpScreenshot.Clone();
-
-                            // Clone Bmp Copy for each bound device
+                            // m_aDevices is changed on the UI thread under bmpLock
                             foreach (CDevice myDevice in m_aDevices)
-                            {
-                                Bitmap oldCopy = myDevice.bmpScreenCopy;
-                                myDevice.bmpScreenCopy = (Bitmap)bmpScreenshot.Clone();
-                                if (oldCopy != null) oldCopy.Dispose();
-                                // myDevice.bmpScreenCopy = new Bitmap((Bitmap)bmpScreenshot, new Size(CGlobals.SCREENSHOT_WIDTH, CGlobals.SCREENSHOT_HEIGHT));
-                            }
+                                myDevice.Frame = this.frameBuffer;
                         }
 
-                        // Only update Screen every 100ms
+                        // Only update the preview every 100ms
                         long lCurrentTimeTicks = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
                         if (lCurrentTimeTicks > (this.lScreenLastUpdate + 100))
                         {
-                            lock (CGlobals.bmpLock)
+                            bool bDim = CGlobals.mainForm.selectedAmbiScreen != null &&
+                                CGlobals.mainForm.selectedAmbiScreen.Name != this.Name;
+                            lock (this.previewLock)
                             {
-                                // Blur Image if not selected
-                                if (CGlobals.mainForm.selectedAmbiScreen != null &&
-                                    CGlobals.mainForm.selectedAmbiScreen.Name != this.Name)
+                                // Reuse the preview bitmap; only the capture thread writes it, Paint reads it under previewLock
+                                if (this.bmpScreen == null || this.bmpScreen.Size != bmpScreenshot.Size)
                                 {
-                                    BitmapFilter.Brightness(bmpScreen, 160);
+                                    if (this.bmpScreen != null) this.bmpScreen.Dispose();
+                                    this.bmpScreen = new Bitmap(bmpScreenshot.Width, bmpScreenshot.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
                                 }
+                                using (Graphics gCopy = Graphics.FromImage(this.bmpScreen))
+                                    gCopy.DrawImageUnscaled(bmpScreenshot, 0, 0);
+
+                                // Dim the image if this monitor is not selected (always, so Paint never shows it undimmed)
+                                if (bDim)
+                                    BitmapFilter.Brightness(this.bmpScreen, 160);
 
                                 // Draw Preview Screen - NOW IN this thread! The Graphics must be disposed every frame.
                                 using (Graphics g = (tblSectors.Visible ? tblSectors.CreateGraphics() : monPreview.CreateGraphics()))
                                 {
                                     g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
-                                    // Draw on PB Box
-                                    g.DrawImage(bmpScreen, 0, 0, monPreview.Width, monPreview.Height);
+                                    g.DrawImage(this.bmpScreen, 0, 0, monPreview.Width, monPreview.Height);
                                 }
                             }
 
-/*                            // Use threading callback for other Form stuff
-                            ScreenHelperReceivedScreenshotCallback myCallBack = new ScreenHelperReceivedScreenshotCallback(ScreenHelperReceivedScreenshot);
-                            this.Invoke(myCallBack, new object[] { sender, e, bmpScreenshot });
-*/
                             // Set new Last Update
                             this.lScreenLastUpdate = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
                         }
@@ -772,8 +770,8 @@ namespace AmbiBack
                     long lCurrentTimeTicks = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
                     if (lCurrentTimeTicks > (this.lScreenLastUpdate + 1000))
                     {
-                        // Draw image again (the capture thread replaces and disposes bmpScreen under bmpLock)
-                        lock (CGlobals.bmpLock)
+                        // Draw image again (the capture thread updates bmpScreen under previewLock)
+                        lock (this.previewLock)
                         {
                             if (bmpScreen != null)
                                 e.Graphics.DrawImage(bmpScreen, monPreview.Left, monPreview.Top, monPreview.Width, monPreview.Height);

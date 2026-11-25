@@ -247,7 +247,7 @@ namespace AmbiBack
                 this.FrameDelay = this.ReadXmlElementAsInt(reader, "FrameDelay", 60);
                 this.SetValueGainPercent(this.ReadXmlElementAsInt(reader, "ValueGainPercent", 100));
                 InternalDeviceID = reader.ReadElementContentAsString("InternalDeviceID", "");
-                this.SetConnectionType((ConnectionTypes)this.ReadXmlElementAsByte(reader, "ConnectionType", (byte)ConnectionTypes.TCP));
+                this.SetConnectionType((ConnectionTypes)this.ReadXmlElementAsByte(reader, "ConnectionType", (byte)ConnectionTypes.UDP));
                 InternalNetworkMAC = reader.ReadElementContentAsString("InternalNetworkMAC", "");
             }
             catch (Exception ex)
@@ -386,19 +386,9 @@ namespace AmbiBack
                             }
                         }
 
-                        // The monitor replaces and disposes bmpScreenCopy under bmpLock
-                        lock (CGlobals.bmpLock)
-                        {
-                            if (this.bmpScreenCopy != null && this.rectScanPixels != null)
-                            {
-                                // The desktop resolution changed: recalculate the scan rectangles
-                                if (this.bmpScreenCopy.Width != this.iScanAreaWidth || this.bmpScreenCopy.Height != this.iScanAreaHeight)
-                                    this.UpdateScanAreas(this.bmpScreenCopy.Width, this.bmpScreenCopy.Height);
-
-                                // Scan Images by each Pixel for Colors
-                                this.CalcColorsRectangles(this.PixelTotalPort1, this.bmpScreenCopy, this.brPixels);
-                            }
-                        }
+                        // Colors of all LEDs from the monitor's frame buffer; skipped when there is no new frame
+                        if (this.rectScanPixels != null)
+                            this.CalcColorsFromFrame(this.PixelTotalPort1, this.brPixels, this.UpdateScanAreas);
 
                         // Finally send calced pixels to DS!
                         this.SendLEDData();
@@ -784,9 +774,9 @@ namespace AmbiBack
                 for (byte bPixelCurrent = 0; bPixelCurrent < this.PixelTotalPort1; bPixelCurrent++)
                 {
                     bwPacket.Write((byte)0x00); // WHITE
-                    bwPacket.Write(((SolidBrush)brPixels[bPixelCurrent]).Color.R); // RED
-                    bwPacket.Write(((SolidBrush)brPixels[bPixelCurrent]).Color.G); // GREEN
-                    bwPacket.Write(((SolidBrush)brPixels[bPixelCurrent]).Color.B); // BLUE
+                    bwPacket.Write(brPixels[bPixelCurrent].R); // RED
+                    bwPacket.Write(brPixels[bPixelCurrent].G); // GREEN
+                    bwPacket.Write(brPixels[bPixelCurrent].B); // BLUE
                 }
                 
                 // Convert into byte array for Network send
@@ -1472,27 +1462,28 @@ namespace AmbiBack
         {
             // Wait for first screenshot
             int iWait = 0;
-            while (this.bmpScreenCopy == null && iWait <= 300)
+            while ((this.Frame == null || this.Frame.Pixels == null) && iWait <= 300)
             {
                 Thread.Sleep(100);
                 iWait++;
             }
 
             /* Calc rectPixels from base image */
-            if (this.bmpScreenCopy != null)
+            if (this.Frame != null && this.Frame.Pixels != null)
             {
                 try
                 {
                     int iScreenWidth;
                     int iScreenHeight;
-                    lock (CGlobals.bmpLock)
+                    lock (this.Frame.Sync)
                     {
-                        iScreenWidth = this.bmpScreenCopy.Width;
-                        iScreenHeight = this.bmpScreenCopy.Height;
+                        iScreenWidth = this.Frame.Width;
+                        iScreenHeight = this.Frame.Height;
                     }
 
                     // Init Pixels Brush helper variables which will contain the color codes!
-                    brPixels = new Brush[this.PixelTotalPort1];
+                    brPixels = new Color[this.PixelTotalPort1];
+                    lColorsFrameNumber = -1;   // new (black) colors: calculate on the next call
 
                     // Init Screen Scan Areas
                     rectScanPixels = new Rectangle[this.PixelTotalPort1];

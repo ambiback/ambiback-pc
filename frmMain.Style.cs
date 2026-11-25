@@ -226,18 +226,15 @@ namespace AmbiBack
             UpdateDeviceSummary();
         }
 
-        /// <summary>Easy: monitors, devices, colors and device settings. Advanced: also Expert and Debug tabs and list styles.</summary>
+        /// <summary>Easy: monitors, devices, colors and device settings. Advanced: also the Debug tab and list styles.</summary>
         private void SetMode(bool advanced, bool save = true)
         {
             btnModeEasy.Checked = mnuModeEasy.Checked = !advanced;
             btnModeAdvanced.Checked = mnuModeAdvanced.Checked = advanced;
             btnModeEasy.ForeColor = advanced ? Theme.PrimaryText : Color.White;
             btnModeAdvanced.ForeColor = advanced ? Color.White : Theme.PrimaryText;
-            foreach (TabPage p in new[] { tabExpert, tabDebug })
-            {
-                if (advanced && !tcMain.TabPages.Contains(p)) tcMain.TabPages.Add(p);
-                if (!advanced && tcMain.TabPages.Contains(p)) tcMain.TabPages.Remove(p);
-            }
+            advancedMode = advanced;
+            UpdateTabs(currentSelectedDevice);
             foreach (ToolStripItem i in new ToolStripItem[] { mnuDetails, mnuList, mnuTile, mnuSmallIcons, mnuLargeIcons, btnChangeView })
                 i.Visible = advanced;
             if (save && Properties.Settings.Default.bAdvancedMode != advanced)
@@ -255,6 +252,22 @@ namespace AmbiBack
             Size = new Size(Math.Min(Width, wa.Width), Math.Min(Height, wa.Height));
             if (StartPosition == FormStartPosition.CenterScreen)
                 Location = new Point(wa.Left + (wa.Width - Width) / 2, wa.Top + (wa.Height - Height) / 2);
+        }
+
+        private bool advancedMode;
+
+        /// <summary>
+        /// Colors and Device always; Debug only in Advanced mode and for devices with debug support.
+        /// The Expert tab stays hidden, as before (it was disabled in the original code).
+        /// </summary>
+        private void UpdateTabs(CDevice device)
+        {
+            bool debug = advancedMode && device != null && device.DebugSupport;
+            if (tcMain.TabPages.Contains(tabExpert)) tcMain.TabPages.Remove(tabExpert);
+            if (!tcMain.TabPages.Contains(tabMain)) tcMain.TabPages.Insert(0, tabMain);
+            if (!tcMain.TabPages.Contains(tabAdvanced)) tcMain.TabPages.Insert(1, tabAdvanced);
+            if (debug && !tcMain.TabPages.Contains(tabDebug)) tcMain.TabPages.Add(tabDebug);
+            if (!debug && tcMain.TabPages.Contains(tabDebug)) tcMain.TabPages.Remove(tabDebug);
         }
 
         /// <summary>Stack the monitor cards in the left column with a gap between them.</summary>
