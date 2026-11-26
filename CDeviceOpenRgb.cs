@@ -78,6 +78,7 @@ namespace AmbiBack
         protected override int DefaultPort { get { return SdkPort; } }
         protected override byte DefaultFramesPerSecond { get { return 30; } }
         public override string[] ModeTextKeys { get { return new[] { "openrgb_mode_strip", "openrgb_mode_single" }; } }
+        public override bool UsesStripLayout { get { return this.Mode == ModeStrip; } }
 
         protected override void WriteStripXml(XmlWriter writer)
         {

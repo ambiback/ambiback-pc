@@ -64,6 +64,10 @@ namespace AmbiBack.PhilipsHue
                 Test("OpenRGB: UPDATELEDS layout", TestOpenRgbUpdateLeds),
                 Test("OpenRGB: controller data, protocol 4 and 0", TestOpenRgbControllerData),
                 Test("OpenRGB: device XML round trip", TestOpenRgbXml),
+                Test("Nanoleaf: extControl v2 frame", TestNanoleafFrame),
+                Test("Nanoleaf: device info and panel layout", TestNanoleafInfo),
+                Test("Nanoleaf: panel places on the screen", TestNanoleafPlaces),
+                Test("Nanoleaf: device XML round trip (token protected)", TestNanoleafXml),
                 Test("mDNS query for _wled._tcp.local", () => Equal("000000000001000000000000" + "055f776c6564" + "045f746370" + "056c6f63616c" + "00" + "000c8001",
                     TlsPrf.ToHex(HueDiscovery.BuildMdnsQuery("_wled")))),
             };
@@ -739,6 +743,73 @@ namespace AmbiBack.PhilipsHue
             Equal(CDeviceOpenRgb.SdkPort, copy.Port);
             Equal((byte)10, copy.PixelHori);
             Equal((byte)25, copy.FramesPerSecond);
+        }
+
+        private static void TestNanoleafFrame()
+        {
+            var panels = new List<CDeviceNanoleaf.Panel> { new CDeviceNanoleaf.Panel { Id = 0x1234 }, new CDeviceNanoleaf.Panel { Id = 7 } };
+            byte[] colors = { 10, 20, 30, 40, 50, 60 };
+            byte[] frame = new byte[2 + 8 * 2];
+            CDeviceNanoleaf.FillFrameV2(frame, panels, colors, 2, false);
+            // 2 panels; id, R G B, W 0, transition 0 (big endian)
+            Equal("0002" + "1234" + "0a141e" + "00" + "0000" + "0007" + "28323c" + "00" + "0000", TlsPrf.ToHex(frame));
+            CDeviceNanoleaf.FillFrameV2(frame, panels, colors, 2, true);
+            Equal("19232d", TlsPrf.ToHex(frame).Substring(8, 6));
+        }
+
+        private const string NanoleafInfoJson = "{\"name\":\"Shapes 4C2A\",\"serialNo\":\"S21311A0123\",\"manufacturer\":\"Nanoleaf\",\"firmwareVersion\":\"9.2.4\",\"model\":\"NL42\","
+            + "\"effects\":{\"select\":\"Northern Lights\",\"effectsList\":[\"Northern Lights\"]},"
+            + "\"panelLayout\":{\"globalOrientation\":{\"value\":30,\"max\":360,\"min\":0},\"layout\":{\"numPanels\":4,\"sideLength\":134,\"positionData\":["
+            + "{\"panelId\":101,\"x\":0,\"y\":0,\"o\":0,\"shapeType\":7},{\"panelId\":102,\"x\":116,\"y\":67,\"o\":60,\"shapeType\":7},"
+            + "{\"panelId\":103,\"x\":232,\"y\":0,\"o\":0,\"shapeType\":7},{\"panelId\":0,\"x\":116,\"y\":-30,\"o\":0,\"shapeType\":12}]}}}";
+
+        private static void TestNanoleafInfo()
+        {
+            var info = CDeviceNanoleaf.ParseInfo(NanoleafInfoJson);
+            Equal("Shapes 4C2A", info.Name);
+            Equal("S21311A0123", info.SerialNo);
+            Equal("NL42", info.Model);
+            Equal("Northern Lights", info.SelectedEffect);
+            Equal(30, info.Orientation);
+            Equal("101:0:0;102:116:67;103:232:0", CDeviceNanoleaf.FormatPanels(info.Panels));   // controller left out
+            var device = CDeviceNanoleaf.FromInfo(info, IPAddress.Parse("192.168.1.30"), "tok123");
+            Equal("Nanoleaf_s21311a0123", device.GetDeviceID());
+            Equal(CDeviceNanoleaf.ModePositions, device.Mode);
+            True(!device.UsesStripLayout, "Nanoleaf has no strip layout");
+        }
+
+        private static void TestNanoleafPlaces()
+        {
+            var panels = CDeviceNanoleaf.ParsePanels("1:0:0;2:100:0;3:0:100");
+            System.Drawing.PointF[] p = CDeviceNanoleaf.ScreenPlaces(panels, 0);
+            // y of the layout points up: (0,0) is bottom left, (0,100) top left
+            Equal("0,1 1,1 0,0", string.Join(" ", System.Linq.Enumerable.Select(p, q => q.X.ToString(System.Globalization.CultureInfo.InvariantCulture) + "," + q.Y.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+            p = CDeviceNanoleaf.ScreenPlaces(panels, 90);
+            // turned clockwise by 90 degrees: the panel on the right moves to the bottom, the top one to the right
+            True(Math.Abs(p[1].Y - 1) < 0.001 && Math.Abs(p[0].Y - p[2].Y) < 0.001 && p[2].X > p[0].X, "rotation by 90 degrees");
+            Equal(new System.Drawing.Rectangle(0, 0, 80, 45), CDeviceNanoleaf.PanelRegion(new System.Drawing.PointF(0, 0), 320, 180, 25));
+            Equal(new System.Drawing.Rectangle(120, 68, 80, 45), CDeviceNanoleaf.PanelRegion(new System.Drawing.PointF(0.5f, 0.5f), 320, 180, 25));
+        }
+
+        private static void TestNanoleafXml()
+        {
+            var device = CDeviceNanoleaf.FromInfo(CDeviceNanoleaf.ParseInfo(NanoleafInfoJson), IPAddress.Parse("10.0.0.40"), "secret-token");
+            device.Mode = CDeviceNanoleaf.ModeSingleColor;
+            device.FrameDelay = 200;
+            True(device.AuthTokenProtected.StartsWith("dpapi:", StringComparison.Ordinal), "the token must be stored protected");
+            var serializer = new System.Xml.Serialization.XmlSerializer(typeof(CDeviceNanoleaf));
+            var writer = new System.IO.StringWriter();
+            serializer.Serialize(writer, device);
+            True(writer.ToString().IndexOf("secret-token", StringComparison.Ordinal) < 0, "the token must not be in the XML in plain text");
+            var copy = (CDeviceNanoleaf)serializer.Deserialize(new System.IO.StringReader(writer.ToString()));
+            copy.SetDeviceID();
+            Equal(device.GetDeviceID(), copy.GetDeviceID());
+            Equal("secret-token", copy.AuthToken);
+            Equal("101:0:0;102:116:67;103:232:0", CDeviceNanoleaf.FormatPanels(copy.Panels));
+            Equal(30, copy.GlobalOrientation);
+            Equal(CDeviceNanoleaf.ModeSingleColor, copy.Mode);
+            Equal(CDeviceNanoleaf.StreamPort, copy.Port);
+            Equal(200, copy.FrameDelay);
         }
 
         private static void TestWledLayout()

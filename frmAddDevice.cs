@@ -107,6 +107,18 @@ namespace AmbiBack
                     newDevice = CDeviceOpenRgb.FromInfo(controllers[0], openRgbAddress);
             }
 
+            // Nanoleaf: pairing with the power button; without an address the first unpaired one found by mDNS
+            if (newDevice == null && iDeviceID == (int)DeviceType.Nanoleaf)
+            {
+                newDevice = PairNanoleaf(txtDevice.Text);
+                if (newDevice == null)
+                {
+                    this.Cursor = Cursors.Default;
+                    this.Enabled = true;
+                    return;
+                }
+            }
+
             if (newDevice == null && iDeviceID == (int)DeviceType.AmbiBackController) {
                 // Try to resolv and PING the entry first before adding it
                 try
@@ -204,6 +216,59 @@ namespace AmbiBack
             this.Close();
         }
 
+        /// <summary>
+        /// Pairs with a Nanoleaf (power button) and reads its layout; null when cancelled or not found
+        /// (a message was shown).
+        /// </summary>
+        private CDeviceNanoleaf PairNanoleaf(string address)
+        {
+            IPAddress ip;
+            if (string.IsNullOrWhiteSpace(address))
+            {
+                // The first Nanoleaf found that is not in the list yet
+                var known = new HashSet<string>();
+                foreach (CDevice d in CGlobals.mainConfig.Devices.GetDeviceList())
+                    if (d is CDeviceNanoleaf n && n.GetIPAddress() != null)
+                        known.Add(n.GetIPAddress().ToString());
+                ip = CDeviceNanoleaf.Discover().FirstOrDefault(a => !known.Contains(a.ToString()));
+            }
+            else
+                ip = ResolveAddress(address);
+            if (ip == null)
+            {
+                this.Cursor = Cursors.Default;
+                MessageBox.Show(this, L.F("add_err_nanoleaf", address), L.T("add_err_nanoleaf_title"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return null;
+            }
+
+            this.Cursor = Cursors.Default;
+            if (MessageBox.Show(this, L.F("add_nanoleaf_pair", ip), L.T("add_nanoleaf_title"), MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK)
+                return null;
+            try
+            {
+                while (true)
+                {
+                    this.Cursor = Cursors.WaitCursor;
+                    string token = CDeviceNanoleaf.Pair(ip);
+                    this.Cursor = Cursors.Default;
+                    if (token != null)
+                    {
+                        CDeviceNanoleaf.NanoleafInfo info = CDeviceNanoleaf.QueryInfo(ip, token);
+                        if (info != null)
+                            return CDeviceNanoleaf.FromInfo(info, ip, token);
+                    }
+                    if (MessageBox.Show(this, L.F("add_nanoleaf_retry", ip), L.T("add_nanoleaf_title"), MessageBoxButtons.RetryCancel, MessageBoxIcon.Warning) != DialogResult.Retry)
+                        return null;
+                }
+            }
+            catch (System.IO.IOException)
+            {
+                this.Cursor = Cursors.Default;
+                MessageBox.Show(this, L.F("add_err_nanoleaf", ip), L.T("add_err_nanoleaf_title"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return null;
+            }
+        }
+
         /// <summary>IPv4 address of an address or host name, null when it cannot be resolved.</summary>
         private static IPAddress ResolveAddress(string szAddress)
         {
@@ -259,6 +324,9 @@ namespace AmbiBack
             arDevices.Add(new ListBoxDevice(CGlobals.DEVICETYPESDISPLAYNAME[(int)DeviceType.OpenRgb],
                                             CGlobals.DEVICETYPES[(int)DeviceType.OpenRgb],
                                             (int)DeviceType.OpenRgb));
+            arDevices.Add(new ListBoxDevice(CGlobals.DEVICETYPESDISPLAYNAME[(int)DeviceType.Nanoleaf],
+                                            CGlobals.DEVICETYPES[(int)DeviceType.Nanoleaf],
+                                            (int)DeviceType.Nanoleaf));
 
             cbDeviceType.DataSource = arDevices;
             cbDeviceType.DisplayMember = "LongName";

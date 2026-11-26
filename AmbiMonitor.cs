@@ -114,8 +114,13 @@ namespace AmbiBack
                 bNumControlls = false;
                 bDirectionControls = false;
                 bSectorControls = false;
+            } else if (selectedDevice is ILedStripLayout stripDevice && !stripDevice.UsesStripLayout) {
+                // One-color modes and Nanoleaf panels (regions from the panel positions): no strip layout
+                bNumControlls = false;
+                bDirectionControls = false;
+                bSectorControls = false;
             } else if (selectedDevice is ILedStripLayout nodeMcuManagerDevice) {
-                // AmbiBack controllers and WLED/DDP strips: LEDs per side, start corner and direction
+                // AmbiBack controllers and network strips: LEDs per side, start corner and direction
                 bNumControlls = true;
                 bDirectionControls = true;
                 bSectorControls = false;

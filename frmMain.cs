@@ -639,7 +639,11 @@ namespace AmbiBack
         private void cbStripMode_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (currentSelectedDevice is CDeviceLedStrip strip && cbStripMode.SelectedIndex >= 0)
+            {
                 strip.Mode = (byte)cbStripMode.SelectedIndex;
+                // The monitor card shows the strip layout only in strip modes
+                selectedAmbiScreen?.SetSelectedDevice(strip);
+            }
             if (cbStripMode.SelectedItem != null)
                 TTHelper.SetToolTip(cbStripMode, cbStripMode.SelectedItem.ToString());
         }

@@ -62,6 +62,7 @@ namespace AmbiBack
         protected override int DefaultPort { get { return ControlPort; } }
         /// <summary><see cref="ModeSegments"/> or <see cref="ModeSingleColor"/>.</summary>
         public override string[] ModeTextKeys { get { return new[] { "govee_mode_segments", "govee_mode_single" }; } }
+        public override bool UsesStripLayout { get { return this.Mode == ModeSegments; } }
         protected override byte DefaultFramesPerSecond { get { return 30; } }
         // 16 segments around the screen; set it to the segments of the device
         protected override byte DefaultPixelHori { get { return 5; } }
