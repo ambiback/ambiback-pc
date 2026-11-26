@@ -1,0 +1,23 @@
+.github/ISSUE_TEMPLATE/device-test.yml
+  s_997c07f5a28628::t_b2c8b36dfc528f 1-99
+docs/de/network-lights.md
+  s_997c07f5a28628::t_bfe356dceb19f5 128
+docs/en/network-lights.md
+  s_997c07f5a28628::t_824e1469ef3443 128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ba537da7b72864147ecd1f46f01a80de9d571f03",
+  "prompts": {},
+  "sessions": {
+    "s_997c07f5a28628": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "acceca07-2c2b-4a31-b332-385685d6f272",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
