@@ -22,6 +22,9 @@ A light found again under a new address keeps its settings (it is recognized by 
 
 Select the light and open the **Device** tab. The *Mode* setting replaces the connection setting there:
 
+![Govee light with the Mode setting on the Device tab](../images/govee_device_en.png)
+
+
 | Mode | What it does |
 | --- | --- |
 | **Segments (DreamView)** | Default. Sends one color per LED of the layout; the light spreads them over its segments. This uses the protocol behind Govee's DreamView and Razer Chroma support, which is not documented by Govee and works only on models with DreamView. |

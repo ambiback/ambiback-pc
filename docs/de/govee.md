@@ -22,6 +22,9 @@ Eine Leuchte, die unter einer neuen Adresse wieder gefunden wird, behält ihre E
 
 Wähle die Leuchte aus und öffne den Reiter **Gerät**. Dort steht statt der Verbindung die Einstellung *Modus*:
 
+![Govee-Leuchte mit der Einstellung Modus auf dem Reiter Gerät](../images/govee_device_de.png)
+
+
 | Modus | Was er macht |
 | --- | --- |
 | **Segmente (DreamView)** | Standard. Sendet eine Farbe je LED der Anordnung; die Leuchte verteilt sie auf ihre Segmente. Das nutzt das Protokoll hinter Govees DreamView- und Razer-Chroma-Unterstützung, das Govee nicht dokumentiert, und klappt nur bei Modellen mit DreamView. |

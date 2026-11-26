@@ -268,7 +268,9 @@ namespace AmbiBack
                     }
                     catch (ThreadInterruptedException)
                     {
+                        // Stop of the monitor (SleepThread): end the stream, it starts again on resume
                         DoDebugOutput(name + "|HandleThread|Interrupted");
+                        StopStream();
                         while (bSleepThread && !bAbortThread)
                             Thread.Sleep(10);
                     }
