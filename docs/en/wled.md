@@ -33,7 +33,7 @@ For a WLED found on the network AmbiBack suggests a layout from its LED count, s
 
 ## Settings
 
-All sliders on the [*Colors* and *Device* tabs](settings.md) work for WLED (the *Connection* setting does not apply, DDP always uses UDP):
+All sliders on the [*Colors* and *Device* tabs](settings.md) work for WLED (there is no *Connection* setting, DDP always uses UDP):
 
 - **Frames per second**: 50 by default, up to 60.
 - **Smoothing**: 0 (off) by default. Higher values fade the colors more softly; AmbiBack PC does this before sending.

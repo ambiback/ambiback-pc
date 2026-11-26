@@ -21,9 +21,9 @@ The sliders at the bottom right apply to the device selected in the list and tak
 | Setting | Effect |
 | --- | --- |
 | Device name | Name of the device, where the device supports renaming. |
-| Connection | *UDP* works on any Wi-Fi and is the default; *TCP* needs a stable Wi-Fi; *USB* for controllers connected directly. For a Govee light this row is *Mode*: [segments or single color](govee.md#choose-the-mode); for an OpenRGB device [strip or one color](openrgb.md#choose-the-mode); for a Nanoleaf [panels by their place or one color](nanoleaf.md#choose-the-mode). |
-| Frames per second | How often colors are sent. Hue streaming: 25 to 50. WLED/DDP: up to 60. Govee and OpenRGB: 30 by default. Nanoleaf: 20, up to 30. |
-| Smoothing | Transition time between colors (not for Hue; the bridge smooths by itself). For WLED/DDP, Govee, OpenRGB and Nanoleaf AmbiBack PC smooths before sending (Nanoleaf: 100 ms by default). |
+| Connection | *UDP* works on any Wi-Fi and is the default; *TCP* needs a stable Wi-Fi; *USB* for controllers connected directly. For a Govee light this row is *Mode*: [segments or single color](govee.md#choose-the-mode); for an OpenRGB device [strip or one color](openrgb.md#choose-the-mode); for a Nanoleaf [panels by their place or one color](nanoleaf.md#choose-the-mode); for a LIFX strip [zones or one color](lifx.md#bulbs-and-strips). Other network lights have no connection setting. |
+| Frames per second | How often colors are sent. Hue streaming: 25 to 50. WLED/DDP: up to 60. Govee and OpenRGB: 30 by default. Nanoleaf: 20, up to 30. LIFX: 20. |
+| Smoothing | Transition time between colors (not for Hue; the bridge smooths by itself). For WLED/DDP, Govee, OpenRGB, Nanoleaf and LIFX AmbiBack PC smooths before sending (Nanoleaf and LIFX: 100 ms by default). |
 | Inner picture area (%) | How far the areas reach into the picture. For Hue areas and Nanoleaf: the size of the region around each light or panel. |
 
 ### Debug tab

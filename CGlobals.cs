@@ -281,6 +281,7 @@ namespace AmbiBack
         GoveeLan = 22,
         OpenRgb = 23,
         Nanoleaf = 24,
+        Lifx = 25,
     }
     public enum ConnectionTypes
     {
@@ -419,6 +420,7 @@ namespace AmbiBack
             "GoveeLan",
             "OpenRgb",
             "Nanoleaf",
+            "Lifx",
         };
         public static string[] DEVICETYPESDISPLAYNAME = new string[]
         {
@@ -447,6 +449,7 @@ namespace AmbiBack
             "Govee (LAN)",
             "OpenRGB",
             "Nanoleaf",
+            "LIFX",
         };
         public static string[] INSTALLATIONTYPES = new string[]
         {

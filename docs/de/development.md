@@ -39,6 +39,7 @@ Das Setup installiert ohne Administratorrechte für den aktuellen Benutzer (`%LO
 - `AmbiBack.exe --govee-test host [sekunden] [single]` streamt ein bewegtes Testbild über die Govee-LAN-API (Segmente, oder mit `single` eine Farbe). Der Selbsttest prüft auch die Formate der razer- und LAN-Befehle und das Govee-Gerät.
 - `AmbiBack.exe --openrgb-test host [controller] [sekunden] [single]` listet die Controller eines OpenRGB-SDK-Servers auf und streamt ein bewegtes Testbild an einen davon. Der Selbsttest prüft auch den SDK-Paketkopf, UPDATELEDS und die Controllerdaten der Protokolle 0 und 4.
 - `AmbiBack.exe --nanoleaf-test host [token] [sekunden] [single]` koppelt ein Nanoleaf (Ein-/Aus-Knopf) oder nutzt den angegebenen Auth-Token und streamt ein bewegtes Testbild über extControl v2. Der Selbsttest prüft auch das Bildformat, Geräteinfo und Anordnung, die Lage der Panels und den geschützten Token.
+- `AmbiBack.exe --lifx-test [host] [sekunden] [single]` findet LIFX-Lampen (Broadcast, oder nur die unter host) und streamt ein bewegtes Testbild an den ersten Streifen bzw. die erste Lampe. Der Selbsttest prüft auch den Kopf der LAN-Nachrichten, RGB nach HSBK, die Nutzdaten von SetColor und SetExtendedColorZones und das LIFX-Gerät.
 
 ## Continuous Integration
 

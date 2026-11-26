@@ -610,8 +610,11 @@ namespace AmbiBack
                 cbStripMode.SelectedIndex = Math.Min((int)strip.Mode, cbStripMode.Items.Count - 1);
             }
             cbStripMode.SelectedIndexChanged += cbStripMode_SelectedIndexChanged;
+            // Network lights have no connection type: the row shows their mode, or nothing
+            bool networkLight = strip != null;
             cbStripMode.Visible = show;
-            cbConnectionType.Visible = !show;
+            cbConnectionType.Visible = !networkLight;
+            lblConnectionType.Visible = !networkLight || show;
             lblConnectionType.Text = L.T(show ? "lbl_mode" : "lbl_conntype");
         }
 

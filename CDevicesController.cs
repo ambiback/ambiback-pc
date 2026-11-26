@@ -328,6 +328,24 @@ namespace AmbiBack
             }
         }
 
+        /// <summary>Adds the LIFX lights that answer the broadcast, or refreshes known ones (settings are kept).</summary>
+        public void EnumLifxDevices()
+        {
+            try
+            {
+                foreach (CDeviceLifx.LifxInfo info in CDeviceLifx.Discover())
+                {
+                    CDevice device = CGlobals.mainConfig.Devices.Add(CDeviceLifx.FromInfo(info));
+                    device.SetIsOnline(true);
+                    HandleDiscoveredDevice(device);
+                }
+            }
+            catch (Exception ex)
+            {
+                CGlobals.DebugOutput(ex);
+            }
+        }
+
         public void HandleDiscoveredDevice(CDevice newDevice)
         {
             if (this.DiscoveredDevice != null)
@@ -503,6 +521,8 @@ namespace AmbiBack
             System.Threading.Tasks.Task.Run(() => this.EnumOpenRgbDevices());
             // Paired Nanoleaf devices via mDNS (new ones are paired with Add)
             System.Threading.Tasks.Task.Run(() => this.EnumNanoleafDevices());
+            // LIFX lights via broadcast on UDP 56700
+            System.Threading.Tasks.Task.Run(() => this.EnumLifxDevices());
 
             // UDP Helper Client
             UdpClient client = new UdpClientBroadcast();

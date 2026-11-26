@@ -2,7 +2,7 @@
 
 **English** · [Deutsch](benutzerhandbuch.md)
 
-AmbiBack PC captures what your monitors show and sends the colors in real time to lights behind or next to the screen: AmbiBack controllers (LED strips), WLED and other DDP strips, Govee lights, Nanoleaf panels, PC lighting through OpenRGB, and Philips Hue lights. The picture seems to flow onto the wall.
+AmbiBack PC captures what your monitors show and sends the colors in real time to lights behind or next to the screen: AmbiBack controllers (LED strips), WLED and other DDP strips, Govee lights, Nanoleaf panels, LIFX lights, PC lighting through OpenRGB, and Philips Hue lights. The picture seems to flow onto the wall.
 
 ![The AmbiBack PC main window](images/main_en.png)
 
@@ -19,6 +19,7 @@ AmbiBack PC captures what your monitors show and sends the colors in real time t
 - [Govee](en/govee.md) – LAN Control, find or add a Govee light, segments or single color
 - [OpenRGB](en/openrgb.md) – SDK server, PC parts and peripherals, strip or one color
 - [Nanoleaf](en/nanoleaf.md) – pairing with the power button, panels by their place or one color
+- [LIFX](en/lifx.md) – bulbs and strips without cloud, zones around the screen
 
 ## Reference
 
