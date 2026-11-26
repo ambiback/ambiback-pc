@@ -2,6 +2,8 @@
 
 **English** · [Deutsch](../de/nanoleaf.md) · [User guide](../user-guide.md)
 
+> **Testers wanted:** Nanoleaf support was built from the Open API documentation and tested against a simulated device, not yet with real panels. Most interesting: do the panels show the picture at the right places, also with a rotated layout? Please [report how it works](network-lights.md#report-a-test). Step by step for all network lights: [Network lights step by step](network-lights.md).
+
 AmbiBack PC drives Nanoleaf panels (Light Panels, Canvas, Shapes, Elements, Lines) directly on your network through the **Nanoleaf Open API**, without the Nanoleaf app or cloud. Every panel gets the color of the screen area at its place in your layout.
 
 ## Pair a Nanoleaf

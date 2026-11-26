@@ -2,6 +2,8 @@
 
 **English** · [Deutsch](../de/govee.md) · [User guide](../user-guide.md)
 
+> **Testing:** Govee support was built from the published LAN API and tested against a simulated light; the maintainer may test it with own devices soon. The *Segments* mode uses an undocumented protocol. If you own a Govee light, please [report which model works in which mode](network-lights.md#report-a-test). Step by step for all network lights: [Network lights step by step](network-lights.md).
+
 AmbiBack PC can drive Govee Wi-Fi lights (LED strips, light bars, TV backlights, floor lamps) over the **Govee LAN API**, directly on your network, without the Govee cloud and without an account.
 
 ## Before you start: switch on LAN Control

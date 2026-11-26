@@ -2,6 +2,8 @@
 
 **English** · [Deutsch](../de/openrgb.md) · [User guide](../user-guide.md)
 
+> **Testers wanted:** OpenRGB support was built from the official SDK documentation and tested against a simulated SDK server, not yet with real hardware. If you use OpenRGB, please [report how it works with your devices](network-lights.md#report-a-test). Step by step for all network lights: [Network lights step by step](network-lights.md).
+
 [OpenRGB](https://openrgb.org/) controls the RGB lighting of many PC parts and peripherals from one program: motherboards and their ARGB headers, RAM, graphics cards, fans and coolers, LED strips, keyboards, mice and more. AmbiBack PC talks to OpenRGB through its **SDK server** and can drive every device OpenRGB knows.
 
 ## Before you start: start the SDK server

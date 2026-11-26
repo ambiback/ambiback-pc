@@ -2,6 +2,8 @@
 
 [English](../en/lifx.md) · **Deutsch** · [Benutzerhandbuch](../benutzerhandbuch.md)
 
+> **Tester gesucht:** Die LIFX-Unterstützung ist nach der Dokumentation des LAN-Protokolls entstanden und gegen nachgebaute Lampen getestet, noch nicht mit echten. [Melde bitte, wie es mit deinen Lampen und Streifen klappt](network-lights.md#test-melden). Schritt für Schritt für alle Netzwerk-Leuchten: [Netzwerk-Leuchten Schritt für Schritt](network-lights.md).
+
 AmbiBack PC steuert LIFX-Lampen direkt im Netzwerk über das **LIFX-LAN-Protokoll**, ohne LIFX-Cloud und ohne Konto: Glühbirnen, Einbauleuchten, Lichtstreifen (LIFX Z, Lightstrip), Beam und Neon.
 
 ## LIFX-Lampen hinzufügen

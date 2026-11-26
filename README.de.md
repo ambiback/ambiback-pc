@@ -33,7 +33,8 @@ Das [Benutzerhandbuch](docs/benutzerhandbuch.md) enthält:
 - [Schnellstart](docs/de/quick-start.md)
 - [AmbiBack-Geräte](docs/de/ambiback-devices.md) – WLAN-Einrichtung über USB, LED-Anordnung
 - [Philips Hue](docs/de/philips-hue.md) – Hue Entertainment, Bridge, Lampen, Bereiche
-- [WLED und DDP](docs/de/wled.md) – WLED und andere DDP-Empfänger
+- [Netzwerk-Leuchten Schritt für Schritt](docs/de/network-lights.md) – Tutorial für WLED, Govee, OpenRGB, Nanoleaf und LIFX
+- [WLED und DDP](docs/de/wled.md), [Govee](docs/de/govee.md), [OpenRGB](docs/de/openrgb.md), [Nanoleaf](docs/de/nanoleaf.md), [LIFX](docs/de/lifx.md)
 - [Das Hauptfenster](docs/de/main-window.md) und [Einstellungen](docs/de/settings.md)
 - [Problemlösung und FAQ](docs/de/troubleshooting.md) – Firewall, SmartScreen, Hue
 
@@ -54,6 +55,7 @@ Das [Benutzerhandbuch](docs/benutzerhandbuch.md) enthält:
 ## Status
 
 - Version 1.0. Philips Hue (Entertainment-Streaming, Bridge-Suche, eigener Entertainment-Bereich) wurde mit einer echten Hue Bridge v2 getestet. Andere Teile der Anwendung sind seit der Migration weniger getestet.
+- **Tester gesucht:** WLED und Philips Hue werden mit den eigenen Geräten des Entwicklers getestet, Govee vielleicht bald. OpenRGB, Nanoleaf und LIFX sind nach den Protokollbeschreibungen entstanden und nur gegen nachgebaute Geräte getestet. Wenn du eines davon hast, teste bitte und [melde, wie es klappt](docs/de/network-lights.md#test-melden).
 - AmbiBack-Geräte werden seit rund fünf Jahren nicht mehr verkauft. Dieses Projekt dient dem Eigenbau und der Weiterentwicklung, ohne Produktsupport. Mehr auf [ambiback.de](https://www.ambiback.de/); die Bauteile für den Selbstbau stehen auf der [AmbiBack-Teileseite](https://www.ambiback.de/selbstbau/teile/).
 
 ## Sicherheit

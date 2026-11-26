@@ -2,6 +2,8 @@
 
 **English** · [Deutsch](../de/wled.md) · [User guide](../user-guide.md)
 
+> **Testing:** WLED is tested with the maintainer's own devices. Other DDP receivers (ESPHome, Hyperion, ESPixelStick …) are not: if you use one, please [report how it works](network-lights.md#report-a-test). Step by step for all network lights: [Network lights step by step](network-lights.md).
+
 AmbiBack PC can drive an LED strip with [WLED](https://kno.wled.ge/) firmware, and any other receiver of the **DDP** protocol (Distributed Display Protocol, UDP port 4048), for example ESPHome, Hyperion or ESPixelStick. WLED runs on cheap ESP8266/ESP32 boards, and many strips sold for smart home apps can be flashed with it.
 
 AmbiBack PC computes the color of every LED itself and sends the finished values. Layout, color sliders and smoothing are set in AmbiBack PC, not in WLED.
