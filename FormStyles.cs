@@ -314,6 +314,23 @@ namespace AmbiBack
             chkHideOnWindowClose.Text = L.T("opt_hide_close");
             chkLoadWindowsStartup.Text = L.T("opt_autostart");
 
+            // Which program the autostart entry points to, so a second copy shows what it would replace
+            string startupPath = CGlobals.GetWindowsStartupPath();
+            var lblAutostart = new Label
+            {
+                AutoSize = false,
+                AutoEllipsis = true,
+                Text = startupPath == null ? L.T("opt_autostart_none")
+                    : CGlobals.IsThisCopy(startupPath) ? L.F("opt_autostart_this", startupPath)
+                    : L.F("opt_autostart_other", startupPath),
+                Location = new Point(inner + DialogStyle.Px(this, 18), chkLoadWindowsStartup.Bottom),
+                Size = new Size(w - 2 * inner - DialogStyle.Px(this, 18), DialogStyle.Px(this, 18)),
+            };
+            Theme.StyleHint(lblAutostart);
+            new ToolTip().SetToolTip(lblAutostart, lblAutostart.Text);
+            general.Controls.Add(lblAutostart);
+            y = lblAutostart.Bottom + DialogStyle.Px(this, 4);
+
             var lblLang = new Label { Text = L.T("opt_language"), AutoSize = true, Location = new Point(inner, y + DialogStyle.Px(this, 10)) };
             cbLanguage = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(DialogStyle.Px(this, 140), y + DialogStyle.Px(this, 6)), Width = DialogStyle.Px(this, 200) };
             cbLanguage.Items.AddRange(new object[] { L.T("opt_lang_system"), "English", "Deutsch" });

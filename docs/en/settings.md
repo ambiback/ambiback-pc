@@ -40,7 +40,7 @@ Click **Options** in the toolbar.
 | --- | --- |
 | Start hidden in the notification area | The window stays hidden on start; AmbiBack runs in the notification area. |
 | Keep running in the notification area when the window is closed | The close button only hides the window. Exit with *File › Exit* or the tray menu. |
-| Start AmbiBack when Windows starts | Adds AmbiBack to Windows startup. |
+| Start AmbiBack when Windows starts | Adds this copy of AmbiBack to Windows startup. The line below shows which program Windows starts at the moment. If it is another copy, tick the box to start this copy instead. |
 | Language | German, English or the Windows language. |
 | Debug log | Writes a log for troubleshooting; empty = default path. Hue keys are never logged. |
 

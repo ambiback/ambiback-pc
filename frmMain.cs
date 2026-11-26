@@ -784,9 +784,6 @@ namespace AmbiBack
             CGlobals.deviceController.ReceivedDSPacket += new DeviceFinderReceivedDSPacket(this.ReceivedDSPacket);
 #endif
 
-            // Startup checks
-            CGlobals.SetLoadWindowsStartup();
-
             // Init Form Stuff
             this.InitFormControls();
 

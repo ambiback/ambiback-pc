@@ -48,10 +48,10 @@ namespace AmbiBack
 
                 // Settings of the previous version, and choices made in the setup
                 UpgradeSettings();
-                ApplySetupChoices();
 
                 // Language from the settings, empty = Windows language
                 L.Set(Properties.Settings.Default.szLanguage);
+                ApplySetupChoices();
 
                 // Show the SplashForm first
                 frmSplash frmLoading = new frmSplash();
@@ -132,7 +132,8 @@ namespace AmbiBack
 
         /// <summary>
         /// The setup stores the autostart choice as SetupAutostart (DWORD 0/1). It is taken over
-        /// into the settings once and then removed, later changes are made in the options.
+        /// into the settings and the Run entry once and then removed, later changes are made in the options.
+        /// This is the only start-up path that writes the Run entry.
         /// </summary>
         private static void ApplySetupChoices()
         {
@@ -143,8 +144,10 @@ namespace AmbiBack
                     object value = key?.GetValue("SetupAutostart");
                     if (value == null)
                         return;
-                    Properties.Settings.Default.bLoadAmbiBackOnWindowsStartup = Convert.ToInt32(value) != 0;
+                    bool autostart = Convert.ToInt32(value) != 0;
+                    Properties.Settings.Default.bLoadAmbiBackOnWindowsStartup = autostart;
                     Properties.Settings.Default.Save();
+                    CGlobals.SetLoadWindowsStartup(autostart);
                     key.DeleteValue("SetupAutostart", false);
                 }
             }

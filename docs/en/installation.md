@@ -44,6 +44,8 @@ The setup speaks German or English, following the Windows language.
 
 The ZIP does not install the .NET Framework or WebView2. On current Windows both are usually present.
 
+Starting a portable copy does not change the Windows autostart. If AmbiBack is also installed, Windows keeps starting the installed copy. To start the portable copy with Windows instead, tick *Start AmbiBack when Windows starts* in its [options](settings.md).
+
 ## First start
 
 1. AmbiBack searches the network and the USB ports for devices.

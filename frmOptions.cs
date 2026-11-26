@@ -12,8 +12,15 @@ namespace AmbiBack
 {
     public partial class frmOptions : Form
     {
+        /// <summary>Whether the autostart entry pointed to this copy when the dialog opened.</summary>
+        private readonly bool autostartWasThisCopy;
+
         public frmOptions()
         {
+            // The check box shows whether Windows starts this copy, not a setting taken over
+            // from another copy; it is bound to the setting, so set that before binding
+            autostartWasThisCopy = CGlobals.IsWindowsStartupThisCopy();
+            Properties.Settings.Default.bLoadAmbiBackOnWindowsStartup = autostartWasThisCopy;
             InitializeComponent();
         }
 
@@ -28,8 +35,9 @@ namespace AmbiBack
             // Trigger save settings
             Properties.Settings.Default.Save();
 
-            // Handle Windows Startup control!
-            CGlobals.SetLoadWindowsStartup();
+            // Change the Windows autostart only when the user changed the check box here
+            if (chkLoadWindowsStartup.Checked != autostartWasThisCopy)
+                CGlobals.SetLoadWindowsStartup(chkLoadWindowsStartup.Checked);
 
             this.Close();
         }
