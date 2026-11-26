@@ -1,0 +1,23 @@
+CDeviceLedStrip.cs
+  s_997c07f5a28628::t_7226685bfcb4dc 271,273
+docs/de/govee.md
+  s_997c07f5a28628::t_d28ef1b92bc0b3 25-27
+docs/en/govee.md
+  s_997c07f5a28628::t_eba3c32143140f 25-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cc78663d0bb7d13d709d00fdd1042cf121676601",
+  "prompts": {},
+  "sessions": {
+    "s_997c07f5a28628": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "acceca07-2c2b-4a31-b332-385685d6f272",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
