@@ -279,6 +279,7 @@ namespace AmbiBack
         PhilipsHueEntertainment = 20,
         WledDdp = 21,
         GoveeLan = 22,
+        OpenRgb = 23,
     }
     public enum ConnectionTypes
     {
@@ -415,6 +416,7 @@ namespace AmbiBack
             "PhilipsHueEntertainment",
             "WledDdp",
             "GoveeLan",
+            "OpenRgb",
         };
         public static string[] DEVICETYPESDISPLAYNAME = new string[]
         {
@@ -441,6 +443,7 @@ namespace AmbiBack
             "Philips Hue Entertainment",
             "WLED / DDP",
             "Govee (LAN)",
+            "OpenRGB",
         };
         public static string[] INSTALLATIONTYPES = new string[]
         {

@@ -60,6 +60,10 @@ namespace AmbiBack.PhilipsHue
                 Test("Govee: LAN commands as JSON", TestGoveeCommands),
                 Test("Govee: scan answer parsing", TestGoveeScan),
                 Test("Govee: device XML round trip", TestGoveeXml),
+                Test("OpenRGB: packet header", TestOpenRgbHeader),
+                Test("OpenRGB: UPDATELEDS layout", TestOpenRgbUpdateLeds),
+                Test("OpenRGB: controller data, protocol 4 and 0", TestOpenRgbControllerData),
+                Test("OpenRGB: device XML round trip", TestOpenRgbXml),
                 Test("mDNS query for _wled._tcp.local", () => Equal("000000000001000000000000" + "055f776c6564" + "045f746370" + "056c6f63616c" + "00" + "000c8001",
                     TlsPrf.ToHex(HueDiscovery.BuildMdnsQuery("_wled")))),
             };
@@ -641,6 +645,100 @@ namespace AmbiBack.PhilipsHue
             Equal(200, copy.FrameDelay);
             Equal((byte)80, copy.ColorBluePercent);
             Equal("H6046", copy.ReceiverInfo);
+        }
+
+        private static void TestOpenRgbHeader()
+        {
+            byte[] p = CDeviceOpenRgb.BuildPacket(3, CDeviceOpenRgb.PacketRequestProtocolVersion, BitConverter.GetBytes(4u));
+            // "ORGB", device 3, id 40, length 4 (little endian), then the version
+            Equal("4f524742" + "03000000" + "28000000" + "04000000" + "04000000", TlsPrf.ToHex(p));
+        }
+
+        private static void TestOpenRgbUpdateLeds()
+        {
+            byte[] colors = { 0x10, 0x20, 0x30, 0x40, 0x50, 0x60 };
+            byte[] p = new byte[16 + 6 + 4 * 3];
+            CDeviceOpenRgb.FillUpdateLeds(p, 1, colors, 2, 3, false);
+            // header: id 1050 = 0x41A, length 18; data size 18, 3 colors, R G B 0 each, third LED dark
+            Equal("4f524742" + "01000000" + "1a040000" + "12000000" + "12000000" + "0300" + "10203000" + "40506000" + "00000000", TlsPrf.ToHex(p));
+            CDeviceOpenRgb.FillUpdateLeds(p, 1, colors, 2, 3, true);
+            Equal("28384800" + "28384800" + "28384800", TlsPrf.ToHex(p).Substring(2 * 22));
+        }
+
+        /// <summary>Controller data as an OpenRGB server writes it (one mode, two zones, one with a segment).</summary>
+        private static byte[] OpenRgbControllerBlob(uint version)
+        {
+            var b = new List<byte>();
+            Action<uint> u32 = v => b.AddRange(BitConverter.GetBytes(v));
+            Action<int> u16 = v => b.AddRange(BitConverter.GetBytes((ushort)v));
+            Action<string> str = s => { byte[] t = System.Text.Encoding.UTF8.GetBytes(s + " "); u16(t.Length); b.AddRange(t); };
+            u32(0);                 // data size, filled below
+            u32(4);                 // type: LED strip
+            str("ARGB Strip");
+            if (version >= 1) str("Acme");
+            str("desc"); str("1.0"); str("SN123"); str("HID: /dev/x");
+            u16(1); u32(0);         // one mode, active 0
+            str("Direct"); u32(0); u32(0x20); u32(0); u32(0);
+            if (version >= 3) { u32(0); u32(100); }
+            u32(0); u32(0); u32(0);
+            if (version >= 3) u32(100);
+            u32(0); u32(1); u16(1); u32(0x00FF0000);
+            u16(2);                 // zones
+            str("Top"); u32(1); u32(0); u32(30); u32(30);
+            u16(8 + 4 * 2); u32(1); u32(2); u32(0); u32(1);     // matrix 1 x 2
+            if (version >= 4) { u16(1); str("Seg"); u32(0); u32(0); u32(10); }
+            str("Side"); u32(1); u32(0); u32(20); u32(20); u16(0);
+            if (version >= 4) u16(0);
+            u16(50);                // LEDs
+            for (int i = 0; i < 50; i++) { str("LED " + i); u32((uint)i); }
+            u16(50);
+            for (int i = 0; i < 50; i++) u32(0);
+            byte[] data = b.ToArray();
+            BitConverter.GetBytes((uint)data.Length).CopyTo(data, 0);
+            return data;
+        }
+
+        private static void TestOpenRgbControllerData()
+        {
+            var info = CDeviceOpenRgb.ParseControllerData(OpenRgbControllerBlob(4), 4);
+            Equal("ARGB Strip", info.Name);
+            Equal("Acme", info.Vendor);
+            Equal("SN123", info.Serial);
+            Equal("HID: /dev/x", info.Location);
+            Equal(CDeviceOpenRgb.DeviceTypeLedStrip, info.Type);
+            Equal(50, info.LedCount);
+            Equal("Top (30), Side (20)", string.Join(", ", info.Zones));
+            var old = CDeviceOpenRgb.ParseControllerData(OpenRgbControllerBlob(0), 0);
+            Equal("", old.Vendor);
+            Equal(50, old.LedCount);
+            var device = CDeviceOpenRgb.FromInfo(info, IPAddress.Loopback);
+            Equal(CDeviceOpenRgb.ModeStrip, device.Mode);
+            Equal("OpenRgb_" + CDeviceOpenRgb.StableId(info), device.GetDeviceID());
+            Equal((byte)16, device.PixelHori);   // 50 LEDs: 16 + 9 per half
+            Equal((byte)9, device.PixelVert);
+        }
+
+        private static void TestOpenRgbXml()
+        {
+            var device = new CDeviceOpenRgb("Mainboard", IPAddress.Parse("192.168.1.5"))
+            {
+                ControllerName = "ASUS Aura", ControllerLocation = "I2C: /dev/i2c-1", ControllerSerial = "", ControllerIndex = 2,
+                Mode = CDeviceOpenRgb.ModeSingleColor, PixelHori = 10, PixelVert = 6, FramesPerSecond = 25, InternalNetworkMAC = "abcdef012345",
+            };
+            device.SetDeviceID();
+            var serializer = new System.Xml.Serialization.XmlSerializer(typeof(CDeviceOpenRgb));
+            var writer = new System.IO.StringWriter();
+            serializer.Serialize(writer, device);
+            var copy = (CDeviceOpenRgb)serializer.Deserialize(new System.IO.StringReader(writer.ToString()));
+            copy.SetDeviceID();
+            Equal(device.GetDeviceID(), copy.GetDeviceID());
+            Equal("ASUS Aura", copy.ControllerName);
+            Equal("I2C: /dev/i2c-1", copy.ControllerLocation);
+            Equal(2, copy.ControllerIndex);
+            Equal(CDeviceOpenRgb.ModeSingleColor, copy.Mode);
+            Equal(CDeviceOpenRgb.SdkPort, copy.Port);
+            Equal((byte)10, copy.PixelHori);
+            Equal((byte)25, copy.FramesPerSecond);
         }
 
         private static void TestWledLayout()

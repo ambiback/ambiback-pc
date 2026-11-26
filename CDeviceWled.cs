@@ -15,7 +15,7 @@ namespace AmbiBack
     /// Layout, colors and smoothing are handled by <see cref="CDeviceLedStrip"/>.
     /// </summary>
     [Serializable]
-    public class CDeviceWled : CDeviceLedStrip
+    public class CDeviceWled : CDeviceLedStripUdp
     {
         public const int DdpPort = 4048;
         public const int DdpHeaderLength = 10;
@@ -47,12 +47,12 @@ namespace AmbiBack
 
         protected override int DefaultPort { get { return DdpPort; } }
 
-        protected override void SendFrame(UdpClient client, byte[] colors, int bytes)
+        protected override void SendFrame(byte[] colors, int bytes)
         {
             sequence = (byte)(sequence % 15 + 1);   // 1..15, 0 means "not used"
             BuildDdpPackets(colors, bytes, sequence, packets);
             foreach (byte[] packet in packets)
-                client.Send(packet, packet.Length);
+                SendDatagram(packet);
         }
 
         #region DDP

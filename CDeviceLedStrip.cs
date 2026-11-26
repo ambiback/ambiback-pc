@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -11,7 +12,8 @@ namespace AmbiBack
     /// Base of the network LED strips whose layout and colors are computed in AmbiBack PC (WLED/DDP,
     /// Govee): the strip runs around the screen like an AmbiBack controller (LEDs per side, start corner and
     /// direction), the device gets the final RGB values. The color sliders and the smoothing (FrameDelay)
-    /// are applied here; the subclass only puts the colors on the wire (<see cref="SendFrame"/>).
+    /// are applied here; the subclass connects (<see cref="Connect"/>) and puts the colors on the wire
+    /// (<see cref="SendFrame"/>). <see cref="CDeviceLedStripUdp"/> is the base for UDP devices.
     /// </summary>
     [Serializable]
     public abstract class CDeviceLedStrip : CDevice, ILedStripLayout
@@ -21,7 +23,7 @@ namespace AmbiBack
         public const int MaxPixelVert = 60;
 
         protected bool bInitDone = false;
-        private UdpClient udp;
+        private bool connected;
         private IPAddress connectedAddress;
         private bool streaming;
         private byte[] rgb;
@@ -40,6 +42,11 @@ namespace AmbiBack
 
         /// <summary>LEDs of the layout: both sides plus top and bottom.</summary>
         public int PixelTotal { get { return 2 * (Math.Max(1, (int)PixelHori) + Math.Max(1, (int)PixelVert)); } }
+
+        /// <summary>Index into <see cref="ModeTextKeys"/> for devices with modes; stored by the subclass.</summary>
+        public byte Mode { get; set; } = 0;
+        /// <summary>Localization keys of the modes shown on the Device tab; null when the device has none.</summary>
+        public virtual string[] ModeTextKeys { get { return null; } }
         #endregion
 
         protected CDeviceLedStrip()
@@ -217,13 +224,17 @@ namespace AmbiBack
         }
         #endregion
 
-        #region Sending, implemented by the subclass
+        #region Connection and sending, implemented by the subclass
+        /// <summary>Opens the connection to the device; throws SocketException or IOException on failure.</summary>
+        protected abstract void Connect(IPAddress ip);
+        /// <summary>Closes the connection; must not throw.</summary>
+        protected abstract void Disconnect();
         /// <summary>Sends one frame: <paramref name="bytes"/> RGB bytes, sliders and smoothing applied.</summary>
-        protected abstract void SendFrame(UdpClient client, byte[] colors, int bytes);
-        /// <summary>Before the first frame, and again after a pause (monitor off, new address).</summary>
-        protected virtual void OnStreamStart(UdpClient client) { }
+        protected abstract void SendFrame(byte[] colors, int bytes);
+        /// <summary>Before the first frame, and again after a pause (monitor off or stopped, new address).</summary>
+        protected virtual void OnStreamStart() { }
         /// <summary>After the last frame: stop, monitor off, new address.</summary>
-        protected virtual void OnStreamStop(UdpClient client) { }
+        protected virtual void OnStreamStop() { }
         #endregion
 
         #region Threading
@@ -253,13 +264,12 @@ namespace AmbiBack
 
                             this.CalcColorsFromFrame(this.brPixels.Length, this.brPixels, this.UpdateScanAreas);
                             int bytes = BuildColors();
-                            UdpClient client = EnsureClient();
-                            if (client == null)
+                            if (!EnsureConnected())
                             {
                                 Thread.Sleep(500);
                                 continue;
                             }
-                            SendFrame(client, rgb, bytes);
+                            SendFrame(rgb, bytes);
 
                             int iFramesPerSec = pacer.FrameDone(this.FramesPerSecond);
                             if (iFramesPerSec >= 0)
@@ -274,10 +284,10 @@ namespace AmbiBack
                         while (bSleepThread && !bAbortThread)
                             Thread.Sleep(10);
                     }
-                    catch (SocketException ex)
+                    catch (Exception ex) when (ex is SocketException || ex is IOException)
                     {
-                        // Address not reachable (e.g. no route): close and retry
-                        DoDebugOutput(name + "|Send: " + ex.SocketErrorCode);
+                        // Device not reachable or connection lost: close and retry
+                        DoDebugOutput(name + "|Connection: " + ex.Message);
                         CloseClient();
                         Thread.Sleep(1000);
                     }
@@ -322,30 +332,30 @@ namespace AmbiBack
             }
         }
 
-        /// <summary>The UDP client for the current address, null while the address is unknown.</summary>
-        private UdpClient EnsureClient()
+        /// <summary>Connects to the current address and starts the stream; false while the address is unknown.</summary>
+        private bool EnsureConnected()
         {
             IPAddress ip = this.GetIPAddress();
             if (ip == null)
-                return null;
+                return false;
             // The address can change while streaming (DHCP, found again by discovery)
-            if (udp != null && !ip.Equals(connectedAddress))
+            if (connected && !ip.Equals(connectedAddress))
             {
                 StopStream();
                 CloseClient();
             }
-            if (udp == null)
+            if (!connected)
             {
-                udp = new UdpClient(ip.AddressFamily);
-                udp.Connect(new IPEndPoint(ip, this.Port));
+                Connect(ip);
+                connected = true;
                 connectedAddress = ip;
             }
             if (!streaming)
             {
-                OnStreamStart(udp);
+                OnStreamStart();
                 streaming = true;
             }
-            return udp;
+            return true;
         }
 
         private void StopStream()
@@ -355,10 +365,10 @@ namespace AmbiBack
             streaming = false;
             try
             {
-                if (udp != null)
-                    OnStreamStop(udp);
+                if (connected)
+                    OnStreamStop();
             }
-            catch (Exception ex) when (ex is SocketException || ex is ObjectDisposedException)
+            catch (Exception ex) when (ex is SocketException || ex is IOException || ex is ObjectDisposedException)
             {
                 DoDebugOutput(this.GetType().Name + "|StopStream: " + ex.Message);
             }
@@ -368,13 +378,13 @@ namespace AmbiBack
         {
             try
             {
-                udp?.Close();
+                Disconnect();
             }
             catch (Exception ex)
             {
                 CGlobals.DebugOutput(ex);
             }
-            udp = null;
+            connected = false;
             streaming = false;
         }
 
@@ -460,6 +470,21 @@ namespace AmbiBack
         #endregion
 
         #region Layout and test helpers
+        /// <summary>Mean of the colors as 0xRRGGBB.</summary>
+        public static int AverageColor(byte[] colors, int count)
+        {
+            if (count <= 0)
+                return 0;
+            long r = 0, g = 0, b = 0;
+            for (int i = 0; i < count; i++)
+            {
+                r += colors[i * 3];
+                g += colors[i * 3 + 1];
+                b += colors[i * 3 + 2];
+            }
+            return (int)((r + count / 2) / count) << 16 | (int)((g + count / 2) / count) << 8 | (int)((b + count / 2) / count);
+        }
+
         /// <summary>
         /// Splits a strip of the given length around a 16:9 screen (top/bottom : sides = 16 : 9), within the
         /// choices of the monitor preview (<see cref="MaxPixelHori"/>, <see cref="MaxPixelVert"/>).

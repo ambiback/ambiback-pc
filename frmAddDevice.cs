@@ -82,6 +82,31 @@ namespace AmbiBack
                 }
             }
 
+            // OpenRGB: chosen as type, or an SDK server answering when the type is detected automatically;
+            // every controller of the server is added
+            if (newDevice == null && (iDeviceID == (int)DeviceType.OpenRgb || chkAutoDiscover.Checked))
+            {
+                IPAddress openRgbAddress = ResolveAddress(string.IsNullOrWhiteSpace(txtDevice.Text) ? "127.0.0.1" : txtDevice.Text);
+                List<CDeviceOpenRgb.ControllerInfo> controllers = openRgbAddress != null
+                    ? CDeviceOpenRgb.QueryControllers(openRgbAddress) : new List<CDeviceOpenRgb.ControllerInfo>();
+                if (controllers.Count == 0 && iDeviceID == (int)DeviceType.OpenRgb)
+                {
+                    this.Cursor = Cursors.Default;
+                    this.Enabled = true;
+                    MessageBox.Show(this, L.F("add_err_openrgb", txtDevice.Text), L.T("add_err_openrgb_title"),
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                for (int i = 1; i < controllers.Count; i++)
+                {
+                    CDevice extra = CGlobals.mainConfig.Devices.Add(CDeviceOpenRgb.FromInfo(controllers[i], openRgbAddress));
+                    if (extra != null)
+                        m_ParentForm.DiscoveredDevice(sender, e, extra);
+                }
+                if (controllers.Count > 0)
+                    newDevice = CDeviceOpenRgb.FromInfo(controllers[0], openRgbAddress);
+            }
+
             if (newDevice == null && iDeviceID == (int)DeviceType.AmbiBackController) {
                 // Try to resolv and PING the entry first before adding it
                 try
@@ -231,6 +256,9 @@ namespace AmbiBack
             arDevices.Add(new ListBoxDevice(CGlobals.DEVICETYPESDISPLAYNAME[(int)DeviceType.GoveeLan],
                                             CGlobals.DEVICETYPES[(int)DeviceType.GoveeLan],
                                             (int)DeviceType.GoveeLan));
+            arDevices.Add(new ListBoxDevice(CGlobals.DEVICETYPESDISPLAYNAME[(int)DeviceType.OpenRgb],
+                                            CGlobals.DEVICETYPES[(int)DeviceType.OpenRgb],
+                                            (int)DeviceType.OpenRgb));
 
             cbDeviceType.DataSource = arDevices;
             cbDeviceType.DisplayMember = "LongName";
