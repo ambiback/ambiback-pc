@@ -2,6 +2,8 @@
 
 **English** · [Deutsch](../de/lifx.md) · [User guide](../user-guide.md)
 
+> **Testers wanted:** LIFX support was built from the LAN protocol documentation and tested against simulated lights, not yet with real ones. Please [report how it works with your bulbs and strips](network-lights.md#report-a-test). Step by step for all network lights: [Network lights step by step](network-lights.md).
+
 AmbiBack PC drives LIFX lights directly on your network through the **LIFX LAN protocol**, without the LIFX cloud and without an account: bulbs, downlights, light strips (LIFX Z, Lightstrip), Beam and Neon.
 
 ## Add LIFX lights

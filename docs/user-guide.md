@@ -15,6 +15,7 @@ AmbiBack PC captures what your monitors show and sends the colors in real time t
 
 - [AmbiBack devices](en/ambiback-devices.md) – put a controller on Wi-Fi, find or add it, set up the LED layout
 - [Philips Hue](en/philips-hue.md) – connect the bridge, choose lights, entertainment areas
+- [Network lights step by step](en/network-lights.md) – tutorial for WLED, Govee, OpenRGB, Nanoleaf and LIFX, and **how to report a test** (testers wanted)
 - [WLED and DDP](en/wled.md) – find or add a WLED strip, LED layout, settings
 - [Govee](en/govee.md) – LAN Control, find or add a Govee light, segments or single color
 - [OpenRGB](en/openrgb.md) – SDK server, PC parts and peripherals, strip or one color

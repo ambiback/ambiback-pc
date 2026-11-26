@@ -20,6 +20,7 @@ Mach den Teil, der zu deinen Lichtquellen passt:
 
 - **AmbiBack-Controller (LED-Streifen):** Er erscheint nach der Suche in der Geräteliste (grüner Punkt = online). Wenn nicht, klicke auf **Hinzufügen** und gib seine IP-Adresse ein. Ein neuer Controller ohne WLAN: per USB anschließen und **Mit WLAN verbinden…** verwenden. Details: [AmbiBack-Geräte](ambiback-devices.md).
 - **Philips Hue:** Klicke auf **Hue Bridge**, drücke den Link-Knopf an der Bridge, klicke innerhalb von 30 Sekunden auf **Verbinden**, hake dann unter **Lampen auswählen** deine Lampen und ihre Plätze an und klicke auf **Übernehmen**. Details: [Philips Hue](philips-hue.md).
+- **WLED, Govee, OpenRGB, Nanoleaf oder LIFX:** Leuchte vorbereiten (z. B. LAN-Steuerung bei Govee, SDK-Server bei OpenRGB), dann wird sie von selbst gefunden oder mit **Hinzufügen** hinzugefügt; ein Nanoleaf wird mit seinem Ein-/Aus-Knopf gekoppelt. Details: [Netzwerk-Leuchten Schritt für Schritt](network-lights.md).
 
 ## 4. Lichtquellen und Monitor verbinden
 

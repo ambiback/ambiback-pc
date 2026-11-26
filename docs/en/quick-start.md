@@ -20,6 +20,7 @@ Do the part that fits your lights:
 
 - **AmbiBack controller (LED strip):** it appears in the device list after the search (green dot = online). If not, click **Add** and enter its IP address. A new controller without Wi-Fi: connect it over USB and use **Connect to Wi-Fi…**. Details: [AmbiBack devices](ambiback-devices.md).
 - **Philips Hue:** click **Hue Bridge**, press the link button on the bridge, click **Connect** within 30 seconds, then tick your lights and their places in **Choose Lights** and click **Apply**. Details: [Philips Hue](philips-hue.md).
+- **WLED, Govee, OpenRGB, Nanoleaf or LIFX:** prepare the light (e.g. LAN Control for Govee, the SDK server for OpenRGB), then it is found on its own or added with **Add**; a Nanoleaf is paired with its power button. Details: [Network lights step by step](network-lights.md).
 
 ## 4. Link lights and monitor
 

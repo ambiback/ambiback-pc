@@ -2,6 +2,8 @@
 
 [English](../en/openrgb.md) · **Deutsch** · [Benutzerhandbuch](../benutzerhandbuch.md)
 
+> **Tester gesucht:** Die OpenRGB-Unterstützung ist nach der offiziellen SDK-Dokumentation entstanden und gegen einen nachgebauten SDK-Server getestet, noch nicht mit echter Hardware. Wenn du OpenRGB nutzt, [melde bitte, wie es mit deinen Geräten klappt](network-lights.md#test-melden). Schritt für Schritt für alle Netzwerk-Leuchten: [Netzwerk-Leuchten Schritt für Schritt](network-lights.md).
+
 [OpenRGB](https://openrgb.org/) steuert die RGB-Beleuchtung vieler PC-Teile und Peripheriegeräte aus einem Programm: Mainboards und ihre ARGB-Anschlüsse, Arbeitsspeicher, Grafikkarten, Lüfter und Kühler, LED-Streifen, Tastaturen, Mäuse und mehr. AmbiBack PC spricht über den **SDK-Server** mit OpenRGB und kann jedes Gerät ansteuern, das OpenRGB kennt.
 
 ## Vorher: SDK-Server starten

@@ -2,6 +2,8 @@
 
 [English](../en/govee.md) · **Deutsch** · [Benutzerhandbuch](../benutzerhandbuch.md)
 
+> **Tests:** Die Govee-Unterstützung ist nach der veröffentlichten LAN-API entstanden und gegen eine nachgebaute Leuchte getestet; der Entwickler testet sie eventuell bald mit eigenen Geräten. Der Modus *Segmente* nutzt ein nicht dokumentiertes Protokoll. Wenn du eine Govee-Leuchte hast, [melde bitte, welches Modell in welchem Modus klappt](network-lights.md#test-melden). Schritt für Schritt für alle Netzwerk-Leuchten: [Netzwerk-Leuchten Schritt für Schritt](network-lights.md).
+
 AmbiBack PC kann Govee-WLAN-Leuchten (LED-Streifen, Lichtleisten, TV-Hintergrundbeleuchtungen, Stehlampen) über die **Govee-LAN-API** ansteuern: direkt im Netzwerk, ohne Govee-Cloud und ohne Konto.
 
 ## Vorher: LAN-Steuerung einschalten

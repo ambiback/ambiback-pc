@@ -2,6 +2,8 @@
 
 [English](../en/wled.md) · **Deutsch** · [Benutzerhandbuch](../benutzerhandbuch.md)
 
+> **Tests:** WLED wird mit den eigenen Geräten des Entwicklers getestet. Andere DDP-Empfänger (ESPHome, Hyperion, ESPixelStick …) nicht: Wenn du einen nutzt, [melde bitte, wie es klappt](network-lights.md#test-melden). Schritt für Schritt für alle Netzwerk-Leuchten: [Netzwerk-Leuchten Schritt für Schritt](network-lights.md).
+
 AmbiBack PC kann einen LED-Streifen mit [WLED](https://kno.wled.ge/)-Firmware ansteuern und auch jeden anderen Empfänger des **DDP**-Protokolls (Distributed Display Protocol, UDP-Port 4048), zum Beispiel ESPHome, Hyperion oder ESPixelStick. WLED läuft auf günstigen ESP8266/ESP32-Boards, und viele Streifen für Smart-Home-Apps lassen sich damit neu bespielen.
 
 AmbiBack PC berechnet die Farbe jeder LED selbst und sendet die fertigen Werte. Anordnung, Farbregler und Glättung stellst du in AmbiBack PC ein, nicht in WLED.

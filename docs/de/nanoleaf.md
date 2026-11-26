@@ -2,6 +2,8 @@
 
 [English](../en/nanoleaf.md) · **Deutsch** · [Benutzerhandbuch](../benutzerhandbuch.md)
 
+> **Tester gesucht:** Die Nanoleaf-Unterstützung ist nach der Open-API-Dokumentation entstanden und gegen ein nachgebautes Gerät getestet, noch nicht mit echten Panels. Am spannendsten: Zeigen die Panels das Bild an den richtigen Stellen, auch bei gedrehter Anordnung? [Melde bitte, wie es klappt](network-lights.md#test-melden). Schritt für Schritt für alle Netzwerk-Leuchten: [Netzwerk-Leuchten Schritt für Schritt](network-lights.md).
+
 AmbiBack PC steuert Nanoleaf-Panels (Light Panels, Canvas, Shapes, Elements, Lines) direkt im Netzwerk über die **Nanoleaf Open API**, ohne Nanoleaf-App und Cloud. Jedes Panel bekommt die Farbe des Bildbereichs an seiner Stelle in deiner Anordnung.
 
 ## Nanoleaf koppeln
