@@ -627,8 +627,8 @@ namespace AmbiBack
 
                         // Start Device Handling Thread!
                         myDevice.StartThread();
-                    } else if (myDevice is CDeviceHueEntertainment || myDevice is CDeviceWled) {
-                        // Entertainment streaming (DTLS), DDP streaming
+                    } else if (myDevice is CDeviceHueEntertainment || myDevice is CDeviceLedStrip) {
+                        // Entertainment streaming (DTLS), WLED/DDP and Govee streaming
                         myDevice.StartThread();
                     }
                 }

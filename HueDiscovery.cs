@@ -134,7 +134,7 @@ namespace AmbiBack.PhilipsHue
             return found;
         }
 
-        private static IEnumerable<IPAddress> LocalIPv4Addresses()
+        internal static IEnumerable<IPAddress> LocalIPv4Addresses()
         {
             foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces())
             {

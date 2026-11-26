@@ -102,6 +102,12 @@ namespace AmbiBack
                         StringReader stringIn = new StringReader(myNode.InnerText);
                         newDevice = (CDevice)xmlIn.Deserialize(stringIn);
                     }
+                    else if (myNode.Name == "AmbiBack.CDeviceGovee")
+                    {
+                        XmlSerializer xmlIn = new System.Xml.Serialization.XmlSerializer(typeof(CDeviceGovee));
+                        StringReader stringIn = new StringReader(myNode.InnerText);
+                        newDevice = (CDevice)xmlIn.Deserialize(stringIn);
+                    }
                     else
                     {
                         throw (new Exception("ERROR_INITLIST_UNKNOWN_TYPE"));

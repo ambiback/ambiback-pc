@@ -241,6 +241,27 @@ namespace AmbiBack
             }
         }
 
+        /// <summary>
+        /// Adds the Govee devices with LAN Control that answer the scan, or refreshes the address of known
+        /// ones (their layout, mode and sliders are kept).
+        /// </summary>
+        public void EnumGoveeDevices()
+        {
+            try
+            {
+                foreach (CDeviceGovee.GoveeInfo info in CDeviceGovee.Discover())
+                {
+                    CDevice device = CGlobals.mainConfig.Devices.Add(CDeviceGovee.FromInfo(info));
+                    device.SetIsOnline(true);
+                    HandleDiscoveredDevice(device);
+                }
+            }
+            catch (Exception ex)
+            {
+                CGlobals.DebugOutput(ex);
+            }
+        }
+
         public void HandleDiscoveredDevice(CDevice newDevice)
         {
             if (this.DiscoveredDevice != null)
@@ -409,8 +430,9 @@ namespace AmbiBack
             // Enum Hue Lights FIRST!
             this.EnumHueDevices();
 
-            // WLED via mDNS in the background (the query waits about 2 s for answers)
+            // WLED via mDNS and Govee via its LAN scan in the background (each waits about 2 s for answers)
             System.Threading.Tasks.Task.Run(() => this.EnumWledDevices());
+            System.Threading.Tasks.Task.Run(() => this.EnumGoveeDevices());
 
             // UDP Helper Client
             UdpClient client = new UdpClientBroadcast();

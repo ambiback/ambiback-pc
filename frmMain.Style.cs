@@ -223,6 +223,7 @@ namespace AmbiBack
             for (int i = 0; i < cbConnectionType.Items.Count && i < CGlobals.CONNECTIONTYPES.Length; i++)
                 cbConnectionType.Items[i] = CGlobals.CONNECTIONTYPES[i];
             cbConnectionType.SelectedValueChanged += cbConnectionType_SelectedValueChanged;
+            ApplyGoveeModeTexts();
 
             showToolStripMenuItem.Text = L.T("tray_show");
             exitFromTaskIcon.Text = L.T("tray_exit");

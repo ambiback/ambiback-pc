@@ -61,6 +61,27 @@ namespace AmbiBack
                 }
             }
 
+            // Govee: chosen as type, or answering the LAN scan when the type is detected automatically
+            if (newDevice == null && (iDeviceID == (int)DeviceType.GoveeLan || chkAutoDiscover.Checked))
+            {
+                IPAddress goveeAddress = ResolveAddress(txtDevice.Text);
+                CDeviceGovee.GoveeInfo info = goveeAddress != null ? CDeviceGovee.QueryInfo(goveeAddress) : null;
+                if (info != null)
+                    newDevice = CDeviceGovee.FromInfo(info);
+                else if (iDeviceID == (int)DeviceType.GoveeLan)
+                {
+                    this.Cursor = Cursors.Default;
+                    this.Enabled = true;
+                    if (goveeAddress == null)
+                        MessageBox.Show(this, L.F("add_err_resolve", txtDevice.Text), L.T("add_err_resolve_title"),
+                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    else
+                        MessageBox.Show(this, L.F("add_err_govee", txtDevice.Text), L.T("add_err_govee_title"),
+                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+
             if (newDevice == null && iDeviceID == (int)DeviceType.AmbiBackController) {
                 // Try to resolv and PING the entry first before adding it
                 try
@@ -207,6 +228,9 @@ namespace AmbiBack
             arDevices.Add(new ListBoxDevice(CGlobals.DEVICETYPESDISPLAYNAME[(int)DeviceType.WledDdp],
                                             CGlobals.DEVICETYPES[(int)DeviceType.WledDdp],
                                             (int)DeviceType.WledDdp));
+            arDevices.Add(new ListBoxDevice(CGlobals.DEVICETYPESDISPLAYNAME[(int)DeviceType.GoveeLan],
+                                            CGlobals.DEVICETYPES[(int)DeviceType.GoveeLan],
+                                            (int)DeviceType.GoveeLan));
 
             cbDeviceType.DataSource = arDevices;
             cbDeviceType.DisplayMember = "LongName";

@@ -278,6 +278,7 @@ namespace AmbiBack
         AmbiBack_Led_M5A1_Controller = 19,
         PhilipsHueEntertainment = 20,
         WledDdp = 21,
+        GoveeLan = 22,
     }
     public enum ConnectionTypes
     {
@@ -413,6 +414,7 @@ namespace AmbiBack
             "AmbiBack_Led_M5A1_Controller",
             "PhilipsHueEntertainment",
             "WledDdp",
+            "GoveeLan",
         };
         public static string[] DEVICETYPESDISPLAYNAME = new string[]
         {
@@ -438,6 +440,7 @@ namespace AmbiBack
             "AmbiBack PC M5 LED REV1",
             "Philips Hue Entertainment",
             "WLED / DDP",
+            "Govee (LAN)",
         };
         public static string[] INSTALLATIONTYPES = new string[]
         {
