@@ -262,6 +262,27 @@ namespace AmbiBack
             }
         }
 
+        /// <summary>
+        /// Adds the controllers of an OpenRGB SDK server on this PC, or refreshes known ones (their layout,
+        /// mode and sliders are kept). Controllers of a server on another PC are added with Add.
+        /// </summary>
+        public void EnumOpenRgbDevices()
+        {
+            try
+            {
+                foreach (CDeviceOpenRgb.ControllerInfo info in CDeviceOpenRgb.QueryControllers(IPAddress.Loopback))
+                {
+                    CDevice device = CGlobals.mainConfig.Devices.Add(CDeviceOpenRgb.FromInfo(info, IPAddress.Loopback));
+                    device.SetIsOnline(true);
+                    HandleDiscoveredDevice(device);
+                }
+            }
+            catch (Exception ex)
+            {
+                CGlobals.DebugOutput(ex);
+            }
+        }
+
         public void HandleDiscoveredDevice(CDevice newDevice)
         {
             if (this.DiscoveredDevice != null)
@@ -433,6 +454,8 @@ namespace AmbiBack
             // WLED via mDNS and Govee via its LAN scan in the background (each waits about 2 s for answers)
             System.Threading.Tasks.Task.Run(() => this.EnumWledDevices());
             System.Threading.Tasks.Task.Run(() => this.EnumGoveeDevices());
+            // OpenRGB SDK server on this PC (refused at once when OpenRGB is not running)
+            System.Threading.Tasks.Task.Run(() => this.EnumOpenRgbDevices());
 
             // UDP Helper Client
             UdpClient client = new UdpClientBroadcast();

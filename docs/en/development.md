@@ -37,6 +37,7 @@ The setup installs for the current user without administrator rights (`%LOCALAPP
 - `AmbiBack.exe --hue-discover` finds Hue bridges on the network.
 - `AmbiBack.exe --wled-test host [seconds]` streams a moving test picture over DDP to a WLED or other DDP receiver. The self test also covers the DDP packet format and the WLED device.
 - `AmbiBack.exe --govee-test host [seconds] [single]` streams a moving test picture over the Govee LAN API (segments, or one color with `single`). The self test also covers the razer and LAN command formats and the Govee device.
+- `AmbiBack.exe --openrgb-test host [controller] [seconds] [single]` lists the controllers of an OpenRGB SDK server and streams a moving test picture to one of them. The self test also covers the SDK packet header, UPDATELEDS and the controller data of protocol 0 and 4.
 
 ## Continuous integration
 

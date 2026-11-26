@@ -21,7 +21,7 @@ namespace AmbiBack
     ///   with LAN Control, but is meant for occasional changes, so it is sent at most 10 times per second.
     /// </summary>
     [Serializable]
-    public class CDeviceGovee : CDeviceLedStrip
+    public class CDeviceGovee : CDeviceLedStripUdp
     {
         public const int ScanPort = 4001;
         public const int ResponsePort = 4002;
@@ -44,9 +44,6 @@ namespace AmbiBack
         /// <summary>Mode the stream was started with; the mode can be changed while streaming.</summary>
         private byte activeMode;
 
-        /// <summary><see cref="ModeSegments"/> or <see cref="ModeSingleColor"/>.</summary>
-        public byte Mode { get; set; } = ModeSegments;
-
         public CDeviceGovee()
         {
             this.SetDeviceType(DeviceType.GoveeLan);
@@ -63,6 +60,8 @@ namespace AmbiBack
         }
 
         protected override int DefaultPort { get { return ControlPort; } }
+        /// <summary><see cref="ModeSegments"/> or <see cref="ModeSingleColor"/>.</summary>
+        public override string[] ModeTextKeys { get { return new[] { "govee_mode_segments", "govee_mode_single" }; } }
         protected override byte DefaultFramesPerSecond { get { return 30; } }
         // 16 segments around the screen; set it to the segments of the device
         protected override byte DefaultPixelHori { get { return 5; } }
@@ -81,55 +80,55 @@ namespace AmbiBack
         }
 
         #region Sending
-        protected override void OnStreamStart(UdpClient client)
+        protected override void OnStreamStart()
         {
-            Send(client, TurnCommand(true));
-            StartMode(client, this.Mode);
+            Send(TurnCommand(true));
+            StartMode(this.Mode);
         }
 
-        protected override void OnStreamStop(UdpClient client)
+        protected override void OnStreamStop()
         {
             // Back to the scene or color set in the Govee app; single color keeps the last color
             if (activeMode == ModeSegments)
-                Send(client, RazerCommand(RazerEnablePacket(false)));
+                Send(RazerCommand(RazerEnablePacket(false)));
         }
 
-        private void StartMode(UdpClient client, byte mode)
+        private void StartMode(byte mode)
         {
             activeMode = mode;
             if (mode == ModeSegments)
             {
-                Send(client, RazerCommand(RazerEnablePacket(true)));
+                Send(RazerCommand(RazerEnablePacket(true)));
                 sinceEnable.Restart();
             }
             lastColor = -1;
             sinceColor.Reset();
         }
 
-        protected override void SendFrame(UdpClient client, byte[] colors, int bytes)
+        protected override void SendFrame(byte[] colors, int bytes)
         {
             byte mode = this.Mode;
             if (mode != activeMode)
             {
                 // Changed in the settings while streaming
                 if (activeMode == ModeSegments)
-                    Send(client, RazerCommand(RazerEnablePacket(false)));
-                StartMode(client, mode);
+                    Send(RazerCommand(RazerEnablePacket(false)));
+                StartMode(mode);
             }
             if (mode == ModeSingleColor)
             {
-                SendSingleColor(client, colors, bytes);
+                SendSingleColor(colors, bytes);
                 return;
             }
             if (sinceEnable.ElapsedMilliseconds >= RazerEnableIntervalMs)
             {
-                Send(client, RazerCommand(RazerEnablePacket(true)));
+                Send(RazerCommand(RazerEnablePacket(true)));
                 sinceEnable.Restart();
             }
-            Send(client, RazerCommand(RazerColorPacket(colors, bytes / 3)));
+            Send(RazerCommand(RazerColorPacket(colors, bytes / 3)));
         }
 
-        private void SendSingleColor(UdpClient client, byte[] colors, int bytes)
+        private void SendSingleColor(byte[] colors, int bytes)
         {
             int color = AverageColor(colors, bytes / 3);
             bool due = !sinceColor.IsRunning
@@ -137,15 +136,14 @@ namespace AmbiBack
                 || sinceColor.ElapsedMilliseconds >= SingleColorRefreshMs;
             if (!due)
                 return;
-            Send(client, ColorCommand((byte)(color >> 16), (byte)(color >> 8), (byte)color));
+            Send(ColorCommand((byte)(color >> 16), (byte)(color >> 8), (byte)color));
             lastColor = color;
             sinceColor.Restart();
         }
 
-        private static void Send(UdpClient client, string json)
+        private void Send(string json)
         {
-            byte[] data = Encoding.UTF8.GetBytes(json);
-            client.Send(data, data.Length);
+            SendDatagram(Encoding.UTF8.GetBytes(json));
         }
         #endregion
 
@@ -211,20 +209,6 @@ namespace AmbiBack
 
         public const string ScanCommand = "{\"msg\":{\"cmd\":\"scan\",\"data\":{\"account_topic\":\"reserve\"}}}";
 
-        /// <summary>Mean of the colors as 0xRRGGBB.</summary>
-        public static int AverageColor(byte[] colors, int count)
-        {
-            if (count <= 0)
-                return 0;
-            long r = 0, g = 0, b = 0;
-            for (int i = 0; i < count; i++)
-            {
-                r += colors[i * 3];
-                g += colors[i * 3 + 1];
-                b += colors[i * 3 + 2];
-            }
-            return (int)((r + count / 2) / count) << 16 | (int)((g + count / 2) / count) << 8 | (int)((b + count / 2) / count);
-        }
         #endregion
 
         #region Discovery

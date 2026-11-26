@@ -569,66 +569,79 @@ namespace AmbiBack
             UpdateDeviceSummary();
 
         }
-        #region Govee mode row
-        /// <summary>Mode of a Govee light (segments or single color), shown in place of the connection type.</summary>
-        private ComboBox cbGoveeMode;
+        #region Device mode row
+        /// <summary>
+        /// Mode of a strip device that has modes (Govee: segments or single color; OpenRGB: strip or one
+        /// color), shown on the Device tab in place of the connection type.
+        /// </summary>
+        private ComboBox cbStripMode;
+        private string[] stripModeKeys;
 
-        private void InitGoveeModeRow()
+        private void InitModeRow()
         {
-            cbGoveeMode = new ComboBox
+            cbStripMode = new ComboBox
             {
-                Name = "cbGoveeMode",
+                Name = "cbStripMode",
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Visible = false,
                 TabIndex = cbConnectionType.TabIndex,
             };
-            cbGoveeMode.Items.Add(L.T("govee_mode_segments"));
-            cbGoveeMode.Items.Add(L.T("govee_mode_single"));
-            cbGoveeMode.SelectedIndexChanged += cbGoveeMode_SelectedIndexChanged;
-            tabAdvanced.Controls.Add(cbGoveeMode);
+            cbStripMode.SelectedIndexChanged += cbStripMode_SelectedIndexChanged;
+            tabAdvanced.Controls.Add(cbStripMode);
         }
 
-        private void ShowGoveeModeRow(CDeviceGovee govee)
+        private void ShowModeRow(CDeviceLedStrip strip)
         {
-            if (cbGoveeMode == null)
+            if (cbStripMode == null)
                 return;
-            bool show = govee != null;
+            string[] keys = strip?.ModeTextKeys;
+            bool show = keys != null && keys.Length > 0;
+            cbStripMode.SelectedIndexChanged -= cbStripMode_SelectedIndexChanged;
             if (show)
             {
-                cbGoveeMode.Bounds = cbConnectionType.Bounds;
-                cbGoveeMode.Anchor = cbConnectionType.Anchor;
-                cbGoveeMode.Font = cbConnectionType.Font;
-                cbGoveeMode.FlatStyle = cbConnectionType.FlatStyle;
-                cbGoveeMode.BackColor = cbConnectionType.BackColor;
-                cbGoveeMode.ForeColor = cbConnectionType.ForeColor;
-                cbGoveeMode.SelectedIndexChanged -= cbGoveeMode_SelectedIndexChanged;
-                cbGoveeMode.SelectedIndex = Math.Min((int)govee.Mode, cbGoveeMode.Items.Count - 1);
-                cbGoveeMode.SelectedIndexChanged += cbGoveeMode_SelectedIndexChanged;
+                cbStripMode.Bounds = cbConnectionType.Bounds;
+                cbStripMode.Anchor = cbConnectionType.Anchor;
+                cbStripMode.Font = cbConnectionType.Font;
+                cbStripMode.FlatStyle = cbConnectionType.FlatStyle;
+                cbStripMode.BackColor = cbConnectionType.BackColor;
+                cbStripMode.ForeColor = cbConnectionType.ForeColor;
+                stripModeKeys = keys;
+                FillModeItems();
+                cbStripMode.SelectedIndex = Math.Min((int)strip.Mode, cbStripMode.Items.Count - 1);
             }
-            cbGoveeMode.Visible = show;
+            cbStripMode.SelectedIndexChanged += cbStripMode_SelectedIndexChanged;
+            cbStripMode.Visible = show;
             cbConnectionType.Visible = !show;
-            lblConnectionType.Text = L.T(show ? "lbl_govee_mode" : "lbl_conntype");
+            lblConnectionType.Text = L.T(show ? "lbl_mode" : "lbl_conntype");
+        }
+
+        private void FillModeItems()
+        {
+            cbStripMode.Items.Clear();
+            foreach (string key in stripModeKeys)
+                cbStripMode.Items.Add(L.T(key));
         }
 
         /// <summary>Texts of the mode row after a language change.</summary>
-        private void ApplyGoveeModeTexts()
+        private void ApplyModeTexts()
         {
-            if (cbGoveeMode == null)
+            if (cbStripMode == null || stripModeKeys == null)
                 return;
-            cbGoveeMode.SelectedIndexChanged -= cbGoveeMode_SelectedIndexChanged;
-            cbGoveeMode.Items[0] = L.T("govee_mode_segments");
-            cbGoveeMode.Items[1] = L.T("govee_mode_single");
-            cbGoveeMode.SelectedIndexChanged += cbGoveeMode_SelectedIndexChanged;
-            if (cbGoveeMode.Visible)
-                lblConnectionType.Text = L.T("lbl_govee_mode");
+            cbStripMode.SelectedIndexChanged -= cbStripMode_SelectedIndexChanged;
+            int selected = cbStripMode.SelectedIndex;
+            FillModeItems();
+            cbStripMode.SelectedIndex = Math.Min(selected, cbStripMode.Items.Count - 1);
+            cbStripMode.SelectedIndexChanged += cbStripMode_SelectedIndexChanged;
+            if (cbStripMode.Visible)
+                lblConnectionType.Text = L.T("lbl_mode");
         }
 
-        private void cbGoveeMode_SelectedIndexChanged(object sender, EventArgs e)
+        private void cbStripMode_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (currentSelectedDevice is CDeviceGovee govee && cbGoveeMode.SelectedIndex >= 0)
-                govee.Mode = (byte)cbGoveeMode.SelectedIndex;
-            if (cbGoveeMode.SelectedItem != null)
-                TTHelper.SetToolTip(cbGoveeMode, cbGoveeMode.SelectedItem.ToString());
+            if (currentSelectedDevice is CDeviceLedStrip strip && cbStripMode.SelectedIndex >= 0)
+                strip.Mode = (byte)cbStripMode.SelectedIndex;
+            if (cbStripMode.SelectedItem != null)
+                TTHelper.SetToolTip(cbStripMode, cbStripMode.SelectedItem.ToString());
         }
         #endregion
 
@@ -643,7 +656,7 @@ namespace AmbiBack
             cbConnectionType.Items.Add(CGlobals.CONNECTIONTYPES[(byte)ConnectionTypes.TCP]);
             cbConnectionType.Items.Add(CGlobals.CONNECTIONTYPES[(byte)ConnectionTypes.UDP]);
             cbConnectionType.Items.Add(CGlobals.CONNECTIONTYPES[(byte)ConnectionTypes.USB]);
-            InitGoveeModeRow();
+            InitModeRow();
 
             // Preinit Devices List
             foreach (CDevice myDevice in CGlobals.mainConfig.Devices.GetDeviceList())
@@ -1837,8 +1850,8 @@ namespace AmbiBack
                     this.tbFramesPerSecond.Enabled = selectedDevice.EditFrameDelay;
                     this.tbFramesPerSecond.Enabled = selectedDevice.EditFramesPerSecond;
 
-                    // Govee lights use the connection row for their mode
-                    ShowGoveeModeRow(selectedDevice as CDeviceGovee);
+                    // Devices with modes (Govee, OpenRGB) use the connection row for them
+                    ShowModeRow(selectedDevice as CDeviceLedStrip);
 
 #if USE_DREAMSCREEN
                     // Device bases settings 
