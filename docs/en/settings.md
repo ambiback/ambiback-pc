@@ -22,8 +22,8 @@ The sliders at the bottom right apply to the device selected in the list and tak
 | --- | --- |
 | Device name | Name of the device, where the device supports renaming. |
 | Connection | *UDP* works on any Wi-Fi and is the default; *TCP* needs a stable Wi-Fi; *USB* for controllers connected directly. |
-| Frames per second | How often colors are sent. Hue streaming: 25 to 50. |
-| Smoothing | Transition time between colors (not for Hue; the bridge smooths by itself). |
+| Frames per second | How often colors are sent. Hue streaming: 25 to 50. WLED/DDP: up to 60. |
+| Smoothing | Transition time between colors (not for Hue; the bridge smooths by itself). For WLED/DDP AmbiBack PC smooths before sending. |
 | Inner picture area (%) | How far the areas reach into the picture. For Hue areas: the size of the region around each light. |
 
 ### Debug tab

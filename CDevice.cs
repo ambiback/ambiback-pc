@@ -616,6 +616,105 @@ namespace AmbiBack
             /* return new array offset*/
             return iNewOffset;
         }
+        /// <summary>
+        /// Scan rectangles of a strip around the screen (front view): starting side and direction from the
+        /// flex setup (<see cref="DsFlexSetups"/>), vert LEDs on the left and right side, hori LEDs on top and
+        /// bottom, total LEDs at most.
+        /// </summary>
+        public void CalcStripRectangles(byte flexSetup, byte vert, byte hori, int total, int iLeftOffset, int iTopOffset, int iScanWidth, int iScanHeight, int iIntoImagePx, System.Drawing.Rectangle[] rectPixels)
+        {
+            int iOffset = 0;
+
+            // CounterClockWise Bottom Right To Up
+            if (flexSetup == (byte)DsFlexSetups.Right_Cclock_bottom_right_up)
+            {
+                iOffset = CalcRightRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcTopRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcLeftRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcBottomRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
+
+            }
+            // CounterClockWise Top Right to Left
+            else if (flexSetup == (byte)DsFlexSetups.Top_Cclock_top_right_left)
+            {
+                iOffset = CalcTopRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcLeftRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcBottomRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcRightRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
+            }
+            // CounterClockWise Top Left to Down
+            else if (flexSetup == (byte)DsFlexSetups.Left_Cclock_top_left_down)
+            {
+                iOffset = CalcLeftRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcBottomRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcRightRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcTopRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
+            }
+            // CounterClockWise Bottom Left to Right
+            else if (flexSetup == (byte)DsFlexSetups.Bottom_Cclock_bottom_left_right)
+            {
+                iOffset = CalcBottomRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcRightRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcTopRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcLeftRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
+            }
+            // ClockWise Top Right To Down
+            else if (flexSetup == (byte)DsFlexSetups.Right_Clock_top_right_down)
+            {
+                iOffset = CalcRightRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcBottomRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcLeftRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcTopRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
+            }
+            // ClockWise Top Left to Right
+            else if (flexSetup == (byte)DsFlexSetups.Top_Clock_top_left_right)
+            {
+                iOffset = CalcTopRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcRightRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcBottomRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcLeftRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
+            }
+            // ClockWise Bottom Left to Up
+            else if (flexSetup == (byte)DsFlexSetups.Left_Clock_bottom_left_up)
+            {
+                iOffset = CalcLeftRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcTopRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcRightRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcBottomRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
+            }
+            // ClockWise Bottom Right to Left
+            else if (flexSetup == (byte)DsFlexSetups.Bottom_Clock_bottom_right_left)
+            {
+                iOffset = CalcBottomRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.RightToLeft, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcLeftRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.BottomUp, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcTopRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.LeftToRight, rectPixels, iOffset);
+                if (total > iOffset)
+                    iOffset = CalcRightRectangles(vert, hori, iLeftOffset, iTopOffset, iScanWidth, iScanHeight, iIntoImagePx, FlowDirection.TopDown, rectPixels, iOffset);
+            }
+        }
 #endregion
 
 #region Thread Controlling Functions

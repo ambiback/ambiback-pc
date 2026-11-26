@@ -22,8 +22,8 @@ Die Regler rechts unten gelten für das in der Liste ausgewählte Gerät und wir
 | --- | --- |
 | Gerätename | Name des Geräts, sofern das Gerät eine Umbenennung unterstützt. |
 | Verbindung | *UDP* funktioniert in jedem WLAN und ist Standard; *TCP* braucht ein stabiles WLAN; *USB* für direkt angeschlossene Controller. |
-| Bilder pro Sekunde | Wie oft Farben gesendet werden. Hue-Streaming: 25 bis 50. |
-| Glättung | Übergangszeit zwischen Farben (nicht bei Hue; die Bridge glättet selbst). |
+| Bilder pro Sekunde | Wie oft Farben gesendet werden. Hue-Streaming: 25 bis 50. WLED/DDP: bis 60. |
+| Glättung | Übergangszeit zwischen Farben (nicht bei Hue; die Bridge glättet selbst). Bei WLED/DDP glättet AmbiBack PC vor dem Senden. |
 | Innerer Bildbereich (%) | Wie weit die Bildbereiche ins Bild hineinreichen. Bei Hue-Bereichen: Größe des Bereichs um jede Lampe. |
 
 ### Reiter „Debug“

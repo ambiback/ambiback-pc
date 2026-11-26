@@ -96,6 +96,12 @@ namespace AmbiBack
                         StringReader stringIn = new StringReader(myNode.InnerText);
                         newDevice = (CDevice)xmlIn.Deserialize(stringIn);
                     }
+                    else if (myNode.Name == "AmbiBack.CDeviceWled")
+                    {
+                        XmlSerializer xmlIn = new System.Xml.Serialization.XmlSerializer(typeof(CDeviceWled));
+                        StringReader stringIn = new StringReader(myNode.InnerText);
+                        newDevice = (CDevice)xmlIn.Deserialize(stringIn);
+                    }
                     else
                     {
                         throw (new Exception("ERROR_INITLIST_UNKNOWN_TYPE"));

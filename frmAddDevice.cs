@@ -38,7 +38,30 @@ namespace AmbiBack
 
             // Try to create Device
             CDevice newDevice = null;
-            if (iDeviceID == (int)DeviceType.AmbiBackController) {
+
+            // WLED: chosen as type, or answering /json/info when the type is detected automatically
+            if (iDeviceID == (int)DeviceType.WledDdp || chkAutoDiscover.Checked)
+            {
+                IPAddress wledAddress = ResolveAddress(txtDevice.Text);
+                if (wledAddress != null)
+                {
+                    CDeviceWled.WledInfo info = CDeviceWled.QueryInfo(wledAddress);
+                    if (info != null)
+                        newDevice = CDeviceWled.FromInfo(info);
+                    else if (iDeviceID == (int)DeviceType.WledDdp)
+                        newDevice = new CDeviceWled(txtDevice.Text, wledAddress);   // other DDP receiver
+                }
+                else if (iDeviceID == (int)DeviceType.WledDdp)
+                {
+                    this.Cursor = Cursors.Default;
+                    this.Enabled = true;
+                    MessageBox.Show(this, L.F("add_err_resolve", txtDevice.Text), L.T("add_err_resolve_title"),
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+
+            if (newDevice == null && iDeviceID == (int)DeviceType.AmbiBackController) {
                 // Try to resolv and PING the entry first before adding it
                 try
                 {
@@ -135,6 +158,23 @@ namespace AmbiBack
             this.Close();
         }
 
+        /// <summary>IPv4 address of an address or host name, null when it cannot be resolved.</summary>
+        private static IPAddress ResolveAddress(string szAddress)
+        {
+            szAddress = (szAddress ?? "").Trim();
+            if (IPAddress.TryParse(szAddress, out IPAddress ip))
+                return ip;
+            try
+            {
+                return Dns.GetHostEntry(szAddress).AddressList
+                    .FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+            }
+            catch (Exception ex) when (ex is System.Net.Sockets.SocketException || ex is ArgumentException)
+            {
+                return null;
+            }
+        }
+
         private void cmdCancel_Click(object sender, EventArgs e)
         {
             this.Close();
@@ -164,6 +204,9 @@ namespace AmbiBack
             arDevices.Add(new ListBoxDevice(CGlobals.DEVICETYPESDISPLAYNAME[(int)DeviceType.PhilipsHueColorLight],
                                             CGlobals.DEVICETYPES[(int)DeviceType.PhilipsHueColorLight],
                                             (int)DeviceType.PhilipsHueColorLight));
+            arDevices.Add(new ListBoxDevice(CGlobals.DEVICETYPESDISPLAYNAME[(int)DeviceType.WledDdp],
+                                            CGlobals.DEVICETYPES[(int)DeviceType.WledDdp],
+                                            (int)DeviceType.WledDdp));
 
             cbDeviceType.DataSource = arDevices;
             cbDeviceType.DisplayMember = "LongName";

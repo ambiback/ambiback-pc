@@ -2,7 +2,7 @@
 
 [English](README.md) · **Deutsch**
 
-Umgebungslicht für deinen Windows-PC. AmbiBack PC erfasst den Inhalt deiner Monitore und schickt die Farben in Echtzeit an AmbiBack-LED-Controller und Philips-Hue-Lampen. So „läuft“ das Bild an die Wand weiter.
+Umgebungslicht für deinen Windows-PC. AmbiBack PC erfasst den Inhalt deiner Monitore und schickt die Farben in Echtzeit an AmbiBack-LED-Controller, WLED- und andere DDP-LED-Streifen sowie Philips-Hue-Lampen. So „läuft“ das Bild an die Wand weiter.
 
 ![Hauptfenster von AmbiBack PC](docs/images/main_de.png)
 
@@ -20,7 +20,7 @@ Voraussetzung ist Windows 10 oder 11. Die Dateien sind nicht signiert, daher kan
 ## Schnellstart
 
 1. AmbiBack PC installieren und starten. Fragt die Windows-Firewall, für **private Netzwerke** erlauben.
-2. Lichtquellen hinzufügen: AmbiBack-Controller werden automatisch gefunden; für Philips Hue auf **Hue Bridge** klicken, den Link-Knopf an der Bridge drücken und **Verbinden** klicken.
+2. Lichtquellen hinzufügen: AmbiBack-Controller und WLED-Geräte werden automatisch gefunden; für Philips Hue auf **Hue Bridge** klicken, den Link-Knopf an der Bridge drücken und **Verbinden** klicken.
 3. Auf einer Monitor-Karte **Verwenden** klicken, in der Geräteliste die Lichtquellen für diesen Monitor anhaken und **Starten** klicken.
 
 Schritt für Schritt mit Screenshots: **[Schnellstart](docs/de/quick-start.md)**.
@@ -33,6 +33,7 @@ Das [Benutzerhandbuch](docs/benutzerhandbuch.md) enthält:
 - [Schnellstart](docs/de/quick-start.md)
 - [AmbiBack-Geräte](docs/de/ambiback-devices.md) – WLAN-Einrichtung über USB, LED-Anordnung
 - [Philips Hue](docs/de/philips-hue.md) – Hue Entertainment, Bridge, Lampen, Bereiche
+- [WLED und DDP](docs/de/wled.md) – WLED und andere DDP-Empfänger
 - [Das Hauptfenster](docs/de/main-window.md) und [Einstellungen](docs/de/settings.md)
 - [Problemlösung und FAQ](docs/de/troubleshooting.md) – Firewall, SmartScreen, Hue
 
@@ -40,6 +41,7 @@ Das [Benutzerhandbuch](docs/benutzerhandbuch.md) enthält:
 
 - Bildschirmaufnahme über DirectX mit Live-Vorschau, für einen oder mehrere Monitore
 - AmbiBack-Controller über WLAN (UDP oder TCP) oder USB, automatisch im lokalen Netzwerk gefunden
+- WLED und andere DDP-Empfänger (ESPHome, Hyperion, ESPixelStick …) mit bis zu 60 fps, WLED-Suche per mDNS
 - Philips Hue über die Entertainment API: verschlüsseltes Streaming mit 25 bis 50 fps, automatische Bridge-Suche, eigener Entertainment-Bereich aus den gewählten Lampen
 - Helligkeit, Farbanteile, Farbverstärkung und Glättung je Gerät
 - Start mit Windows und Betrieb im Infobereich
@@ -52,7 +54,7 @@ Das [Benutzerhandbuch](docs/benutzerhandbuch.md) enthält:
 
 ## Sicherheit
 
-Die Kommunikation mit AmbiBack-Geräten läuft unverschlüsselt im lokalen Netz, und die Geräte-API hat keine Anmeldung. Betreibe die Geräte nur in einem vertrauenswürdigen Netz. Das Hue-Streaming ist verschlüsselt (DTLS, AES-GCM), Verwaltungsbefehle an die Bridge laufen über HTTPS, und der Bridge-Schlüssel wird mit Windows DPAPI gespeichert.
+Die Kommunikation mit AmbiBack- und WLED/DDP-Geräten läuft unverschlüsselt im lokalen Netz, und die Geräte-API hat keine Anmeldung. Betreibe die Geräte nur in einem vertrauenswürdigen Netz. Das Hue-Streaming ist verschlüsselt (DTLS, AES-GCM), Verwaltungsbefehle an die Bridge laufen über HTTPS, und der Bridge-Schlüssel wird mit Windows DPAPI gespeichert.
 
 ## Für Entwickler
 
@@ -60,7 +62,7 @@ Bauen, Setup, Selbsttests, CI und Releases: [docs/de/development.md](docs/de/dev
 
 ## Marken
 
-Philips Hue und DreamScreen sind Marken ihrer jeweiligen Inhaber. Dieses Projekt steht in keiner Verbindung zu ihnen.
+Philips Hue, DreamScreen und WLED sind Marken bzw. Namen ihrer jeweiligen Inhaber. Dieses Projekt steht in keiner Verbindung zu ihnen.
 
 ## Lizenz
 

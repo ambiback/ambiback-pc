@@ -2,7 +2,7 @@
 
 [English](user-guide.md) · **Deutsch**
 
-AmbiBack PC erfasst den Inhalt deiner Monitore und schickt die Farben in Echtzeit an Lichtquellen hinter oder neben dem Bildschirm: AmbiBack-Controller (LED-Streifen) und Philips-Hue-Lampen. So „läuft“ das Bild an die Wand weiter.
+AmbiBack PC erfasst den Inhalt deiner Monitore und schickt die Farben in Echtzeit an Lichtquellen hinter oder neben dem Bildschirm: AmbiBack-Controller (LED-Streifen), WLED- und andere DDP-Streifen sowie Philips-Hue-Lampen. So „läuft“ das Bild an die Wand weiter.
 
 ![Hauptfenster von AmbiBack PC](images/main_de.png)
 
@@ -15,6 +15,7 @@ AmbiBack PC erfasst den Inhalt deiner Monitore und schickt die Farben in Echtzei
 
 - [AmbiBack-Geräte](de/ambiback-devices.md) – Controller ins WLAN bringen, finden oder hinzufügen, LED-Anordnung einstellen
 - [Philips Hue](de/philips-hue.md) – Bridge verbinden, Lampen auswählen, Entertainment-Bereiche
+- [WLED und DDP](de/wled.md) – WLED-Streifen finden oder hinzufügen, LED-Anordnung, Einstellungen
 
 ## Nachschlagen
 
