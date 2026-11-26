@@ -13,6 +13,8 @@ namespace AmbiBack
         byte PixelVert { get; }
         /// <summary>Start corner and direction, a <see cref="DsFlexSetups"/> value.</summary>
         byte FlexSetupPort1 { get; }
+        /// <summary>False when the layout does not apply right now (e.g. a one-color mode); the monitor card hides it.</summary>
+        bool UsesStripLayout { get; }
 
         void SetPixelHori(byte bNew);
         void SetPixelVert(byte bNew);

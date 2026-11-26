@@ -283,6 +283,51 @@ namespace AmbiBack
             }
         }
 
+        /// <summary>
+        /// Refreshes the paired Nanoleaf devices: online when their address answers mDNS, a new address when
+        /// another answering Nanoleaf accepts their auth token and has their serial. Unpaired ones are left
+        /// to Add, because pairing needs the power button.
+        /// </summary>
+        public void EnumNanoleafDevices()
+        {
+            try
+            {
+                List<CDeviceNanoleaf> known = new List<CDeviceNanoleaf>();
+                foreach (CDevice d in CGlobals.mainConfig.Devices.GetDeviceList())
+                    if (d is CDeviceNanoleaf n && !string.IsNullOrEmpty(n.AuthToken))
+                        known.Add(n);
+                if (known.Count == 0)
+                    return;
+                List<IPAddress> candidates = CDeviceNanoleaf.Discover();
+                foreach (CDeviceNanoleaf device in known)
+                {
+                    IPAddress match = candidates.Find(ip => ip.Equals(device.GetIPAddress()));
+                    if (match == null)
+                    {
+                        foreach (IPAddress ip in candidates)
+                        {
+                            CDeviceNanoleaf.NanoleafInfo info = CDeviceNanoleaf.QueryInfo(ip, device.AuthToken);
+                            if (info != null && string.Equals(info.SerialNo, device.InternalNetworkMAC, StringComparison.OrdinalIgnoreCase))
+                            {
+                                match = ip;
+                                device.SetIPAddress(ip);
+                                break;
+                            }
+                        }
+                    }
+                    if (match != null)
+                    {
+                        device.SetIsOnline(true);
+                        HandleDiscoveredDevice(device);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                CGlobals.DebugOutput(ex);
+            }
+        }
+
         public void HandleDiscoveredDevice(CDevice newDevice)
         {
             if (this.DiscoveredDevice != null)
@@ -456,6 +501,8 @@ namespace AmbiBack
             System.Threading.Tasks.Task.Run(() => this.EnumGoveeDevices());
             // OpenRGB SDK server on this PC (refused at once when OpenRGB is not running)
             System.Threading.Tasks.Task.Run(() => this.EnumOpenRgbDevices());
+            // Paired Nanoleaf devices via mDNS (new ones are paired with Add)
+            System.Threading.Tasks.Task.Run(() => this.EnumNanoleafDevices());
 
             // UDP Helper Client
             UdpClient client = new UdpClientBroadcast();

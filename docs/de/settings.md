@@ -21,10 +21,10 @@ Die Regler rechts unten gelten für das in der Liste ausgewählte Gerät und wir
 | Einstellung | Wirkung |
 | --- | --- |
 | Gerätename | Name des Geräts, sofern das Gerät eine Umbenennung unterstützt. |
-| Verbindung | *UDP* funktioniert in jedem WLAN und ist Standard; *TCP* braucht ein stabiles WLAN; *USB* für direkt angeschlossene Controller. Bei einer Govee-Leuchte steht hier *Modus*: [Segmente oder Einzelfarbe](govee.md#modus-wählen), bei einem OpenRGB-Gerät [Streifen oder eine Farbe](openrgb.md#modus-wählen). |
-| Bilder pro Sekunde | Wie oft Farben gesendet werden. Hue-Streaming: 25 bis 50. WLED/DDP: bis 60. Govee und OpenRGB: standardmäßig 30. |
-| Glättung | Übergangszeit zwischen Farben (nicht bei Hue; die Bridge glättet selbst). Bei WLED/DDP, Govee und OpenRGB glättet AmbiBack PC vor dem Senden. |
-| Innerer Bildbereich (%) | Wie weit die Bildbereiche ins Bild hineinreichen. Bei Hue-Bereichen: Größe des Bereichs um jede Lampe. |
+| Verbindung | *UDP* funktioniert in jedem WLAN und ist Standard; *TCP* braucht ein stabiles WLAN; *USB* für direkt angeschlossene Controller. Bei einer Govee-Leuchte steht hier *Modus*: [Segmente oder Einzelfarbe](govee.md#modus-wählen), bei einem OpenRGB-Gerät [Streifen oder eine Farbe](openrgb.md#modus-wählen), bei einem Nanoleaf [Panels nach ihrer Lage oder eine Farbe](nanoleaf.md#modus-wählen). |
+| Bilder pro Sekunde | Wie oft Farben gesendet werden. Hue-Streaming: 25 bis 50. WLED/DDP: bis 60. Govee und OpenRGB: standardmäßig 30. Nanoleaf: 20, bis 30. |
+| Glättung | Übergangszeit zwischen Farben (nicht bei Hue; die Bridge glättet selbst). Bei WLED/DDP, Govee, OpenRGB und Nanoleaf glättet AmbiBack PC vor dem Senden (Nanoleaf: standardmäßig 100 ms). |
+| Innerer Bildbereich (%) | Wie weit die Bildbereiche ins Bild hineinreichen. Bei Hue-Bereichen und Nanoleaf: Größe des Bereichs um jede Lampe bzw. jedes Panel. |
 
 ### Reiter „Debug“
 

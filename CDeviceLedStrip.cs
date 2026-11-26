@@ -47,6 +47,22 @@ namespace AmbiBack
         public byte Mode { get; set; } = 0;
         /// <summary>Localization keys of the modes shown on the Device tab; null when the device has none.</summary>
         public virtual string[] ModeTextKeys { get { return null; } }
+
+        /// <summary>
+        /// True when the monitor card shows the strip layout (LEDs per side, start corner, direction) for
+        /// this device; false for one-color modes and devices with their own positions (Nanoleaf).
+        /// </summary>
+        public virtual bool UsesStripLayout { get { return true; } }
+
+        /// <summary>Colors sent per frame: the LEDs of the layout, or e.g. the panels of a Nanoleaf.</summary>
+        protected virtual int ColorCount { get { return this.PixelTotal; } }
+
+        /// <summary>Screen region of every color; the strip runs around the screen.</summary>
+        protected virtual void CalcScanRegions(int width, int height, Rectangle[] regions)
+        {
+            this.CalcStripRectangles(this.FlexSetupPort1, Math.Max((byte)1, this.PixelVert), Math.Max((byte)1, this.PixelHori),
+                regions.Length, 0, 0, width, height, 0, regions);
+        }
         #endregion
 
         protected CDeviceLedStrip()
@@ -405,7 +421,7 @@ namespace AmbiBack
                 width = this.Frame.Width;
                 height = this.Frame.Height;
             }
-            int n = this.PixelTotal;
+            int n = Math.Max(0, this.ColorCount);
             brPixels = new Color[n];
             rectScanPixels = new Rectangle[n];
             rgb = new byte[n * 3];
@@ -417,8 +433,7 @@ namespace AmbiBack
 
         private void UpdateScanAreas(int width, int height)
         {
-            this.CalcStripRectangles(this.FlexSetupPort1, Math.Max((byte)1, this.PixelVert), Math.Max((byte)1, this.PixelHori),
-                rectScanPixels.Length, 0, 0, width, height, 0, rectScanPixels);
+            CalcScanRegions(width, height, rectScanPixels);
             // CalcCorners takes a byte count, the strip can be longer
             int n = rectScanPixels.Length;
             aLeft = new int[n];

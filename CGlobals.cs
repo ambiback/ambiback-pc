@@ -280,6 +280,7 @@ namespace AmbiBack
         WledDdp = 21,
         GoveeLan = 22,
         OpenRgb = 23,
+        Nanoleaf = 24,
     }
     public enum ConnectionTypes
     {
@@ -417,6 +418,7 @@ namespace AmbiBack
             "WledDdp",
             "GoveeLan",
             "OpenRgb",
+            "Nanoleaf",
         };
         public static string[] DEVICETYPESDISPLAYNAME = new string[]
         {
@@ -444,6 +446,7 @@ namespace AmbiBack
             "WLED / DDP",
             "Govee (LAN)",
             "OpenRGB",
+            "Nanoleaf",
         };
         public static string[] INSTALLATIONTYPES = new string[]
         {

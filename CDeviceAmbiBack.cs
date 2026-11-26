@@ -1284,6 +1284,9 @@ namespace AmbiBack
             // Build URL and send to Controller
             WriteOption("http://" + this.GetIPAddress().ToString() + "/sethorizontal?value=" + this.PixelHori.ToString());
         }
+        /// <summary>The controller always uses its strip layout.</summary>
+        public bool UsesStripLayout { get { return true; } }
+
         public void SendLedDirection()
         {
             // Build URL and send to Controller

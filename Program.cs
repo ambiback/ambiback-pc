@@ -19,7 +19,7 @@ namespace AmbiBack
         static int Main(string[] args)
         {
             // Command line self tests of the Hue and WLED streaming code (no UI, no second instance check)
-            if (args.Length > 0 && (args[0].StartsWith("--hue-", StringComparison.Ordinal) || args[0] == "--wled-test" || args[0] == "--govee-test" || args[0] == "--openrgb-test"))
+            if (args.Length > 0 && (args[0].StartsWith("--hue-", StringComparison.Ordinal) || args[0] == "--wled-test" || args[0] == "--govee-test" || args[0] == "--openrgb-test" || args[0] == "--nanoleaf-test"))
                 return RunHueSelfTest(args);
 
             try
@@ -211,6 +211,15 @@ namespace AmbiBack
                 bool single = Array.IndexOf(args, "single") > 1;
                 return CDeviceOpenRgb.RunStreamTest(args[1], controller, seconds, single, line => Console.WriteLine(line)) ? 0 : 1;
             }
+            else if (args[0] == "--nanoleaf-test" && args.Length >= 2)
+            {
+                // Pairs with a Nanoleaf (or uses the given token) and streams a test picture
+                string token = args.Length > 2 && !int.TryParse(args[2], out _) && args[2] != "single" ? args[2] : null;
+                int next = token != null ? 3 : 2;
+                int seconds = args.Length > next && int.TryParse(args[next], out int s) ? s : 10;
+                bool single = Array.IndexOf(args, "single") > 1;
+                return CDeviceNanoleaf.RunStreamTest(args[1], token, seconds, single, line => Console.WriteLine(line)) ? 0 : 1;
+            }
             else if (args[0] == "--hue-bridge-info" && args.Length >= 3)
             {
                 return AmbiBack.PhilipsHue.HueSelfTest.RunBridgeInfo(args[1], args[2], line => Console.WriteLine(line)) ? 0 : 1;
@@ -238,6 +247,7 @@ namespace AmbiBack
                 report.AppendLine("       AmbiBack.exe --wled-test host [seconds]");
                 report.AppendLine("       AmbiBack.exe --govee-test host [seconds] [single]");
                 report.AppendLine("       AmbiBack.exe --openrgb-test host [controller] [seconds] [single]");
+                report.AppendLine("       AmbiBack.exe --nanoleaf-test host [token] [seconds] [single]");
                 ok = false;
             }
             Console.Write(report.ToString());
