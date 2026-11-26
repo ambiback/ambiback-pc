@@ -2,7 +2,7 @@
 
 **English** · [Deutsch](README.de.md)
 
-Ambient light for your Windows PC. AmbiBack PC captures what your monitors show and sends the colors in real time to AmbiBack LED controllers, WLED and other DDP LED strips, Govee lights, Nanoleaf panels, PC lighting through OpenRGB, and Philips Hue lights, so the picture seems to flow onto the wall.
+Ambient light for your Windows PC. AmbiBack PC captures what your monitors show and sends the colors in real time to AmbiBack LED controllers, WLED and other DDP LED strips, Govee lights, Nanoleaf panels, LIFX lights, PC lighting through OpenRGB, and Philips Hue lights, so the picture seems to flow onto the wall.
 
 ![The AmbiBack PC main window](docs/images/main_en.png)
 
@@ -20,7 +20,7 @@ Windows 10 or 11 is required. The files are not code-signed, so Windows SmartScr
 ## Quick start
 
 1. Install and start AmbiBack PC. When Windows Firewall asks, allow it on **private networks**.
-2. Add your lights: AmbiBack controllers, WLED devices, Govee lights (with LAN Control on) and OpenRGB devices (with its SDK server started) are found on their own; for Philips Hue click **Hue Bridge**, press the link button on the bridge and click **Connect**; a Nanoleaf is paired once with **Add** and its power button.
+2. Add your lights: AmbiBack controllers, WLED devices, LIFX lights, Govee lights (with LAN Control on) and OpenRGB devices (with its SDK server started) are found on their own; for Philips Hue click **Hue Bridge**, press the link button on the bridge and click **Connect**; a Nanoleaf is paired once with **Add** and its power button.
 3. Click **Use** on a monitor card, tick the lights for this monitor in the device list and click **Start**.
 
 Step by step with screenshots: **[Quick start](docs/en/quick-start.md)**.
@@ -45,6 +45,7 @@ The [user guide](docs/user-guide.md) covers:
 - Govee lights over the Govee LAN API, without cloud or account: segment colors on models with DreamView, one color on any model
 - PC lighting through the OpenRGB SDK: motherboard, RAM, graphics card, fans, LED strips, keyboards and more, as a strip around the screen or in one color
 - Nanoleaf panels (Light Panels, Canvas, Shapes, Elements, Lines) over the Open API: every panel shows the picture at its place in the layout
+- LIFX lights over the LAN protocol, without cloud or account: bulbs in one color, LIFX Z / Beam / Neon zone by zone around the screen
 - Philips Hue through the Entertainment API: encrypted streaming at 25 to 50 fps, automatic bridge discovery, an entertainment area of its own from the lights you choose
 - Brightness, color balance, color boost and smoothing per device
 - Start with Windows and run from the notification area
@@ -57,7 +58,7 @@ The [user guide](docs/user-guide.md) covers:
 
 ## Security
 
-Communication with AmbiBack, WLED/DDP and Govee devices and with the OpenRGB SDK server and Nanoleaf is unencrypted on the local network, and the device API has no login. Run devices only on a trusted network. Hue streaming is encrypted (DTLS, AES-GCM), management commands to the bridge use HTTPS, and the bridge key is stored with Windows DPAPI.
+Communication with AmbiBack, WLED/DDP and Govee devices and with the OpenRGB SDK server, Nanoleaf and LIFX is unencrypted on the local network, and the device API has no login. Run devices only on a trusted network. Hue streaming is encrypted (DTLS, AES-GCM), management commands to the bridge use HTTPS, and the bridge key is stored with Windows DPAPI.
 
 ## For developers
 
@@ -65,7 +66,7 @@ Building, setup, self tests, CI and releases: [docs/en/development.md](docs/en/d
 
 ## Trademarks
 
-Philips Hue, DreamScreen, WLED, Govee, Razer Chroma, OpenRGB and Nanoleaf are trademarks or names of their respective owners. This project is not affiliated with them.
+Philips Hue, DreamScreen, WLED, Govee, Razer Chroma, OpenRGB, Nanoleaf and LIFX are trademarks or names of their respective owners. This project is not affiliated with them.
 
 ## License
 

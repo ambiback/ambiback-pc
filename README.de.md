@@ -2,7 +2,7 @@
 
 [English](README.md) · **Deutsch**
 
-Umgebungslicht für deinen Windows-PC. AmbiBack PC erfasst den Inhalt deiner Monitore und schickt die Farben in Echtzeit an AmbiBack-LED-Controller, WLED- und andere DDP-LED-Streifen, Govee-Leuchten, Nanoleaf-Panels, PC-Beleuchtung über OpenRGB sowie Philips-Hue-Lampen. So „läuft“ das Bild an die Wand weiter.
+Umgebungslicht für deinen Windows-PC. AmbiBack PC erfasst den Inhalt deiner Monitore und schickt die Farben in Echtzeit an AmbiBack-LED-Controller, WLED- und andere DDP-LED-Streifen, Govee-Leuchten, Nanoleaf-Panels, LIFX-Lampen, PC-Beleuchtung über OpenRGB sowie Philips-Hue-Lampen. So „läuft“ das Bild an die Wand weiter.
 
 ![Hauptfenster von AmbiBack PC](docs/images/main_de.png)
 
@@ -20,7 +20,7 @@ Voraussetzung ist Windows 10 oder 11. Die Dateien sind nicht signiert, daher kan
 ## Schnellstart
 
 1. AmbiBack PC installieren und starten. Fragt die Windows-Firewall, für **private Netzwerke** erlauben.
-2. Lichtquellen hinzufügen: AmbiBack-Controller, WLED-Geräte, Govee-Leuchten (mit eingeschalteter LAN-Steuerung) und OpenRGB-Geräte (mit gestartetem SDK-Server) werden automatisch gefunden; für Philips Hue auf **Hue Bridge** klicken, den Link-Knopf an der Bridge drücken und **Verbinden** klicken; ein Nanoleaf wird einmal über **Hinzufügen** und seinen Ein-/Aus-Knopf gekoppelt.
+2. Lichtquellen hinzufügen: AmbiBack-Controller, WLED-Geräte, LIFX-Lampen, Govee-Leuchten (mit eingeschalteter LAN-Steuerung) und OpenRGB-Geräte (mit gestartetem SDK-Server) werden automatisch gefunden; für Philips Hue auf **Hue Bridge** klicken, den Link-Knopf an der Bridge drücken und **Verbinden** klicken; ein Nanoleaf wird einmal über **Hinzufügen** und seinen Ein-/Aus-Knopf gekoppelt.
 3. Auf einer Monitor-Karte **Verwenden** klicken, in der Geräteliste die Lichtquellen für diesen Monitor anhaken und **Starten** klicken.
 
 Schritt für Schritt mit Screenshots: **[Schnellstart](docs/de/quick-start.md)**.
@@ -45,6 +45,7 @@ Das [Benutzerhandbuch](docs/benutzerhandbuch.md) enthält:
 - Govee-Leuchten über die Govee-LAN-API, ohne Cloud und Konto: Segmentfarben bei Modellen mit DreamView, eine Farbe bei jedem Modell
 - PC-Beleuchtung über das OpenRGB-SDK: Mainboard, Arbeitsspeicher, Grafikkarte, Lüfter, LED-Streifen, Tastaturen und mehr, als Streifen um den Bildschirm oder in einer Farbe
 - Nanoleaf-Panels (Light Panels, Canvas, Shapes, Elements, Lines) über die Open API: Jedes Panel zeigt das Bild an seiner Stelle in der Anordnung
+- LIFX-Lampen über das LAN-Protokoll, ohne Cloud und Konto: Glühbirnen in einer Farbe, LIFX Z / Beam / Neon Zone für Zone um den Bildschirm
 - Philips Hue über die Entertainment API: verschlüsseltes Streaming mit 25 bis 50 fps, automatische Bridge-Suche, eigener Entertainment-Bereich aus den gewählten Lampen
 - Helligkeit, Farbanteile, Farbverstärkung und Glättung je Gerät
 - Start mit Windows und Betrieb im Infobereich
@@ -57,7 +58,7 @@ Das [Benutzerhandbuch](docs/benutzerhandbuch.md) enthält:
 
 ## Sicherheit
 
-Die Kommunikation mit AmbiBack-, WLED/DDP- und Govee-Geräten sowie mit dem OpenRGB-SDK-Server und Nanoleaf läuft unverschlüsselt im lokalen Netz, und die Geräte-API hat keine Anmeldung. Betreibe die Geräte nur in einem vertrauenswürdigen Netz. Das Hue-Streaming ist verschlüsselt (DTLS, AES-GCM), Verwaltungsbefehle an die Bridge laufen über HTTPS, und der Bridge-Schlüssel wird mit Windows DPAPI gespeichert.
+Die Kommunikation mit AmbiBack-, WLED/DDP- und Govee-Geräten sowie mit dem OpenRGB-SDK-Server, Nanoleaf und LIFX läuft unverschlüsselt im lokalen Netz, und die Geräte-API hat keine Anmeldung. Betreibe die Geräte nur in einem vertrauenswürdigen Netz. Das Hue-Streaming ist verschlüsselt (DTLS, AES-GCM), Verwaltungsbefehle an die Bridge laufen über HTTPS, und der Bridge-Schlüssel wird mit Windows DPAPI gespeichert.
 
 ## Für Entwickler
 
@@ -65,7 +66,7 @@ Bauen, Setup, Selbsttests, CI und Releases: [docs/de/development.md](docs/de/dev
 
 ## Marken
 
-Philips Hue, DreamScreen, WLED, Govee, Razer Chroma, OpenRGB und Nanoleaf sind Marken bzw. Namen ihrer jeweiligen Inhaber. Dieses Projekt steht in keiner Verbindung zu ihnen.
+Philips Hue, DreamScreen, WLED, Govee, Razer Chroma, OpenRGB, Nanoleaf und LIFX sind Marken bzw. Namen ihrer jeweiligen Inhaber. Dieses Projekt steht in keiner Verbindung zu ihnen.
 
 ## Lizenz
 

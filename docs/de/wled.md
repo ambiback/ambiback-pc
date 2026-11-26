@@ -33,7 +33,7 @@ Für ein im Netz gefundenes WLED schlägt AmbiBack aus der LED-Anzahl eine Anord
 
 ## Einstellungen
 
-Alle Regler auf den Reitern [„Farben“ und „Gerät“](settings.md) wirken auch für WLED (die Einstellung *Verbindung* entfällt, DDP nutzt immer UDP):
+Alle Regler auf den Reitern [„Farben“ und „Gerät“](settings.md) wirken auch für WLED (die Einstellung *Verbindung* gibt es hier nicht, DDP nutzt immer UDP):
 
 - **Bilder pro Sekunde**: standardmäßig 50, bis 60.
 - **Glättung**: standardmäßig 0 (aus). Höhere Werte blenden die Farben weicher über; AmbiBack PC erledigt das vor dem Senden.

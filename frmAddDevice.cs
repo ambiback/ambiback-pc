@@ -107,6 +107,23 @@ namespace AmbiBack
                     newDevice = CDeviceOpenRgb.FromInfo(controllers[0], openRgbAddress);
             }
 
+            // LIFX: chosen as type, or answering at this address when the type is detected automatically
+            if (newDevice == null && (iDeviceID == (int)DeviceType.Lifx || chkAutoDiscover.Checked))
+            {
+                IPAddress lifxAddress = ResolveAddress(txtDevice.Text);
+                CDeviceLifx.LifxInfo light = lifxAddress != null ? CDeviceLifx.Discover(1500, lifxAddress).FirstOrDefault() : null;
+                if (light != null)
+                    newDevice = CDeviceLifx.FromInfo(light);
+                else if (iDeviceID == (int)DeviceType.Lifx)
+                {
+                    this.Cursor = Cursors.Default;
+                    this.Enabled = true;
+                    MessageBox.Show(this, L.F("add_err_lifx", txtDevice.Text), L.T("add_err_lifx_title"),
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+
             // Nanoleaf: pairing with the power button; without an address the first unpaired one found by mDNS
             if (newDevice == null && iDeviceID == (int)DeviceType.Nanoleaf)
             {
@@ -327,6 +344,9 @@ namespace AmbiBack
             arDevices.Add(new ListBoxDevice(CGlobals.DEVICETYPESDISPLAYNAME[(int)DeviceType.Nanoleaf],
                                             CGlobals.DEVICETYPES[(int)DeviceType.Nanoleaf],
                                             (int)DeviceType.Nanoleaf));
+            arDevices.Add(new ListBoxDevice(CGlobals.DEVICETYPESDISPLAYNAME[(int)DeviceType.Lifx],
+                                            CGlobals.DEVICETYPES[(int)DeviceType.Lifx],
+                                            (int)DeviceType.Lifx));
 
             cbDeviceType.DataSource = arDevices;
             cbDeviceType.DisplayMember = "LongName";

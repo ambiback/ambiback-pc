@@ -19,7 +19,7 @@ namespace AmbiBack
         static int Main(string[] args)
         {
             // Command line self tests of the Hue and WLED streaming code (no UI, no second instance check)
-            if (args.Length > 0 && (args[0].StartsWith("--hue-", StringComparison.Ordinal) || args[0] == "--wled-test" || args[0] == "--govee-test" || args[0] == "--openrgb-test" || args[0] == "--nanoleaf-test"))
+            if (args.Length > 0 && (args[0].StartsWith("--hue-", StringComparison.Ordinal) || args[0] == "--wled-test" || args[0] == "--govee-test" || args[0] == "--openrgb-test" || args[0] == "--nanoleaf-test" || args[0] == "--lifx-test"))
                 return RunHueSelfTest(args);
 
             try
@@ -220,6 +220,15 @@ namespace AmbiBack
                 bool single = Array.IndexOf(args, "single") > 1;
                 return CDeviceNanoleaf.RunStreamTest(args[1], token, seconds, single, line => Console.WriteLine(line)) ? 0 : 1;
             }
+            else if (args[0] == "--lifx-test")
+            {
+                // Finds LIFX lights (all, or the one at host) and streams a test picture to the first
+                string host = args.Length > 1 && !int.TryParse(args[1], out _) && args[1] != "single" ? args[1] : null;
+                int next = host != null ? 2 : 1;
+                int seconds = args.Length > next && int.TryParse(args[next], out int s) ? s : 10;
+                bool single = Array.IndexOf(args, "single") > 0;
+                return CDeviceLifx.RunStreamTest(host, seconds, single, line => Console.WriteLine(line)) ? 0 : 1;
+            }
             else if (args[0] == "--hue-bridge-info" && args.Length >= 3)
             {
                 return AmbiBack.PhilipsHue.HueSelfTest.RunBridgeInfo(args[1], args[2], line => Console.WriteLine(line)) ? 0 : 1;
@@ -248,6 +257,7 @@ namespace AmbiBack
                 report.AppendLine("       AmbiBack.exe --govee-test host [seconds] [single]");
                 report.AppendLine("       AmbiBack.exe --openrgb-test host [controller] [seconds] [single]");
                 report.AppendLine("       AmbiBack.exe --nanoleaf-test host [token] [seconds] [single]");
+                report.AppendLine("       AmbiBack.exe --lifx-test [host] [seconds] [single]");
                 ok = false;
             }
             Console.Write(report.ToString());

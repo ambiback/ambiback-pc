@@ -68,6 +68,10 @@ namespace AmbiBack.PhilipsHue
                 Test("Nanoleaf: device info and panel layout", TestNanoleafInfo),
                 Test("Nanoleaf: panel places on the screen", TestNanoleafPlaces),
                 Test("Nanoleaf: device XML round trip (token protected)", TestNanoleafXml),
+                Test("LIFX: message header", TestLifxHeader),
+                Test("LIFX: RGB to HSBK", TestLifxHsbk),
+                Test("LIFX: SetColor and SetExtendedColorZones payloads", TestLifxPayloads),
+                Test("LIFX: device XML round trip", TestLifxXml),
                 Test("mDNS query for _wled._tcp.local", () => Equal("000000000001000000000000" + "055f776c6564" + "045f746370" + "056c6f63616c" + "00" + "000c8001",
                     TlsPrf.ToHex(HueDiscovery.BuildMdnsQuery("_wled")))),
             };
@@ -810,6 +814,72 @@ namespace AmbiBack.PhilipsHue
             Equal(CDeviceNanoleaf.ModeSingleColor, copy.Mode);
             Equal(CDeviceNanoleaf.StreamPort, copy.Port);
             Equal(200, copy.FrameDelay);
+        }
+
+        private static void TestLifxHeader()
+        {
+            // GetService as broadcast: size 36, protocol 1024 + addressable + tagged = 0x3400, source, no target, res_required, seq 1, type 2
+            byte[] m = CDeviceLifx.BuildMessage(CDeviceLifx.MsgGetService, new byte[0], new byte[8], true, true, 1, 0x01020304);
+            Equal("2400" + "0034" + "04030201" + "0000000000000000" + "000000000000" + "01" + "01" + "0000000000000000" + "0200" + "0000", TlsPrf.ToHex(m));
+            // Unicast to a light: target = MAC + 2 zero bytes, not tagged
+            byte[] t = CDeviceLifx.MacTarget("d073d5123456");
+            byte[] set = CDeviceLifx.BuildMessage(CDeviceLifx.MsgSetColor, new byte[13], t, false, false, 9, 7);
+            Equal("3100" + "0014", TlsPrf.ToHex(set).Substring(0, 8));   // size 49, protocol 1024 + addressable, not tagged
+            Equal("d073d51234560000", TlsPrf.ToHex(set).Substring(16, 16));
+            Equal("d073d5123456", CDeviceLifx.MacText(set));
+            Equal((ushort)102, CDeviceLifx.MessageType(set));
+        }
+
+        private static void TestLifxHsbk()
+        {
+            ushort h, s, b;
+            CDeviceLifx.RgbToHsbk(255, 0, 0, out h, out s, out b);
+            Equal("0,65535,65535", h + "," + s + "," + b);
+            CDeviceLifx.RgbToHsbk(0, 255, 0, out h, out s, out b);
+            Equal("21845,65535,65535", h + "," + s + "," + b);
+            CDeviceLifx.RgbToHsbk(0, 0, 128, out h, out s, out b);
+            Equal("43690,65535,32896", h + "," + s + "," + b);
+            CDeviceLifx.RgbToHsbk(255, 255, 255, out h, out s, out b);
+            Equal(0, (int)s);
+            CDeviceLifx.RgbToHsbk(0, 0, 0, out h, out s, out b);
+            Equal(0, (int)b);
+        }
+
+        private static void TestLifxPayloads()
+        {
+            // SetColor: reserved, H S B K, duration 50 ms
+            Equal("00" + "0000" + "ffff" + "ffff" + "ac0d" + "32000000", TlsPrf.ToHex(CDeviceLifx.ColorPayload(255, 0, 0, 50)));
+            Equal("ffff" + "f4010000", TlsPrf.ToHex(CDeviceLifx.PowerPayload(true, 500)));
+            // Zones 1 and 2 of a strip: duration, apply, first zone 1, 2 colors, then 82 slots
+            byte[] colors = { 0, 0, 0, 255, 0, 0, 0, 255, 0 };
+            byte[] p = new byte[8 + 82 * 8];
+            CDeviceLifx.FillExtendedZones(p, colors, 1, 2, 50);
+            Equal("32000000" + "01" + "0100" + "02", TlsPrf.ToHex(p).Substring(0, 16));
+            Equal("0000ffffffffac0d" + "5555ffffffffac0d", TlsPrf.ToHex(p).Substring(16, 32));
+            Equal(664, p.Length);
+        }
+
+        private static void TestLifxXml()
+        {
+            var device = CDeviceLifx.FromInfo(new CDeviceLifx.LifxInfo { Address = IPAddress.Parse("10.0.0.50"), Mac = "d073d5aabbcc", Label = "TV Strip", Product = 32, Zones = 40 });
+            Equal("Lifx_d073d5aabbcc", device.GetDeviceID());
+            Equal(CDeviceLifx.ModeStrip, device.Mode);
+            True(device.UsesStripLayout && device.ModeTextKeys != null, "a multizone light runs as strip");
+            var bulb = CDeviceLifx.FromInfo(new CDeviceLifx.LifxInfo { Address = IPAddress.Parse("10.0.0.51"), Mac = "d073d5000001", Label = "", Product = 27, Zones = 0 });
+            True(!bulb.UsesStripLayout && bulb.ModeTextKeys == null, "a bulb has one color and no modes");
+            Equal("LIFX 000001", bulb.GetDeviceName());
+            device.FramesPerSecond = 15;
+            var serializer = new System.Xml.Serialization.XmlSerializer(typeof(CDeviceLifx));
+            var writer = new System.IO.StringWriter();
+            serializer.Serialize(writer, device);
+            var copy = (CDeviceLifx)serializer.Deserialize(new System.IO.StringReader(writer.ToString()));
+            copy.SetDeviceID();
+            Equal(device.GetDeviceID(), copy.GetDeviceID());
+            Equal(40, copy.ZoneCount);
+            Equal(32, copy.ProductId);
+            Equal(CDeviceLifx.ModeStrip, copy.Mode);
+            Equal((byte)15, copy.FramesPerSecond);
+            Equal(CDeviceLifx.LanPort, copy.Port);
         }
 
         private static void TestWledLayout()

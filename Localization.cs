@@ -170,6 +170,8 @@ namespace AmbiBack
             { "openrgb_mode_single", "One color on all LEDs" },
             { "nanoleaf_mode_positions", "Panels by their place" },
             { "nanoleaf_mode_single", "One color on all panels" },
+            { "lifx_mode_zones", "Zones around the screen" },
+            { "lifx_mode_single", "One color on all zones" },
 
             // Messages
             { "msg_delete_title", "Delete “{0}”?" },
@@ -216,6 +218,8 @@ namespace AmbiBack
             { "add_nanoleaf_pair", "Hold the power button of the Nanoleaf at {0} for 5–7 seconds until the lights flash. Then click OK within 30 seconds." },
             { "add_nanoleaf_retry", "The Nanoleaf at {0} was not in pairing mode. Hold the power button for 5–7 seconds until the lights flash, then try again." },
             { "add_err_nanoleaf_title", "No Nanoleaf found" },
+            { "add_err_lifx_title", "No LIFX light found" },
+            { "add_err_lifx", "No LIFX light answered at “{0}”. Check that it is on, set up in the LIFX app and on the same network." },
             { "add_err_nanoleaf", "No Nanoleaf answered at “{0}”. Check that it is on and on the same network, or enter its IP address." },
             { "add_err_openrgb", "No OpenRGB SDK server with devices answered at “{0}” (port 6742). Start OpenRGB and click Start Server on its SDK Server tab, or start OpenRGB with --server." },
             { "add_err_govee", "No Govee light answered at “{0}”. Switch on LAN Control for the light in the Govee Home app (device settings), and check that it is on the same network." },
@@ -456,6 +460,8 @@ namespace AmbiBack
             { "openrgb_mode_single", "Eine Farbe auf allen LEDs" },
             { "nanoleaf_mode_positions", "Panels nach ihrer Lage" },
             { "nanoleaf_mode_single", "Eine Farbe auf allen Panels" },
+            { "lifx_mode_zones", "Zonen um den Bildschirm" },
+            { "lifx_mode_single", "Eine Farbe auf allen Zonen" },
 
             { "msg_delete_title", "„{0}“ löschen?" },
             { "msg_delete_text", "Das Gerät wird aus der Liste entfernt. Ist es noch im Netzwerk, fügt „Geräte suchen“ es wieder hinzu." },
@@ -499,6 +505,8 @@ namespace AmbiBack
             { "add_nanoleaf_pair", "Halte den Ein-/Aus-Knopf des Nanoleaf unter {0} 5–7 Sekunden gedrückt, bis die Lichter blinken. Klicke dann innerhalb von 30 Sekunden auf OK." },
             { "add_nanoleaf_retry", "Das Nanoleaf unter {0} war nicht im Kopplungsmodus. Halte den Ein-/Aus-Knopf 5–7 Sekunden gedrückt, bis die Lichter blinken, und versuche es dann noch einmal." },
             { "add_err_nanoleaf_title", "Kein Nanoleaf gefunden" },
+            { "add_err_lifx_title", "Keine LIFX-Lampe gefunden" },
+            { "add_err_lifx", "Unter „{0}“ hat keine LIFX-Lampe geantwortet. Prüfe, ob sie eingeschaltet, in der LIFX-App eingerichtet und im selben Netz ist." },
             { "add_err_nanoleaf", "Unter „{0}“ hat kein Nanoleaf geantwortet. Prüfe, ob es eingeschaltet und im selben Netz ist, oder gib seine IP-Adresse ein." },
             { "add_err_openrgb", "Unter „{0}“ (Port 6742) hat kein OpenRGB-SDK-Server mit Geräten geantwortet. Starte OpenRGB und klicke auf dem Reiter „SDK Server“ auf „Start Server“, oder starte OpenRGB mit --server." },
             { "add_err_govee", "Unter „{0}“ hat keine Govee-Leuchte geantwortet. Schalte in der Govee-Home-App in den Geräteeinstellungen der Leuchte „LAN-Steuerung“ ein und prüfe, ob sie im selben Netz ist." },
