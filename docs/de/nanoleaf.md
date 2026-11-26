@@ -12,13 +12,16 @@ Ein Nanoleaf nimmt nur Befehle von Programmen an, die einmal mit ihm gekoppelt w
 2. Gib die IP-Adresse des Nanoleaf ein oder lass das Feld leer: Dann nimmt AmbiBack PC das erste Nanoleaf im Netz, das noch nicht in der Liste steht.
 3. Klicke auf **OK**. AmbiBack PC bittet dich, den **Ein-/Aus-Knopf** am Nanoleaf-Controller 5–7 Sekunden gedrückt zu halten, bis die Lichter blinken. Klicke dann innerhalb von 30 Sekunden auf **OK**.
 
-War das Nanoleaf nicht im Kopplungsmodus, sagt AmbiBack PC das; halte den Knopf noch einmal und klicke auf **Wiederholen**.
+War das Nanoleaf nicht im Kopplungsmodus, sagt AmbiBack PC das; halte den Knopf noch einmal und versuche es erneut.
 
 Das Nanoleaf erscheint mit seinem Namen in der Liste. Den Schlüssel aus der Kopplung speichert AmbiBack PC geschützt für deinen Windows-Benutzer (DPAPI). **Geräte suchen** (`F5`) findet ein gekoppeltes Nanoleaf wieder, auch unter einer neuen Adresse (es wird an seiner Seriennummer erkannt). Gib ihm trotzdem eine feste IP-Adresse im Router.
 
 ## Modus wählen
 
 Wähle das Nanoleaf aus und öffne den Reiter **Gerät**. Dort steht statt der Verbindung die Einstellung *Modus*:
+
+![Nanoleaf mit der Einstellung Modus auf dem Reiter Gerät](../images/nanoleaf_device_de.png)
+
 
 | Modus | Was er macht |
 | --- | --- |

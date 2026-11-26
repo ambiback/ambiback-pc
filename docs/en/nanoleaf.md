@@ -12,13 +12,16 @@ A Nanoleaf only accepts commands from programs that were paired with it once:
 2. Enter the IP address of the Nanoleaf, or leave the field empty: AmbiBack PC then uses the first Nanoleaf on the network that is not in the list yet.
 3. Click **OK**. AmbiBack PC asks you to hold the **power button** on the Nanoleaf controller for 5–7 seconds until the lights flash. Then click **OK** within 30 seconds.
 
-If the Nanoleaf was not in pairing mode, AmbiBack PC tells you so; hold the button again and click **Retry**.
+If the Nanoleaf was not in pairing mode, AmbiBack PC tells you so; hold the button again and try once more.
 
 The Nanoleaf appears in the list with its name. AmbiBack PC keeps the key from pairing protected for your Windows user (DPAPI). **Find Devices** (`F5`) finds a paired Nanoleaf again, also under a new address (it is recognized by its serial number). Give it a fixed IP address in your router anyway.
 
 ## Choose the mode
 
 Select the Nanoleaf and open the **Device** tab. The *Mode* setting replaces the connection setting there:
+
+![Nanoleaf with the Mode setting on the Device tab](../images/nanoleaf_device_en.png)
+
 
 | Mode | What it does |
 | --- | --- |
