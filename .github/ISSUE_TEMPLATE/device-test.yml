@@ -1,0 +1,99 @@
+name: Device test report / Gerätetest melden
+description: Tell how AmbiBack PC works with your light (WLED, Govee, OpenRGB, Nanoleaf, LIFX, Hue …). Erzähl, wie AmbiBack PC mit deiner Leuchte klappt.
+title: "[Device test] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing! Every report helps, also "works fine". The steps are in the tutorial: [English](https://github.com/ambiback/ambiback-pc/blob/main/docs/en/network-lights.md) · [Deutsch](https://github.com/ambiback/ambiback-pc/blob/main/docs/de/network-lights.md).
+        Danke fürs Testen! Jede Rückmeldung hilft, auch „funktioniert“. Du kannst auf Deutsch oder Englisch schreiben.
+
+        Please leave out passwords and the auth token the Nanoleaf test prints. / Lass bitte Passwörter und den Auth-Token aus dem Nanoleaf-Test weg.
+
+  - type: dropdown
+    id: light
+    attributes:
+      label: Light type / Leuchtentyp
+      options:
+        - WLED
+        - Other DDP receiver (ESPHome, Hyperion, ESPixelStick …) / anderer DDP-Empfänger
+        - Govee
+        - OpenRGB
+        - Nanoleaf
+        - LIFX
+        - Philips Hue
+        - Other / Andere
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Model / Modell
+      description: e.g. Govee H6199, Nanoleaf Shapes, LIFX Z, the OpenRGB device name / z. B. Govee H6199, Nanoleaf Shapes, LIFX Z, der Gerätename in OpenRGB
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware (if known) / Firmware (falls bekannt)
+
+  - type: input
+    id: version
+    attributes:
+      label: AmbiBack PC version / Version von AmbiBack PC
+      description: Help › About AmbiBack PC / Hilfe › Über AmbiBack PC
+    validations:
+      required: true
+
+  - type: dropdown
+    id: found
+    attributes:
+      label: How was the light added? / Wie kam die Leuchte in die Liste?
+      options:
+        - Found on its own (Find Devices) / Von selbst gefunden (Geräte suchen)
+        - Added by hand with its address / Von Hand mit Adresse hinzugefügt
+        - Paired (Nanoleaf) / Gekoppelt (Nanoleaf)
+        - Not at all / Gar nicht
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode(s) tested / Getestete Modi
+      multiple: true
+      options:
+        - Strip, segments, zones or panels by place / Streifen, Segmente, Zonen oder Panels nach Lage
+        - One color / Eine Farbe
+        - No mode setting (WLED, LIFX bulb, Hue) / Keine Modus-Einstellung (WLED, LIFX-Glühbirne, Hue)
+
+  - type: checkboxes
+    id: worked
+    attributes:
+      label: What worked? / Was hat geklappt?
+      options:
+        - label: The light changes color when the monitor is started / Die Leuchte wechselt die Farbe, wenn der Monitor gestartet ist
+        - label: Colors appear in the right places / Die Farben erscheinen an den richtigen Stellen
+        - label: Smooth, no flicker or jumps / Flüssig, ohne Flackern oder Springen
+        - label: Back to normal after stopping / Nach dem Stoppen wieder wie vorher
+
+  - type: textarea
+    id: problems
+    attributes:
+      label: What did not work? / Was hat nicht geklappt?
+      description: What did you expect, what did you see instead? Photos or a short video help a lot. / Was hast du erwartet, was hast du stattdessen gesehen? Fotos oder ein kurzes Video helfen sehr.
+
+  - type: textarea
+    id: cli
+    attributes:
+      label: Output of the command-line test (optional) / Ausgabe des Kommandozeilentests (optional)
+      description: e.g. `AmbiBack.exe --govee-test 192.168.0.43 10`; the commands for every light are in the tutorial. / Die Befehle für jede Leuchte stehen im Tutorial.
+      render: text
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else / Sonstiges
+      description: Network (Wi-Fi/LAN, mesh), other tools that control the light, ideas … / Netzwerk (WLAN/LAN, Mesh), andere Programme, die die Leuchte steuern, Ideen …

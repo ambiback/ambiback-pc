@@ -125,7 +125,7 @@ The same happens when the monitor turns off or the PC goes to sleep.
 
 ## Report a test
 
-Every report helps, also "works fine". Please open an issue on [GitHub](https://github.com/ambiback/ambiback-pc/issues/new) and tell:
+Every report helps, also "works fine". Please fill in the **[device test form](https://github.com/ambiback/ambiback-pc/issues/new?template=device-test.yml)** on GitHub (you need a free GitHub account). It asks for:
 
 1. **The light:** brand, model (e.g. *Nanoleaf Shapes*, *LIFX Z*, *Govee H6199*) and, if you know it, the firmware.
 2. **The AmbiBack PC version** (*Help › About AmbiBack PC*).

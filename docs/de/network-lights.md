@@ -125,7 +125,7 @@ Dasselbe passiert, wenn der Monitor ausgeht oder der PC in den Ruhezustand wechs
 
 ## Test melden
 
-Jede Rückmeldung hilft, auch „funktioniert“. Bitte eröffne ein Issue auf [GitHub](https://github.com/ambiback/ambiback-pc/issues/new) (Deutsch oder Englisch) und nenne:
+Jede Rückmeldung hilft, auch „funktioniert“. Bitte füll auf GitHub das **[Formular „Gerätetest melden“](https://github.com/ambiback/ambiback-pc/issues/new?template=device-test.yml)** aus (Deutsch oder Englisch; du brauchst ein kostenloses GitHub-Konto). Es fragt nach:
 
 1. **Die Leuchte:** Marke, Modell (z. B. *Nanoleaf Shapes*, *LIFX Z*, *Govee H6199*) und, falls bekannt, die Firmware.
 2. **Die Version von AmbiBack PC** (*Hilfe › Über AmbiBack PC*).
