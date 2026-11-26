@@ -14,7 +14,7 @@
 
 ## Windows-Firewall
 
-AmbiBack schickt eine Suchanfrage ins Netzwerk und empfängt die Antworten der AmbiBack-Controller auf **UDP-Port 1337**. Die Windows-Firewall muss diese Antworten durchlassen. Das Senden der Farben und alles rund um Philips Hue sind ausgehende Verbindungen und davon nicht betroffen.
+AmbiBack schickt eine Suchanfrage ins Netzwerk und empfängt die Antworten der AmbiBack-Controller auf **UDP-Port 1337** und der Govee-Leuchten auf **UDP-Port 4002**. Die Windows-Firewall muss diese Antworten durchlassen. Das Senden der Farben und alles rund um Philips Hue sind ausgehende Verbindungen und davon nicht betroffen.
 
 **Beim ersten Start** fragt Windows, ob AmbiBack kommunizieren darf. Hake **Private Netzwerke** an und klicke auf **Zulassen**.
 
@@ -27,7 +27,7 @@ AmbiBack schickt eine Suchanfrage ins Netzwerk und empfängt die Antworten der A
 **Oder mit PowerShell** (als Administrator ausführen; den Pfad bei einer Installation für alle Benutzer oder der ZIP-Version anpassen):
 
 ```powershell
-New-NetFirewallRule -DisplayName "AmbiBack PC" -Direction Inbound -Action Allow -Protocol UDP -LocalPort 1337 -Profile Private -Program "$env:LOCALAPPDATA\Programs\AmbiBack\AmbiBack.exe"
+New-NetFirewallRule -DisplayName "AmbiBack PC" -Direction Inbound -Action Allow -Protocol UDP -LocalPort 1337,4002 -Profile Private -Program "$env:LOCALAPPDATA\Programs\AmbiBack\AmbiBack.exe"
 ```
 
 Bei einer Installation für alle Benutzer ist das Programm `C:\Program Files\AmbiBack\AmbiBack.exe`.

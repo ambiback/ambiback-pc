@@ -49,7 +49,7 @@ Das Starten einer portablen Kopie ändert den Windows-Autostart nicht. Ist AmbiB
 ## Erster Start
 
 1. AmbiBack sucht im Netzwerk und an den USB-Anschlüssen nach Geräten.
-2. Die **Windows-Firewall** fragt eventuell, ob AmbiBack in Netzwerken kommunizieren darf. Erlaube es für **private Netzwerke**. AmbiBack empfängt die Antworten der AmbiBack-Controller auf UDP-Port 1337; blockierst du das, findet die Suche keine Controller. Siehe [Problemlösung › Firewall](troubleshooting.md#windows-firewall).
+2. Die **Windows-Firewall** fragt eventuell, ob AmbiBack in Netzwerken kommunizieren darf. Erlaube es für **private Netzwerke**. AmbiBack empfängt die Antworten der AmbiBack-Controller auf UDP-Port 1337 und der Govee-Leuchten auf UDP-Port 4002; blockierst du das, findet die Suche keines von beiden. Siehe [Problemlösung › Firewall](troubleshooting.md#windows-firewall).
 3. Das Hauptfenster öffnet sich. Weiter mit dem [Schnellstart](quick-start.md).
 
 AmbiBack läuft nur einmal. Ein zweiter Start holt das offene Fenster nach vorne.

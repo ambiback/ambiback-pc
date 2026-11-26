@@ -19,7 +19,7 @@ namespace AmbiBack
         static int Main(string[] args)
         {
             // Command line self tests of the Hue and WLED streaming code (no UI, no second instance check)
-            if (args.Length > 0 && (args[0].StartsWith("--hue-", StringComparison.Ordinal) || args[0] == "--wled-test"))
+            if (args.Length > 0 && (args[0].StartsWith("--hue-", StringComparison.Ordinal) || args[0] == "--wled-test" || args[0] == "--govee-test"))
                 return RunHueSelfTest(args);
 
             try
@@ -196,6 +196,13 @@ namespace AmbiBack
                 int seconds = args.Length > 2 && int.TryParse(args[2], out int s) ? s : 10;
                 return CDeviceWled.RunStreamTest(args[1], seconds, line => Console.WriteLine(line)) ? 0 : 1;
             }
+            else if (args[0] == "--govee-test" && args.Length >= 2)
+            {
+                // Streams a moving test picture to a Govee light over the LAN API
+                int seconds = args.Length > 2 && int.TryParse(args[2], out int s) ? s : 10;
+                bool single = Array.IndexOf(args, "single") > 1;
+                return CDeviceGovee.RunStreamTest(args[1], seconds, single, line => Console.WriteLine(line)) ? 0 : 1;
+            }
             else if (args[0] == "--hue-bridge-info" && args.Length >= 3)
             {
                 return AmbiBack.PhilipsHue.HueSelfTest.RunBridgeInfo(args[1], args[2], line => Console.WriteLine(line)) ? 0 : 1;
@@ -221,6 +228,7 @@ namespace AmbiBack
                 report.AppendLine("       AmbiBack.exe --hue-bridge-test bridge-ip credfile [area-index] [seconds] [report.txt] [--simulate-loss]");
                 report.AppendLine("       AmbiBack.exe --hue-dtls-interop host port identity pskhex [report.txt]");
                 report.AppendLine("       AmbiBack.exe --wled-test host [seconds]");
+                report.AppendLine("       AmbiBack.exe --govee-test host [seconds] [single]");
                 ok = false;
             }
             Console.Write(report.ToString());

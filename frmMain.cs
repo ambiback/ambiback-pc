@@ -518,7 +518,7 @@ namespace AmbiBack
                     LVDevices.Items.Add(deviceListItem);
                 }
             }
-            else if (myDevice is CDeviceWled wledDevice)
+            else if (myDevice is CDeviceLedStrip wledDevice)
             {
                 string szAddress = wledDevice.GetIPAddress() != null ? wledDevice.GetIPAddress().ToString() : "";
                 if (LVDevices.Items.IndexOfKey(szDeviceId) >= 0)
@@ -569,6 +569,69 @@ namespace AmbiBack
             UpdateDeviceSummary();
 
         }
+        #region Govee mode row
+        /// <summary>Mode of a Govee light (segments or single color), shown in place of the connection type.</summary>
+        private ComboBox cbGoveeMode;
+
+        private void InitGoveeModeRow()
+        {
+            cbGoveeMode = new ComboBox
+            {
+                Name = "cbGoveeMode",
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Visible = false,
+                TabIndex = cbConnectionType.TabIndex,
+            };
+            cbGoveeMode.Items.Add(L.T("govee_mode_segments"));
+            cbGoveeMode.Items.Add(L.T("govee_mode_single"));
+            cbGoveeMode.SelectedIndexChanged += cbGoveeMode_SelectedIndexChanged;
+            tabAdvanced.Controls.Add(cbGoveeMode);
+        }
+
+        private void ShowGoveeModeRow(CDeviceGovee govee)
+        {
+            if (cbGoveeMode == null)
+                return;
+            bool show = govee != null;
+            if (show)
+            {
+                cbGoveeMode.Bounds = cbConnectionType.Bounds;
+                cbGoveeMode.Anchor = cbConnectionType.Anchor;
+                cbGoveeMode.Font = cbConnectionType.Font;
+                cbGoveeMode.FlatStyle = cbConnectionType.FlatStyle;
+                cbGoveeMode.BackColor = cbConnectionType.BackColor;
+                cbGoveeMode.ForeColor = cbConnectionType.ForeColor;
+                cbGoveeMode.SelectedIndexChanged -= cbGoveeMode_SelectedIndexChanged;
+                cbGoveeMode.SelectedIndex = Math.Min((int)govee.Mode, cbGoveeMode.Items.Count - 1);
+                cbGoveeMode.SelectedIndexChanged += cbGoveeMode_SelectedIndexChanged;
+            }
+            cbGoveeMode.Visible = show;
+            cbConnectionType.Visible = !show;
+            lblConnectionType.Text = L.T(show ? "lbl_govee_mode" : "lbl_conntype");
+        }
+
+        /// <summary>Texts of the mode row after a language change.</summary>
+        private void ApplyGoveeModeTexts()
+        {
+            if (cbGoveeMode == null)
+                return;
+            cbGoveeMode.SelectedIndexChanged -= cbGoveeMode_SelectedIndexChanged;
+            cbGoveeMode.Items[0] = L.T("govee_mode_segments");
+            cbGoveeMode.Items[1] = L.T("govee_mode_single");
+            cbGoveeMode.SelectedIndexChanged += cbGoveeMode_SelectedIndexChanged;
+            if (cbGoveeMode.Visible)
+                lblConnectionType.Text = L.T("lbl_govee_mode");
+        }
+
+        private void cbGoveeMode_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (currentSelectedDevice is CDeviceGovee govee && cbGoveeMode.SelectedIndex >= 0)
+                govee.Mode = (byte)cbGoveeMode.SelectedIndex;
+            if (cbGoveeMode.SelectedItem != null)
+                TTHelper.SetToolTip(cbGoveeMode, cbGoveeMode.SelectedItem.ToString());
+        }
+        #endregion
+
         private void InitFormControls()
         {
             // Disable Options by default
@@ -580,6 +643,7 @@ namespace AmbiBack
             cbConnectionType.Items.Add(CGlobals.CONNECTIONTYPES[(byte)ConnectionTypes.TCP]);
             cbConnectionType.Items.Add(CGlobals.CONNECTIONTYPES[(byte)ConnectionTypes.UDP]);
             cbConnectionType.Items.Add(CGlobals.CONNECTIONTYPES[(byte)ConnectionTypes.USB]);
+            InitGoveeModeRow();
 
             // Preinit Devices List
             foreach (CDevice myDevice in CGlobals.mainConfig.Devices.GetDeviceList())
@@ -1203,7 +1267,7 @@ namespace AmbiBack
                     {
                         hueArea.ColorRedPercent = (byte)myTrackBar.Value;
                     }
-                    else if (currentSelectedDevice is CDeviceWled wled)
+                    else if (currentSelectedDevice is CDeviceLedStrip wled)
                     {
                         wled.ColorRedPercent = (byte)myTrackBar.Value;
                     }
@@ -1244,7 +1308,7 @@ namespace AmbiBack
                     {
                         hueArea.ColorGreenPercent = (byte)myTrackBar.Value;
                     }
-                    else if (currentSelectedDevice is CDeviceWled wled)
+                    else if (currentSelectedDevice is CDeviceLedStrip wled)
                     {
                         wled.ColorGreenPercent = (byte)myTrackBar.Value;
                     }
@@ -1285,7 +1349,7 @@ namespace AmbiBack
                     {
                         hueArea.ColorBluePercent = (byte)myTrackBar.Value;
                     }
-                    else if (currentSelectedDevice is CDeviceWled wled)
+                    else if (currentSelectedDevice is CDeviceLedStrip wled)
                     {
                         wled.ColorBluePercent = (byte)myTrackBar.Value;
                     }
@@ -1326,7 +1390,7 @@ namespace AmbiBack
                     {
                         hueArea.MaxBrightnessPercent = (byte)myTrackBar.Value;
                     }
-                    else if (currentSelectedDevice is CDeviceWled wled)
+                    else if (currentSelectedDevice is CDeviceLedStrip wled)
                     {
                         wled.MaxBrightnessPercent = (byte)myTrackBar.Value;
                     }
@@ -1367,7 +1431,7 @@ namespace AmbiBack
                     {
                         hueArea.MinimumLuminosityPercent = (byte)myTrackBar.Value;
                     }
-                    else if (currentSelectedDevice is CDeviceWled wled)
+                    else if (currentSelectedDevice is CDeviceLedStrip wled)
                     {
                         wled.MinimumLuminosityPercent = (byte)myTrackBar.Value;
                     }
@@ -1405,7 +1469,7 @@ namespace AmbiBack
                         philipsHueDevice.FrameDelay = (byte)myTrackBar.Value;
                         philipsHueDevice.SendFrameDelay();
                     }
-                    else if (currentSelectedDevice is CDeviceWled wled)
+                    else if (currentSelectedDevice is CDeviceLedStrip wled)
                     {
                         wled.FrameDelay = myTrackBar.Value;    // smoothing in AmbiBack PC
                     }
@@ -1446,7 +1510,7 @@ namespace AmbiBack
                     {
                         hueArea.ValueGainPercent = myTrackBar.Value;
                     }
-                    else if (currentSelectedDevice is CDeviceWled wled)
+                    else if (currentSelectedDevice is CDeviceLedStrip wled)
                     {
                         wled.ValueGainPercent = myTrackBar.Value;
                     }
@@ -1498,7 +1562,7 @@ namespace AmbiBack
                     {
                         hueArea.ColorBoostPercent = (byte)myTrackBar.Value;
                     }
-                    else if (currentSelectedDevice is CDeviceWled wled)
+                    else if (currentSelectedDevice is CDeviceLedStrip wled)
                     {
                         wled.ColorBoostPercent = (byte)myTrackBar.Value;
                     }
@@ -1548,7 +1612,7 @@ namespace AmbiBack
                     {
                         hueArea.FramesPerSecond = (byte)myTrackBar.Value;
                     }
-                    else if (currentSelectedDevice is CDeviceWled wled)
+                    else if (currentSelectedDevice is CDeviceLedStrip wled)
                     {
                         wled.FramesPerSecond = (byte)myTrackBar.Value;
                     }
@@ -1595,7 +1659,7 @@ namespace AmbiBack
                         hueArea.InnerSizePercent = (byte)myTrackBar.Value;
                         hueArea.RecalculateScanAreas();
                     }
-                    else if (currentSelectedDevice is CDeviceWled wled)
+                    else if (currentSelectedDevice is CDeviceLedStrip wled)
                     {
                         wled.InnerSizePercent = (byte)myTrackBar.Value;
                         wled.RecalculateScanAreas();
@@ -1773,6 +1837,9 @@ namespace AmbiBack
                     this.tbFramesPerSecond.Enabled = selectedDevice.EditFrameDelay;
                     this.tbFramesPerSecond.Enabled = selectedDevice.EditFramesPerSecond;
 
+                    // Govee lights use the connection row for their mode
+                    ShowGoveeModeRow(selectedDevice as CDeviceGovee);
+
 #if USE_DREAMSCREEN
                     // Device bases settings 
                     if (selectedDevice.GetType().ToString() == "AmbiBack.CDeviceDreamScreen")
@@ -1877,7 +1944,7 @@ namespace AmbiBack
                         this.currentSelectedDevice = hueArea;
                         bEnableOptions = true;
                     }
-                    else if (selectedDevice is CDeviceWled wled)
+                    else if (selectedDevice is CDeviceLedStrip wled)
                     {
                         tbInnerPicture.Value = Math.Max(tbInnerPicture.Minimum, Math.Min(tbInnerPicture.Maximum, (int)wled.InnerSizePercent));
                         tbFramesPerSecond.Value = Math.Max(tbFramesPerSecond.Minimum, Math.Min(tbFramesPerSecond.Maximum, (int)wled.FramesPerSecond));
@@ -2052,7 +2119,7 @@ namespace AmbiBack
                         // NOT SUPPORTED TO SAVE NAME YET!
                         philipsHueDevice.SendDeviceName();
                     }
-                    else if (currentSelectedDevice is CDeviceWled wled)
+                    else if (currentSelectedDevice is CDeviceLedStrip wled)
                     {
                         wled.SetDeviceName(myTextBox.Text);
                     }

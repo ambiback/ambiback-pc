@@ -163,6 +163,9 @@ namespace AmbiBack
             { "conn_tcp", "TCP (needs a stable Wi-Fi)" },
             { "conn_udp", "UDP (any Wi-Fi)" },
             { "conn_usb", "USB (serial)" },
+            { "lbl_govee_mode", "Mode" },
+            { "govee_mode_segments", "Segments (DreamView)" },
+            { "govee_mode_single", "Single color (any model)" },
 
             // Messages
             { "msg_delete_title", "Delete “{0}”?" },
@@ -203,6 +206,8 @@ namespace AmbiBack
             { "add_auto", "Detect the device type automatically" },
             { "add_type", "Device type" },
             { "add_err_resolve_title", "Address not found" },
+            { "add_err_govee_title", "No Govee light found" },
+            { "add_err_govee", "No Govee light answered at “{0}”. Switch on LAN Control for the light in the Govee Home app (device settings), and check that it is on the same network." },
             { "add_err_resolve", "“{0}” could not be found on the network. Check the spelling and that the device is turned on." },
             { "add_err_ip_title", "Invalid address" },
             { "add_err_ip", "“{0}” is not a valid IP address. Enter an address like 192.168.0.10." },
@@ -433,6 +438,9 @@ namespace AmbiBack
             { "conn_tcp", "TCP (braucht stabiles WLAN)" },
             { "conn_udp", "UDP (jedes WLAN)" },
             { "conn_usb", "USB (seriell)" },
+            { "lbl_govee_mode", "Modus" },
+            { "govee_mode_segments", "Segmente (DreamView)" },
+            { "govee_mode_single", "Einzelfarbe (jedes Modell)" },
 
             { "msg_delete_title", "„{0}“ löschen?" },
             { "msg_delete_text", "Das Gerät wird aus der Liste entfernt. Ist es noch im Netzwerk, fügt „Geräte suchen“ es wieder hinzu." },
@@ -470,6 +478,8 @@ namespace AmbiBack
             { "add_auto", "Gerätetyp automatisch erkennen" },
             { "add_type", "Gerätetyp" },
             { "add_err_resolve_title", "Adresse nicht gefunden" },
+            { "add_err_govee_title", "Keine Govee-Leuchte gefunden" },
+            { "add_err_govee", "Unter „{0}“ hat keine Govee-Leuchte geantwortet. Schalte in der Govee-Home-App in den Geräteeinstellungen der Leuchte „LAN-Steuerung“ ein und prüfe, ob sie im selben Netz ist." },
             { "add_err_resolve", "„{0}“ wurde im Netzwerk nicht gefunden. Prüfe die Schreibweise und ob das Gerät eingeschaltet ist." },
             { "add_err_ip_title", "Ungültige Adresse" },
             { "add_err_ip", "„{0}“ ist keine gültige IP-Adresse. Gib eine Adresse wie 192.168.0.10 ein." },

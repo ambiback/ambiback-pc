@@ -49,7 +49,7 @@ Starting a portable copy does not change the Windows autostart. If AmbiBack is a
 ## First start
 
 1. AmbiBack searches the network and the USB ports for devices.
-2. **Windows Firewall** may ask whether AmbiBack may communicate on networks. Allow it on **private networks**. AmbiBack receives the answers of AmbiBack controllers on UDP port 1337; if you block it, the search finds no controllers. See [Troubleshooting › Firewall](troubleshooting.md#windows-firewall).
+2. **Windows Firewall** may ask whether AmbiBack may communicate on networks. Allow it on **private networks**. AmbiBack receives the answers of AmbiBack controllers on UDP port 1337 and of Govee lights on UDP port 4002; if you block it, the search finds neither. See [Troubleshooting › Firewall](troubleshooting.md#windows-firewall).
 3. The main window opens. Continue with the [Quick start](quick-start.md).
 
 Only one AmbiBack runs at a time. Starting it again brings the open window to the front.

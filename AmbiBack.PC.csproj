@@ -125,6 +125,8 @@
     <Compile Include="CDeviceAmbiBack.cs" />
     <Compile Include="CDevicePhilipsHueLight.cs" />
     <Compile Include="CDeviceHueEntertainment.cs" />
+    <Compile Include="CDeviceGovee.cs" />
+    <Compile Include="CDeviceLedStrip.cs" />
     <Compile Include="CDeviceWled.cs" />
     <Compile Include="ILedStripLayout.cs" />
     <Compile Include="CDevicesController.cs" />

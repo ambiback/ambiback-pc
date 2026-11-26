@@ -55,6 +55,11 @@ namespace AmbiBack.PhilipsHue
                 Test("WLED: device XML round trip", TestWledXml),
                 Test("WLED: layout for the reported LED count", TestWledLayout),
                 Test("Strip regions: AmbiBack controller and WLED match", TestStripRectangles),
+                Test("Govee: razer on/off packets", TestGoveeRazerEnable),
+                Test("Govee: razer segment colors", TestGoveeRazerColors),
+                Test("Govee: LAN commands as JSON", TestGoveeCommands),
+                Test("Govee: scan answer parsing", TestGoveeScan),
+                Test("Govee: device XML round trip", TestGoveeXml),
                 Test("mDNS query for _wled._tcp.local", () => Equal("000000000001000000000000" + "055f776c6564" + "045f746370" + "056c6f63616c" + "00" + "000c8001",
                     TlsPrf.ToHex(HueDiscovery.BuildMdnsQuery("_wled")))),
             };
@@ -560,6 +565,82 @@ namespace AmbiBack.PhilipsHue
             Equal((byte)90, copy.ColorRedPercent);
             Equal(94, copy.ReceiverLedCount);
             Equal("WLED 0.15.0", copy.ReceiverInfo);
+        }
+
+        private static void TestGoveeRazerEnable()
+        {
+            // Bytes and base64 as used by Govee's DreamView / Razer integration
+            Equal("bb0001b1010a", TlsPrf.ToHex(CDeviceGovee.RazerEnablePacket(true)));
+            Equal("bb0001b1000b", TlsPrf.ToHex(CDeviceGovee.RazerEnablePacket(false)));
+            Equal("uwABsQEK", Convert.ToBase64String(CDeviceGovee.RazerEnablePacket(true)));
+            Equal("uwABsQAL", Convert.ToBase64String(CDeviceGovee.RazerEnablePacket(false)));
+        }
+
+        private static void TestGoveeRazerColors()
+        {
+            byte[] colors = { 0xFF, 0x00, 0x00, 0x00, 0x80, 0x40 };
+            byte[] p = CDeviceGovee.RazerColorPacket(colors, 2);
+            // BB, length 2 + 3 * 2 = 8, B0, no gradient, 2 colors, RGB RGB, XOR of all bytes before
+            byte xor = 0;
+            for (int i = 0; i < p.Length - 1; i++)
+                xor ^= p[i];
+            Equal("bb0008b00002ff0000008040", TlsPrf.ToHex(p).Substring(0, 24));
+            Equal(13, p.Length);
+            Equal(xor, p[p.Length - 1]);
+
+            // More LEDs than one frame takes: capped at 255, length in two bytes
+            byte[] big = CDeviceGovee.RazerColorPacket(new byte[300 * 3], 300);
+            Equal(255, (int)big[5]);
+            Equal(2 + 3 * 255, big[1] << 8 | big[2]);
+            Equal(4 + 2 + 3 * 255 + 1, big.Length);
+        }
+
+        private static void TestGoveeCommands()
+        {
+            Equal("{\"msg\":{\"cmd\":\"razer\",\"data\":{\"pt\":\"uwABsQEK\"}}}", CDeviceGovee.RazerCommand(CDeviceGovee.RazerEnablePacket(true)));
+            Equal("{\"msg\":{\"cmd\":\"turn\",\"data\":{\"value\":1}}}", CDeviceGovee.TurnCommand(true));
+            var color = Newtonsoft.Json.Linq.JObject.Parse(CDeviceGovee.ColorCommand(10, 20, 30));
+            Equal("colorwc", (string)color["msg"]["cmd"]);
+            Equal(20, (int)color["msg"]["data"]["color"]["g"]);
+            Equal(0, (int)color["msg"]["data"]["colorTemInKelvin"]);
+            Equal(0x0A141E, CDeviceGovee.AverageColor(new byte[] { 0, 0, 0, 20, 40, 60 }, 2));
+        }
+
+        private static void TestGoveeScan()
+        {
+            var info = CDeviceGovee.ParseScanResponse("{\"msg\":{\"cmd\":\"scan\",\"data\":{\"ip\":\"192.168.1.23\",\"device\":\"1F:80:C5:32:32:36:72:4E\",\"sku\":\"H6199\",\"bleVersionHard\":\"3.01.01\",\"bleVersionSoft\":\"1.03.01\",\"wifiVersionHard\":\"1.00.10\",\"wifiVersionSoft\":\"1.02.03\"}}}");
+            Equal(IPAddress.Parse("192.168.1.23"), info.Address);
+            Equal("H6199", info.Sku);
+            Equal("1.02.03", info.WifiVersion);
+            var device = CDeviceGovee.FromInfo(info);
+            Equal("GoveeLan_1f80c5323236724e", device.GetDeviceID());
+            Equal("Govee H6199", device.GetDeviceName());
+            True(CDeviceGovee.ParseScanResponse("{\"msg\":{\"cmd\":\"devStatus\",\"data\":{}}}") == null, "only scan answers count");
+        }
+
+        private static void TestGoveeXml()
+        {
+            var device = new CDeviceGovee("TV light bars", IPAddress.Parse("10.0.0.9"))
+            {
+                PixelHori = 6, PixelVert = 4, Mode = CDeviceGovee.ModeSingleColor, FramesPerSecond = 20,
+                FrameDelay = 200, ColorBluePercent = 80, ReceiverInfo = "H6046", InternalNetworkMAC = "1f80c5323236724e",
+            };
+            device.SetDeviceID();
+            var serializer = new System.Xml.Serialization.XmlSerializer(typeof(CDeviceGovee));
+            var writer = new System.IO.StringWriter();
+            serializer.Serialize(writer, device);
+            var copy = (CDeviceGovee)serializer.Deserialize(new System.IO.StringReader(writer.ToString()));
+            copy.SetDeviceID();
+            Equal(device.GetDeviceID(), copy.GetDeviceID());
+            Equal(IPAddress.Parse("10.0.0.9"), copy.GetIPAddress());
+            Equal((byte)6, copy.PixelHori);
+            Equal((byte)4, copy.PixelVert);
+            Equal(CDeviceGovee.ModeSingleColor, copy.Mode);
+            Equal(CDeviceGovee.ControlPort, copy.Port);
+            Equal((byte)20, copy.FramesPerSecond);
+            Equal(200, copy.FrameDelay);
+            Equal((byte)80, copy.ColorBluePercent);
+            Equal("H6046", copy.ReceiverInfo);
         }
 
         private static void TestWledLayout()
