@@ -39,6 +39,9 @@ namespace AmbiBack
         public event ScreenHelperReceivedScreenshot ReceivedScreenshot;
         public event EventUpdateStatus UpdateStatus;
         public event EventDebugOutput DebugOutput;
+
+        /// <summary>Raised on the capture thread: true when no frames arrive because of an error, false when they do again.</summary>
+        public event Action<bool> CaptureStateChanged;
         #endregion
 
         #region DX API STUFF
@@ -89,6 +92,18 @@ namespace AmbiBack
 
         // Duplicate the output
         OutputDuplication duplicatedOutput = null;
+
+        // Recreate factory, adapter, device and output before the next capture (device removed,
+        // unexpected errors, or the duplication cannot be created again on the old output)
+        volatile bool bReinitSharpDX = false;
+
+        // Failed attempts to create the duplication in a row; after this many the DXGI objects are
+        // recreated, as the output may be stale after the display was off or the session switched
+        int iInitFailures = 0;
+        const int INIT_FAILURES_BEFORE_REINIT = 5;
+
+        // True while no frames arrive because of an error; logged once when it starts and ends
+        bool bCaptureLost = false;
         #endregion
 
         // Bitmap helper 
@@ -120,10 +135,14 @@ namespace AmbiBack
         public void InitSharpDX()
         {
             /* Cleanup old handles */
-            if (factory != null)
+            if (factory != null) {
                 factory.Dispose();
-            if (device != null)
+                factory = null;
+            }
+            if (device != null) {
                 device.Dispose();
+                device = null;
+            }
             if (adapter != null) {
                 adapter.Dispose();
                 adapter = null;
@@ -321,27 +340,46 @@ namespace AmbiBack
 
                     while (true)
                     {
+                      // Any error in here must not end the thread: Stop/Start cannot bring a finished
+                      // thread back, and the lights would keep the last colors (e.g. the logon screen)
+                      try
+                      {
                         try
                         {
+                            // Recreate the DXGI objects: after the display was off or the session switched
+                            // the old output can be stale, so creating the duplication on it keeps failing
+                            if (this.bReinitSharpDX || this.iInitFailures >= INIT_FAILURES_BEFORE_REINIT) {
+                                CGlobals.DebugOutput("HandleThread:InitSharpDX after " + this.iInitFailures + " failed attempts");
+                                this.bReinitSharpDX = false;
+                                this.iInitFailures = 0;
+                                this.DestroyDuplicatedOutput();
+                                this.FreeScreenHelpers();
+                                this.InitSharpDX();
+                            }
+
                             // ReInit Dup Output, and the textures: the desktop size may have changed (AccessLost)
                             if (this.duplicatedOutput == null) {
                                 CGlobals.DebugOutput("HandleThread:InitDuplicatedOutput");
                                 this.InitScreenHelpers();
                                 this.InitDuplicatedOutput();
+                                this.iInitFailures = 0;
                             }
                         }
-                        catch (SharpDXException ex)
+                        catch (Exception ex) when (!(ex is ThreadInterruptedException) && !(ex is ThreadAbortException))
                         {
-                            CGlobals.DebugOutput("HandleThread:InitDuplicatedOutput:" + ex.ResultCode.Code.ToString());
-//                            if (ex.ResultCode.Code == SharpDX.DXGI.ResultCode.AccessDenied.Result.Code)
-
-                            // Try again in ONE second
-                            Thread.Sleep(1000);
+                            // E_ACCESSDENIED while the logon or lock screen is shown is expected
+                            string szReason = (ex is SharpDXException sdx) ? sdx.ResultCode.ToString() : ex.GetType().Name + ": " + ex.Message;
+                            CGlobals.DebugOutput("HandleThread:InitDuplicatedOutput:" + szReason);
+                            this.SetCaptureLost(szReason);
+                            this.iInitFailures++;
 
                             // Make sure to Destroy dup output
                             this.DestroyDuplicatedOutput();
+
+                            // Try again in ONE second
+                            Thread.Sleep(1000);
                         }
-                        
+
                         /* Process only on if dup output available */
                         if (this.duplicatedOutput != null)
                         {
@@ -354,6 +392,8 @@ namespace AmbiBack
                             }
                             if (bmpScreenshot == null)
                                 throw (new Exception("ERROR COULD NOT GRAB SCREENSHOT"));
+
+                            this.SetCaptureRecovered();
 
                             if (ReceivedScreenshot != null)
                                 ReceivedScreenshot(this, null, bmpScreenshot);
@@ -381,7 +421,16 @@ namespace AmbiBack
                             }
 */
                         }
-
+                      }
+                      catch (Exception ex) when (!(ex is ThreadInterruptedException) && !(ex is ThreadAbortException))
+                      {
+                          // Unexpected error: start over with new DXGI objects instead of ending the thread
+                          CGlobals.DebugOutput(ex);
+                          this.SetCaptureLost(ex.GetType().Name + ": " + ex.Message);
+                          this.DestroyDuplicatedOutput();
+                          this.bReinitSharpDX = true;
+                          Thread.Sleep(1000);
+                      }
                     }
                 }
                 catch (ThreadInterruptedException)
@@ -396,6 +445,10 @@ namespace AmbiBack
                         Thread.Sleep(1);
                         // Thread.SpinWait(10000000);
                     }
+
+                    // Stop/Start is the user's way to reset the capture: begin with new DXGI objects
+                    this.DestroyDuplicatedOutput();
+                    this.bReinitSharpDX = true;
 
                     // Interrupted
                     if (DebugOutput != null)
@@ -428,6 +481,28 @@ namespace AmbiBack
             if (DebugOutput != null)
                 DebugOutput(this, null, "HandleThread|Finished Thread");
         }
+        /// <summary>No frames arrive any more: log it once and show it instead of the last frame rate.</summary>
+        void SetCaptureLost(string szReason)
+        {
+            if (this.bCaptureLost)
+                return;
+            this.bCaptureLost = true;
+            CGlobals.LogEvent("Capture of adapter " + numAdapter + " output " + numOutput + " interrupted: " + szReason);
+            CaptureStateChanged?.Invoke(true);
+            if (UpdateStatus != null)
+                UpdateStatus(this, null, L.T("mon_waiting"));
+        }
+
+        /// <summary>Frames arrive again after SetCaptureLost.</summary>
+        void SetCaptureRecovered()
+        {
+            if (!this.bCaptureLost)
+                return;
+            this.bCaptureLost = false;
+            CGlobals.LogEvent("Capture of adapter " + numAdapter + " output " + numOutput + " running again");
+            CaptureStateChanged?.Invoke(false);
+        }
+
         public void CreateThread()
         {
             if (myThread == null)
@@ -446,6 +521,17 @@ namespace AmbiBack
             {
                 // Reset Abort Thread
                 this.SetAbortThread(false);
+
+                // A finished thread cannot be started again: replace it, so Start always resumes capturing
+                if (myThread != null &&
+                    (myThread.ThreadState & (System.Threading.ThreadState.Stopped | System.Threading.ThreadState.Aborted)) != 0)
+                {
+                    CGlobals.LogEvent("Capture thread of adapter " + numAdapter + " output " + numOutput + " had ended (" + myThread.ThreadState + "), starting a new one");
+                    myThread.Join(100);
+                    myThread = null;
+                    this.SetSleepThread(false);
+                    this.bReinitSharpDX = true;
+                }
 
                 // Create new Thread each time we start!
                 CreateThread();
@@ -617,7 +703,8 @@ namespace AmbiBack
             {
                 CGlobals.DebugOutput("screenhelper:GetImageFromSharpDX:SharpDXException:" + e.ToString());
                 if (e.ResultCode.Code == SharpDX.DXGI.ResultCode.AccessLost.Result.Code) {
-                    // DXGI_ERROR_ACCESS_LOST - Access was lost
+                    // DXGI_ERROR_ACCESS_LOST - Access was lost (display off, lock screen, mode change)
+                    this.SetCaptureLost("AccessLost");
 
                     // Do Events first!
                     Application.DoEvents();
@@ -635,6 +722,7 @@ namespace AmbiBack
                     this.DestroyDuplicatedOutput();
                 } else if (e.ResultCode.Code == SharpDX.DXGI.ResultCode.DeviceRemoved.Result.Code) {
                     // DXGI_ERROR_DEVICE_REMOVED - Device was removed
+                    this.SetCaptureLost("DeviceRemoved");
 
                     // Do Events first!
                     Application.DoEvents();
@@ -651,17 +739,21 @@ namespace AmbiBack
                     // Destroy Dupl Output
                     this.DestroyDuplicatedOutput();
 
-                    // ReInit SharpDX
-                    this.InitSharpDX();
+                    // ReInit SharpDX in HandleThread, where a failure is retried
+                    this.bReinitSharpDX = true;
                 }
                 else
                 {
-                    throw e;
+                    // Unknown DXGI error: start over with new DXGI objects
+                    this.SetCaptureLost(e.ResultCode.ToString());
+                    this.DestroyDuplicatedOutput();
+                    this.bReinitSharpDX = true;
                 }
             }
             catch (Exception ex)
             {
                 CGlobals.DebugOutput("screenhelper:GetImageFromSharpDX:Exception:" + ex.ToString());
+                this.SetCaptureLost(ex.GetType().Name + ": " + ex.Message);
 
                 // Destroy dup output and try again
                 this.DestroyDuplicatedOutput();

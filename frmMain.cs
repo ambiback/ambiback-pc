@@ -907,12 +907,12 @@ namespace AmbiBack
                         if (lparam == -1)
                         {
                             CGlobals.monitorPowerStatus = true;
-                            CGlobals.DebugOutput("frmmain:WndProc:WM_SYSCOMMAND:SC_MONITORPOWER:MonitorState:ON");
+                            CGlobals.LogEvent("frmmain:WndProc:WM_SYSCOMMAND:SC_MONITORPOWER:MonitorState:ON");
                         }
                         else
                         {
                             CGlobals.monitorPowerStatus = false;
-                            CGlobals.DebugOutput("frmmain:WndProc:WM_SYSCOMMAND:SC_MONITORPOWER:MonitorState:OFF - " + lparam.ToString("X4"));
+                            CGlobals.LogEvent("frmmain:WndProc:WM_SYSCOMMAND:SC_MONITORPOWER:MonitorState:OFF - " + lparam.ToString("X4"));
                         }
                     }
                     break;
@@ -932,7 +932,7 @@ namespace AmbiBack
                         {
                             // Finally the correct Power Setting GUID!
                             CGlobals.monitorPowerStatus = (ps.Data == 0) ? false : true;
-                            CGlobals.DebugOutput("frmmain:WndProc:WM_POWERBROADCAST:PBT_POWERSETTINGCHANGE:GUID_CONSOLE_DISPLAY_STATE:" + CGlobals.monitorPowerStatus.ToString() + "(" + ps.Data.ToString() + ")");
+                            CGlobals.LogEvent("frmmain:WndProc:WM_POWERBROADCAST:PBT_POWERSETTINGCHANGE:GUID_CONSOLE_DISPLAY_STATE:" + CGlobals.monitorPowerStatus.ToString() + "(" + ps.Data.ToString() + ")");
                         }
                     }
                     break;

@@ -33,6 +33,14 @@ namespace AmbiBack
         // Global Screen Bitmaps Helpers
         // Latest frame of the monitor this device is linked to (set by AmbiMonitor)
         public FrameBuffer Frame = null;
+
+        /// <summary>
+        /// True while the monitor capture has been interrupted for a few seconds (lock or logon screen,
+        /// DXGI errors). The frame is stale then; streaming devices stop as with the monitor off, so the
+        /// lights do not keep the last colors.
+        /// </summary>
+        protected bool CaptureInterrupted { get { FrameBuffer f = this.Frame; return f != null && f.IsCaptureInterrupted(); } }
+
         // Frame number the colors in brPixels were calculated from
         protected long lColorsFrameNumber = -1;
 

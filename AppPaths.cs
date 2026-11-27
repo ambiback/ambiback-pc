@@ -31,6 +31,9 @@ namespace AmbiBack
         /// <summary>Default debug log, used when the setting szDebugFileLog is empty.</summary>
         public static string DefaultDebugLog { get { return Path.Combine(DataRoot, "debug.log"); } }
 
+        /// <summary>Log of errors and events that Release builds write (size-limited).</summary>
+        public static string ReleaseLog { get { return Path.Combine(DataRoot, "ambiback.log"); } }
+
         /// <summary>Debug log from the settings, or the default.</summary>
         public static string DebugLog
         {

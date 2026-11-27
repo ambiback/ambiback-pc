@@ -133,6 +133,7 @@ namespace AmbiBack
             { "mon_idle", "Stopped" },
             { "mon_fps", "Capturing at {0} fps" },
             { "mon_fps_max", "Capturing at {0} fps (max. {1})" },
+            { "mon_waiting", "Waiting for the screen..." },
 
             // Tabs
             { "tab_colors", "Colors" },
@@ -424,6 +425,7 @@ namespace AmbiBack
             { "mon_idle", "Gestoppt" },
             { "mon_fps", "Erfasst {0} Bilder/s" },
             { "mon_fps_max", "Erfasst {0} Bilder/s (max. {1})" },
+            { "mon_waiting", "Warte auf den Bildschirm ..." },
 
             { "tab_colors", "Farben" },
             { "tab_device", "Gerät" },
