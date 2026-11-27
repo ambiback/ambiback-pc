@@ -275,8 +275,9 @@ namespace AmbiBack
                                 continue;
                             }
 
-                            if (!this.bInitDone)
-                                InitHelpers();
+                            // No frame from the capture yet (monitor waking, capture restarting): try again
+                            if (!this.bInitDone && !InitHelpers())
+                                continue;
 
                             this.CalcColorsFromFrame(this.brPixels.Length, this.brPixels, this.UpdateScanAreas);
                             int bytes = BuildColors();
@@ -305,7 +306,17 @@ namespace AmbiBack
                         // Device not reachable or connection lost: close and retry
                         DoDebugOutput(name + "|Connection: " + ex.Message);
                         CloseClient();
-                        Thread.Sleep(1000);
+                        try
+                        {
+                            Thread.Sleep(1000);
+                        }
+                        catch (ThreadInterruptedException)
+                        {
+                            // SleepThread() during the back-off: same as the interrupt in the stream loop above
+                            // (the stream is already closed here)
+                            while (bSleepThread && !bAbortThread)
+                                Thread.Sleep(10);
+                        }
                     }
                 }
             }
@@ -384,7 +395,7 @@ namespace AmbiBack
                 if (connected)
                     OnStreamStop();
             }
-            catch (Exception ex) when (ex is SocketException || ex is IOException || ex is ObjectDisposedException)
+            catch (Exception ex) when (ex is SocketException || ex is IOException || ex is ObjectDisposedException || ex is WebException)
             {
                 DoDebugOutput(this.GetType().Name + "|StopStream: " + ex.Message);
             }
@@ -404,7 +415,8 @@ namespace AmbiBack
             streaming = false;
         }
 
-        private void InitHelpers()
+        /// <summary>Allocates the buffers once the capture delivers a frame; false when there is none after 30 s (the caller retries).</summary>
+        private bool InitHelpers()
         {
             int iWait = 0;
             while ((this.Frame == null || this.Frame.Pixels == null) && iWait <= 300 && !bAbortThread)
@@ -413,7 +425,10 @@ namespace AmbiBack
                 iWait++;
             }
             if (this.Frame == null || this.Frame.Pixels == null)
-                throw new Exception("ERROR COULD NOT GRAB SCREENSHOT");
+            {
+                DoDebugOutput(this.GetType().Name + "|InitHelpers|No frame from the capture yet, retrying");
+                return false;
+            }
 
             int width, height;
             lock (this.Frame.Sync)
@@ -429,6 +444,7 @@ namespace AmbiBack
             lColorsFrameNumber = -1;
             UpdateScanAreas(width, height);
             bInitDone = true;
+            return true;
         }
 
         private void UpdateScanAreas(int width, int height)

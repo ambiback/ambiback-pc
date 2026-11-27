@@ -185,7 +185,9 @@ namespace AmbiBack.PhilipsHue
             }
             catch (Exception ex) when (ex is HueException || ex is HueDtlsException || ex is WebException
                 || ex is System.Net.Sockets.SocketException || ex is InvalidOperationException || ex is FormatException
-                || ex is System.Security.Cryptography.CryptographicException)
+                || ex is System.Security.Cryptography.CryptographicException
+                // A CLIP v2 request whose stream breaks while reading or writing throws IOException, not WebException
+                || ex is System.IO.IOException || ex is TimeoutException)
             {
                 Fail(ex.Message);
                 return false;

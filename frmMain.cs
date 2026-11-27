@@ -156,7 +156,7 @@ namespace AmbiBack
             {
                 // Get Screen reference
                 CDevice myDevice = (CDevice)sender;
-                this.txtDebug.AppendText(myDevice.GetDeviceName() +  ": Debug: " + szDebug + (szDebug.EndsWith("\r\n") ? "" : "\r\n") );
+                AppendDebugText(myDevice.GetDeviceName() +  ": Debug: " + szDebug + (szDebug.EndsWith("\r\n") ? "" : "\r\n") );
                 CGlobals.DebugOutput(szDebug);
             }
         }
@@ -219,11 +219,11 @@ namespace AmbiBack
                     switch ((DsCommands)dsPacket.u16Command)
                     {
                         case DsCommands.Temperature:
-                            txtDebug.AppendText("Temp = '" + dsPacket.bPayload[0].ToString() + "' from Device '" + szSenderName + "' received\r\n");
+                            AppendDebugText("Temp = '" + dsPacket.bPayload[0].ToString() + "' from Device '" + szSenderName + "' received\r\n");
                             bTimer = true; 
                             break;
                         case DsCommands.Install_SKU_Setup:
-                            txtDebug.AppendText("Received Install_SKU_Setup '" + szPayloadHex + "' from Device '" + szSenderName + "' received\r\n");
+                            AppendDebugText("Received Install_SKU_Setup '" + szPayloadHex + "' from Device '" + szSenderName + "' received\r\n");
 
                             // Set device properties
                             dsDevice.InstallationType = dsPacket.bPayload[0];
@@ -251,7 +251,7 @@ namespace AmbiBack
                             }
                             break;
                         case DsCommands.Install_Flex_Setup:
-                            txtDebug.AppendText("Received Install_Flex_Setup '" + szPayloadHex + "' from Device'" + szSenderName + "' received\r\n");
+                            AppendDebugText("Received Install_Flex_Setup '" + szPayloadHex + "' from Device'" + szSenderName + "' received\r\n");
                             if (dsPacket.bPayload.Length > 1)
                             {
                                 //  13:1F:64:64:01:01:7A
@@ -267,7 +267,7 @@ namespace AmbiBack
                             }
                             break;
                         default:
-                            txtDebug.AppendText("Unknown DsCommand '" + szPayloadHex + "/" + szPayloadString + "' from Device'" + szSenderName + "' received\r\n");
+                            AppendDebugText("Unknown DsCommand '" + szPayloadHex + "/" + szPayloadString + "' from Device'" + szSenderName + "' received\r\n");
                             break;
                     }
                 }
@@ -324,13 +324,38 @@ namespace AmbiBack
                 {
 #if (DEBUG)
                     // Output Debug
-                    txtDebug.AppendText("Read Temp from " + currentSelectedDevice.GetDeviceName() + "(" + currentSelectedDevice.GetIPAddress().ToString() + "): ");
+                    AppendDebugText("Read Temp from " + currentSelectedDevice.GetDeviceName() + "(" + currentSelectedDevice.GetIPAddress().ToString() + "): ");
 #endif
                     // Send UDP Packet
                     CGlobals.deviceController.SendDreamscreenCommand((CDeviceDreamScreen)currentSelectedDevice, DsCommands.Temperature, ((CDeviceDreamScreen)currentSelectedDevice).GroupNumber, (byte)DsFlags.Read, new byte[0]);
                 }
             }
 #endif
+        }
+
+        private const int DEBUG_TEXT_MAX_CHARS = 200000;
+
+        /// <summary>Appends to the debug box; keeps only the newest part once it grows too large.</summary>
+        private void AppendDebugText(string szText)
+        {
+            if (txtDebug.TextLength > DEBUG_TEXT_MAX_CHARS)
+                txtDebug.Text = txtDebug.Text.Substring(txtDebug.TextLength - DEBUG_TEXT_MAX_CHARS / 2);
+            txtDebug.AppendText(szText);
+        }
+
+        /// <summary>
+        /// Stops a device and takes it out of every monitor's device list, so a later Stop/Start of a monitor
+        /// cannot restart a device that was deleted from the configuration.
+        /// </summary>
+        private void DetachDeviceFromMonitors(CDevice device)
+        {
+            device.AbortThread();
+            foreach (Control myControl in panScreens.Controls)
+            {
+                AmbiMonitor myAmbiScreen = myControl as AmbiMonitor;
+                if (myAmbiScreen != null && myAmbiScreen.GetDevices().Contains(device))
+                    myAmbiScreen.RemoveDevice(device);
+            }
         }
 
         private void RemoveDeviceFromListView(CDevice myDevice)
@@ -674,7 +699,17 @@ namespace AmbiBack
             #region create screenhelpers
             int iScreenNum = 0;
             // Create main screenhelper
-            screenHelperMain = new CScreenHelper(0, 0);
+            try
+            {
+                screenHelperMain = new CScreenHelper(0, 0);
+            }
+            catch (Exception ex)
+            {
+                // E.g. no D3D11 device for the first adapter: the monitor card then reports it itself
+                CGlobals.LogEvent("InitFormControls: could not create the main screen helper: " + ex.Message);
+                CGlobals.DebugOutput(ex);
+                screenHelperMain = null;
+            }
 
             // Create Main AmbiMonitor Object
             AmbiMonitor mainAmbiScreen = new AmbiMonitor(0, 0);
@@ -694,7 +729,7 @@ namespace AmbiBack
             iScreenNum++;
 
             // Process additional Screens if available
-            for (int iNum = 1; iNum < screenHelperMain.GetOutputCount(); iNum++)
+            for (int iNum = 1; screenHelperMain != null && iNum < screenHelperMain.GetOutputCount(); iNum++)
             {
                 try
                 {
@@ -721,15 +756,25 @@ namespace AmbiBack
                 }
             }
 
-            if (screenHelperMain.GetAdapterCount() > 1) {
+            if (screenHelperMain != null && screenHelperMain.GetAdapterCount() > 1) {
                 CGlobals.DebugOutput("TODO ADD MULTIPLE GFX CARDS NOW");
             }
 
             // Process additional Screens if available
-            for (int iScreen = 1; iScreen < screenHelperMain.GetAdapterCount(); iScreen++)
+            for (int iScreen = 1; screenHelperMain != null && iScreen < screenHelperMain.GetAdapterCount(); iScreen++)
             {
-                // Create main screenhelper for this Card
-                CScreenHelper screenHelperCardMain = new CScreenHelper(iScreen, 0);
+                // Create main screenhelper for this Card; an adapter that cannot create a D3D11 device is skipped
+                CScreenHelper screenHelperCardMain = null;
+                try
+                {
+                    screenHelperCardMain = new CScreenHelper(iScreen, 0);
+                }
+                catch (Exception ex)
+                {
+                    CGlobals.LogEvent("InitFormControls: skipping graphics adapter " + iScreen + ": " + ex.Message);
+                    CGlobals.DebugOutput(ex);
+                    continue;
+                }
 
                 if (screenHelperCardMain.GetOutputCount() > 0) {
 
@@ -1197,17 +1242,8 @@ namespace AmbiBack
 
                 // Clear binding
 
-                // Process all AmbiScreens
-                foreach (Control myControl in panScreens.Controls)
-                {
-                    AmbiMonitor myAmbiScreen = (AmbiMonitor)myControl;
-                    if (myAmbiScreen.GetDevices().Contains(selectedDevice) && myAmbiScreen.AmbiBackRunning)
-                    {
-                        // Stop Thread
-                        selectedDevice.AbortThread();
-                        break;
-                    }
-                }
+                // Stop its thread and remove it from all monitors
+                DetachDeviceFromMonitors(selectedDevice);
 
                 // Remove Config obj
                 CGlobals.mainConfig.Devices.DeleteEntry(selectedDevice);
@@ -1245,6 +1281,7 @@ namespace AmbiBack
                         {
                             szDeleted += "• " + myDevice.GetDeviceName() + (myDevice.GetIPAddress() != null ? " (" + myDevice.GetIPAddress().ToString() + ")" : "") + "\r\n";
                             this.RemoveDeviceFromListView(myDevice);
+                            DetachDeviceFromMonitors(myDevice);
                             CGlobals.mainConfig.Devices.DeleteEntry(myDevice);
                         }
                     }
@@ -1990,7 +2027,7 @@ namespace AmbiBack
             catch (Exception ex)
             {
                 // Output Debug
-                txtDebug.AppendText("Exception in LVDevices_SelectedIndexChanged: " + ex.ToString());
+                AppendDebugText("Exception in LVDevices_SelectedIndexChanged: " + ex.ToString());
                 CGlobals.DebugOutput(ex);
             }
             finally

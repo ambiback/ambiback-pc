@@ -47,7 +47,20 @@ namespace AmbiBack
                 var options = new CoreWebView2EnvironmentOptions("--autoplay-policy=no-user-gesture-required");
                 environment = CoreWebView2Environment.CreateAsync(null, UserDataFolder, options);
             }
-            await view.EnsureCoreWebView2Async(await environment);
+            Task<CoreWebView2Environment> envTask = environment;
+            CoreWebView2Environment env;
+            try
+            {
+                env = await envTask;
+            }
+            catch
+            {
+                // Do not cache a failed creation forever: the next call tries again
+                if (ReferenceEquals(environment, envTask))
+                    environment = null;
+                throw;
+            }
+            await view.EnsureCoreWebView2Async(env);
             view.CoreWebView2.Settings.IsStatusBarEnabled = false;
             // Links that open a new window stay in this view
             view.CoreWebView2.NewWindowRequested += (s, e) =>

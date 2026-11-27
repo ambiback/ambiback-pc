@@ -223,7 +223,15 @@ namespace AmbiBack
 
         private void cmdOK_Click(object sender, EventArgs e)
         {
-            // Members and their places
+            // Members and their places. Configure reads them from the live devices, so they are applied first
+            // and put back when the group cannot be set up (the dialog stays open and can be canceled)
+            var oldInGroup = new bool[rows.Count];
+            var oldSectors = new byte[rows.Count][];
+            for (int i = 0; i < rows.Count; i++)
+            {
+                oldInGroup[i] = rows[i].Lamp.InGroup;
+                oldSectors[i] = rows[i].Lamp.ScreenSectors;
+            }
             var chosen = new List<Row>();
             foreach (Row r in rows)
             {
@@ -266,6 +274,11 @@ namespace AmbiBack
             catch (Exception ex)
             {
                 CGlobals.DebugOutput("frmHueLamps|OK: " + ex.Message);
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    rows[i].Lamp.InGroup = oldInGroup[i];
+                    rows[i].Lamp.ScreenSectors = oldSectors[i];
+                }
                 lblStatus.ForeColor = Theme.Destructive;
                 lblStatus.Text = HueClipV2.IsAreaLimitError(ex) ? L.T("hue_area_limit") : L.F("hue_area_err", ex.Message);
             }

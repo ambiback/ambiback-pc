@@ -444,8 +444,10 @@ namespace AmbiBack
 
                     while (true)
                     {
-                        // Scan Images by each Pixel for Colors
-                        this.CalcColorsRectangles(this.PixelTotalPort1, this.bmpPrimScreen, brPixels);
+                        // Scan Images by each Pixel for Colors (bmpPrimScreen is never assigned any more,
+                        // without a bitmap every pixel would only log an exception per frame)
+                        if (this.bmpPrimScreen != null)
+                            this.CalcColorsRectangles(this.PixelTotalPort1, this.bmpPrimScreen, brPixels);
 
                         // Finally send calced pixels to DS!
                         this.DreamScreenSendLEDData();
@@ -525,6 +527,14 @@ namespace AmbiBack
                 // Reset Abort Thread
                 this.SetAbortThread(false);
                 this.SetSleepThread(false);
+
+                // A finished thread cannot be restarted, use a new one
+                if (myThread != null &&
+                    (myThread.ThreadState == System.Threading.ThreadState.Stopped ||
+                     myThread.ThreadState == System.Threading.ThreadState.Aborted))
+                {
+                    myThread = null;
+                }
 
                 // Create new Thread each time we start!
                 CreateThread();

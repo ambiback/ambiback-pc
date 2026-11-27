@@ -23,6 +23,17 @@ namespace AmbiBack
         private string m_szFileName;
         private ArrayList m_aDevices;
 
+        // Discovery tasks add devices from thread-pool threads while the UI enumerates the list
+        private readonly object m_lock = new object();
+
+        // Set when the file existed but could not be read/parsed. SaveList then must not overwrite it,
+        // otherwise a corrupt or half-readable file would be replaced by an empty or shortened list.
+        private bool m_bLoadFailed = false;
+
+        // Nodes we could not turn into a device (unknown type from a newer build, broken entry).
+        // They are written back unchanged on save so the user's devices are never dropped silently.
+        private List<KeyValuePair<string, string>> m_aPreservedNodes = new List<KeyValuePair<string, string>>();
+
         public CDevicesList(string szListName)
         {
             // Init stuff
@@ -35,7 +46,10 @@ namespace AmbiBack
         #region List Control Functions
         public int GetDevicesCount()
         {
-            return m_aDevices.Count;
+            lock (m_lock)
+            {
+                return m_aDevices.Count;
+            }
         }
         public string GetListName() { return m_szListName; }
 
@@ -44,16 +58,24 @@ namespace AmbiBack
         {
             try
             {
+                m_bLoadFailed = false;
+                m_aPreservedNodes.Clear();
+
                 //Successfully read the file, no start parsing
                 if (XMLdoc == null)
                     XMLdoc = new XmlDocument();
 
-                if (m_aDevices == null)
-                    m_aDevices = new ArrayList();
-                else
-                    m_aDevices.Clear(); 
+                lock (m_lock)
+                {
+                    if (m_aDevices == null)
+                        m_aDevices = new ArrayList();
+                    else
+                        m_aDevices.Clear();
+                }
 
-                //Now load and parse XML
+                //Now load and parse XML. From here on a failure means the file exists but is not usable,
+                //so SaveList must keep its hands off it.
+                m_bLoadFailed = true;
                 XMLdoc.Load(this.m_szFileName);
 
                 // Get Primary nodes list
@@ -62,6 +84,13 @@ namespace AmbiBack
                 CDevice newDevice = null;
                 foreach (XmlNode myNode in nodesDevices.Item(0).ChildNodes)
                 {
+                    // Comments / whitespace are not devices
+                    if (myNode.NodeType != XmlNodeType.Element)
+                        continue;
+
+                    newDevice = null;
+                    try
+                    {
 #if USE_DREAMSCREEN
                     if (myNode.Name == "AmbiBack.CDeviceDreamScreen")
                     {
@@ -128,21 +157,39 @@ namespace AmbiBack
                     }
                     else
                     {
-                        throw (new Exception("ERROR_INITLIST_UNKNOWN_TYPE"));
+                        // Unknown type (e.g. written by a newer build): skip it, but keep it for the next save
+                        CGlobals.LogEvent("InitList: skipping unknown device type " + myNode.Name);
+                        m_aPreservedNodes.Add(new KeyValuePair<string, string>(myNode.Name, myNode.InnerText));
+                    }
+                    }
+                    catch (Exception exNode)
+                    {
+                        // One broken entry must not cost the devices behind it
+                        CGlobals.LogEvent("InitList: could not read device node " + myNode.Name + ": " + exNode.Message);
+                        m_aPreservedNodes.Add(new KeyValuePair<string, string>(myNode.Name, myNode.InnerText));
+                        newDevice = null;
                     }
 
                     //Add into arraylist
                     if (newDevice != null) {
                         newDevice.SetDeviceID();
-                        if (this.GetDevice(newDevice.GetDeviceID()) == null)
-                            m_aDevices.Add(newDevice);
-                        else
-                            CGlobals.DebugOutput("ERROR, device with ID " + newDevice.GetDeviceID() + " already added!");
+                        lock (m_lock)
+                        {
+                            if (this.GetDevice(newDevice.GetDeviceID()) == null)
+                                m_aDevices.Add(newDevice);
+                            else
+                                CGlobals.DebugOutput("ERROR, device with ID " + newDevice.GetDeviceID() + " already added!");
+                        }
                     }
                 }
+
+                // Every node was handled, saving is safe again
+                m_bLoadFailed = false;
             }
             catch (FileNotFoundException)
             {
+                // No file yet: nothing to protect
+                m_bLoadFailed = false;
                 CGlobals.IsFirstTime = true;
             }
             catch (Exception ex)
@@ -152,6 +199,15 @@ namespace AmbiBack
         }
         public void SaveList()
         {
+            // The file existed but could not be read completely: keep it exactly as it is
+            if (m_bLoadFailed)
+            {
+                CGlobals.LogEvent("SaveList: device file was not loaded correctly, not overwriting " + this.m_szFileName);
+                return;
+            }
+
+            // Only write when the XML was built completely, a half-built list would drop devices
+            bool bBuilt = false;
             try
             {
 //                XmlNode myChildNode;
@@ -170,7 +226,13 @@ namespace AmbiBack
                     nodesDevices = XMLdoc.GetElementsByTagName("devices");
                 }
 
-                foreach (CDevice myDevice in m_aDevices)
+                CDevice[] aSnapshot;
+                lock (m_lock)
+                {
+                    aSnapshot = (CDevice[])m_aDevices.ToArray(typeof(CDevice));
+                }
+
+                foreach (CDevice myDevice in aSnapshot)
                 {
                     XmlSerializer xmlSerial = new System.Xml.Serialization.XmlSerializer(myDevice.GetType());
                     StringWriter stringOut = new StringWriter();
@@ -194,6 +256,15 @@ namespace AmbiBack
                     nodesDevices.Item(0).AppendChild(myNode);
                 }
 
+                // Write back the entries we could not read, so they survive the save
+                foreach (KeyValuePair<string, string> kvPreserved in m_aPreservedNodes)
+                {
+                    myNode = XMLdoc.CreateNode(XmlNodeType.Element, kvPreserved.Key, "");
+                    myNode.InnerText = kvPreserved.Value;
+                    nodesDevices.Item(0).AppendChild(myNode);
+                }
+                bBuilt = true;
+
                 // Always keep an backup of the last hostfile
                 File.Delete(this.m_szFileName + ".bak");
                 File.Move(this.m_szFileName, this.m_szFileName + ".bak");
@@ -211,7 +282,8 @@ namespace AmbiBack
             finally
             {
                 // Now save XML Elements
-                XMLdoc.Save(this.m_szFileName);
+                if (bBuilt)
+                    XMLdoc.Save(this.m_szFileName);
             }
         }
 
@@ -221,7 +293,10 @@ namespace AmbiBack
             if ((addedDevice = this.GetDevice(newDevice.GetDeviceID())) == null)
             {
                 // Add new device
-                m_aDevices.Add(newDevice);
+                lock (m_lock)
+                {
+                    m_aDevices.Add(newDevice);
+                }
                 addedDevice = newDevice; 
             }
             else
@@ -235,8 +310,11 @@ namespace AmbiBack
 
         public void ReplaceEntry(CDevice removeDevice, CDevice addDevice)
         {
-            m_aDevices.Remove(removeDevice);
-            m_aDevices.Add(addDevice);
+            lock (m_lock)
+            {
+                m_aDevices.Remove(removeDevice);
+                m_aDevices.Add(addDevice);
+            }
         }
 
         /*
@@ -251,23 +329,32 @@ namespace AmbiBack
         public void DeleteEntry(CDevice delDevice)
         {
             // Delete entry from list
-            m_aDevices.Remove(delDevice);
+            lock (m_lock)
+            {
+                m_aDevices.Remove(delDevice);
+            }
         }
         public void DeleteEntry(int iIndex)
         {
             // Delete entry by indexnumber
-            m_aDevices.RemoveAt(iIndex);
+            lock (m_lock)
+            {
+                m_aDevices.RemoveAt(iIndex);
+            }
         }
 
         public CDevice GetDevice(int iIndex)
         {
             // Retur´n Host by Entry
-            return (CDevice)m_aDevices[iIndex];
+            lock (m_lock)
+            {
+                return (CDevice)m_aDevices[iIndex];
+            }
         }
 
         public CDevice GetDevice(string szId)
         {
-            foreach (CDevice myDevice in m_aDevices)
+            foreach (CDevice myDevice in GetDeviceList())
             {
                 // check if ConfigEntry was clicked
                 if (myDevice.GetDeviceID() == szId)
@@ -280,7 +367,7 @@ namespace AmbiBack
 
         public CDevice GetDevice(IPAddress ipAddress)
         {
-            foreach (CDevice myDevice in m_aDevices)
+            foreach (CDevice myDevice in GetDeviceList())
             {
                 // check if ConfigEntry was clicked
                 if (myDevice.GetIPAddress() != null && 
@@ -293,9 +380,14 @@ namespace AmbiBack
         }
 
 
+        // Returns a snapshot: safe to enumerate while discovery threads add devices.
+        // Add/remove must go through Add/DeleteEntry/ReplaceEntry, not through the returned list.
         public ArrayList GetDeviceList()
         {
-            return m_aDevices;
+            lock (m_lock)
+            {
+                return m_aDevices != null ? (ArrayList)m_aDevices.Clone() : new ArrayList();
+            }
         }
 
 #endregion

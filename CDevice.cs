@@ -196,6 +196,7 @@ namespace AmbiBack
         public bool CheckIsOnline()
         {
             bool bReturn = false;
+            CPingHelper myPing = null;
 
             try
             {
@@ -205,7 +206,7 @@ namespace AmbiBack
                 string szScanMyIp = this.m_IPAddress.ToString(); 
 
                 // Create a PingHelper!
-                CPingHelper myPing = new CPingHelper();
+                myPing = new CPingHelper();
                 myPing.InitSocket();
                 myPing.iMyTimeout = 2000;   // Hardcoded
                 myPing.iMyBytes2Send = 32;  // Hardcoded
@@ -275,6 +276,12 @@ namespace AmbiBack
             catch (Exception ex)
             {
                 CGlobals.DebugOutput(ex);
+            }
+            finally
+            {
+                // Release the raw ICMP socket, otherwise one is leaked per call
+                if (myPing != null)
+                    myPing.DestroySocket();
             }
 
             // Store local helper value

@@ -201,7 +201,10 @@ namespace AmbiBack
                 this.GlobalOrientation = info.Orientation;
                 this.bInitDone = false;
             }
-            previousEffect = info.SelectedEffect;
+            // While streaming the panel reports "*ExtControl*": after a reconnect that must not replace the
+            // effect that ran before the stream started, or stop could not restore it
+            if (!string.IsNullOrEmpty(info.SelectedEffect) && !info.SelectedEffect.StartsWith("*", StringComparison.Ordinal))
+                previousEffect = info.SelectedEffect;
             base.Connect(ip);
         }
 
@@ -290,16 +293,18 @@ namespace AmbiBack
             request.Timeout = HttpTimeoutMs;
             request.ReadWriteTimeout = HttpTimeoutMs;
             request.Proxy = null;
-            if (body != null)
-            {
-                byte[] data = Encoding.UTF8.GetBytes(body);
-                request.ContentType = "application/json";
-                request.ContentLength = data.Length;
-                using (Stream s = request.GetRequestStream())
-                    s.Write(data, 0, data.Length);
-            }
             try
             {
+                // The request body is written inside the try as well: GetRequestStream throws a WebException
+                // when the panel is off, and that must become an IOException like every other failure here
+                if (body != null)
+                {
+                    byte[] data = Encoding.UTF8.GetBytes(body);
+                    request.ContentType = "application/json";
+                    request.ContentLength = data.Length;
+                    using (Stream s = request.GetRequestStream())
+                        s.Write(data, 0, data.Length);
+                }
                 using (var response = (HttpWebResponse)request.GetResponse())
                 using (var reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8))
                     return new KeyValuePair<int, string>((int)response.StatusCode, reader.ReadToEnd());

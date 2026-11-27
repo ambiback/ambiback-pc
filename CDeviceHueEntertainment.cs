@@ -273,8 +273,9 @@ namespace AmbiBack
                         }
                         else
                         {
-                            if (!this.bInitDone)
-                                InitHelpers();
+                            // No frame from the capture yet (monitor waking, capture restarting): try again
+                            if (!this.bInitDone && !InitHelpers())
+                                continue;
                             count = Math.Min(brPixels.Length, HueStreamMessage.MaxChannels);
                             if (this.rectScanPixels != null)
                                 this.CalcColorsFromFrame(count, this.brPixels, this.UpdateScanAreas);
@@ -573,16 +574,11 @@ namespace AmbiBack
             return Color.FromArgb(255, Math.Min(255, r), Math.Min(255, g), Math.Min(255, b));
         }
 
-        private void InitHelpers()
+        /// <summary>Allocates the buffers once the capture delivers a frame; false when there is none after 30 s (the caller retries).</summary>
+        private bool InitHelpers()
         {
-            int iWait = 0;
-            while ((this.Frame == null || this.Frame.Pixels == null) && iWait <= 300 && !bAbortThread)
-            {
-                Thread.Sleep(100);
-                iWait++;
-            }
-            if (this.Frame == null || this.Frame.Pixels == null)
-                throw new Exception("ERROR COULD NOT GRAB SCREENSHOT");
+            if (!WaitForFrame())
+                return false;
 
             int width, height;
             lock (this.Frame.Sync)
@@ -596,6 +592,7 @@ namespace AmbiBack
             lColorsFrameNumber = -1;
             UpdateScanAreas(width, height);
             bInitDone = true;
+            return true;
         }
 
         private void UpdateScanAreas(int width, int height)

@@ -52,6 +52,10 @@ namespace AmbiBack
         public int m_iPort = 1337;
         private UdpClient m_clientUdp = null;
         private TcpClient m_clientTcp = null;
+
+        // Set by the discovery thread when the controller got a new IP; the device thread then
+        // drops its network clients so they are rebuilt for the new address.
+        private volatile bool m_bNetworkEndpointChanged = false;
         private SerialPort m_clientSerial = null;
 
         private byte _pixelVert = 8;
@@ -283,7 +287,15 @@ namespace AmbiBack
 
             // Internal Properties
             this.bIsOnline = myDevCopyFrom.bIsOnline;
-            this.SetIPAddress( myDevCopyFrom.GetIPAddress() );
+            IPAddress ipOld = this.GetIPAddress();
+            IPAddress ipNew = myDevCopyFrom.GetIPAddress();
+            this.SetIPAddress( ipNew );
+            if (ipOld != null && ipNew != null && !ipOld.Equals(ipNew))
+            {
+                // The open UDP/TCP clients still point to the old address
+                CGlobals.DebugOutput("CDeviceAmbiBack|UpdateFrom|IP changed " + ipOld + " -> " + ipNew);
+                m_bNetworkEndpointChanged = true;
+            }
             if (!this.bIsSerial)
             {   // Only Update if not already set!
                 this.bIsSerial = myDevCopyFrom.bIsSerial;
@@ -398,6 +410,14 @@ namespace AmbiBack
                             {
                                 CGlobals.DebugOutput(ex);
                             }
+
+                            // Init failed (e.g. no screenshot yet): there is nothing to send, wait and retry
+                            // instead of letting SendLEDData fail and end this thread for good
+                            if (!this.bInitDone)
+                            {
+                                Thread.Sleep(1000);
+                                continue;
+                            }
                         }
 
                         // Colors of all LEDs from the monitor's frame buffer; skipped when there is no new frame
@@ -470,6 +490,14 @@ namespace AmbiBack
                 // Reset Abort Thread
                 this.SetAbortThread(false);
                 this.SetSleepThread(false);
+
+                // A finished thread cannot be restarted (e.g. the loop ended after an error), use a new one
+                if (myThread != null &&
+                    (myThread.ThreadState == System.Threading.ThreadState.Stopped ||
+                     myThread.ThreadState == System.Threading.ThreadState.Aborted))
+                {
+                    myThread = null;
+                }
 
                 // Create new Thread each time we start!
                 CreateThread();
@@ -573,19 +601,24 @@ namespace AmbiBack
                     CGlobals.DebugOutput("CDeviceAmbiBack|WriteSerialCommand:MANUAL");
                     // Create tmp Serial connection!
                     SerialPort clientSerial = new SerialPort();
-                    clientSerial.PortName = this.szSerialPort;
-                    clientSerial.BaudRate = (int)SerialSpeed.Normal;
-                    clientSerial.Open();
-                    clientSerial.ReadTimeout = CGlobals.SerialReadTimeout;
-                    clientSerial.WriteTimeout = CGlobals.SerialWriteTimeout;
+                    try
+                    {
+                        clientSerial.PortName = this.szSerialPort;
+                        clientSerial.BaudRate = (int)SerialSpeed.Normal;
+                        clientSerial.Open();
+                        clientSerial.ReadTimeout = CGlobals.SerialReadTimeout;
+                        clientSerial.WriteTimeout = CGlobals.SerialWriteTimeout;
 
-                    // Now we are ready to send SERIAL Data!/
+                        // Now we are ready to send SERIAL Data!/
 
-                    // Check if there is data queued!
-                    if (bIn != null) {
-                        clientSerial.Write(bIn, 0, bIn.Length);
-                        clientSerial.Close();
-                        clientSerial = null;
+                        // Check if there is data queued!
+                        if (bIn != null)
+                            clientSerial.Write(bIn, 0, bIn.Length);
+                    }
+                    finally
+                    {
+                        // Always release the COM port, otherwise later OpenSerial calls fail
+                        clientSerial.Dispose();
                     }
                 }
             }
@@ -616,6 +649,14 @@ namespace AmbiBack
         {
             try
             {
+                // Discovery reported a new IP: rebuild the network clients for the new address
+                if (m_bNetworkEndpointChanged)
+                {
+                    m_bNetworkEndpointChanged = false;
+                    CloseClientTCP();
+                    CloseClientUDP();
+                }
+
                 if ((Properties.Settings.Default.bPreferSerialConnection || this.ConnectionType == (byte)ConnectionTypes.USB) && this.IsSerial())
                 {
                     // Close Network Connections in Serial Mode
@@ -781,6 +822,9 @@ namespace AmbiBack
                     // Get Network Stream
                     NetworkStream netStream = m_clientTcp.GetStream();
 
+                    // A controller that stops answering must not block this thread forever
+                    netStream.ReadTimeout = 1000;
+
                     // Send pixels to DS as UDP Packet
                     netStream.Write(bData, 0, bData.Length);
 
@@ -804,8 +848,11 @@ namespace AmbiBack
             }
             catch (IOException ex)
             {
-                // IO: Exception, happens on disconnect 
+                // IO: Exception, happens on disconnect or when the read timed out
                 CGlobals.HandleException("SendLEDData", ex);
+
+                // Drop the TCP connection so the next frame reconnects
+                CloseClientTCP();
             }
             catch (ObjectDisposedException)
             {

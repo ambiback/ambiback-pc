@@ -150,7 +150,24 @@ namespace AmbiBack.PhilipsHue
         /// </summary>
         public static Layout Configure(List<CDevicePhilipsHueLight> lights, bool switchOffRemoved)
         {
-            lock (ConfigureLock)
+            // Log lines are collected under the lock and written after it is released: the device debug output
+            // does a synchronous Invoke to the UI thread, which may itself be waiting for this lock (OK button
+            // of the lamps dialog), and that would deadlock
+            var pending = new List<string>();
+            try
+            {
+                lock (ConfigureLock)
+                    return ConfigureLocked(lights, switchOffRemoved, pending);
+            }
+            finally
+            {
+                foreach (string line in pending)
+                    Log(line);
+            }
+        }
+
+        private static Layout ConfigureLocked(List<CDevicePhilipsHueLight> lights, bool switchOffRemoved, List<string> pending)
+        {
             {
                 List<StreamingLight> streamable = HueClipV2.GetStreamingLights();
                 var chosen = new List<KeyValuePair<StreamingLight, EntertainmentChannel>>();
@@ -161,12 +178,12 @@ namespace AmbiBack.PhilipsHue
                     StreamingLight light = streamable.Find(l => l.V1ID != null && l.V1ID == v1);
                     if (light == null)
                     {
-                        Log("\"" + device.GetDeviceName() + "\" cannot stream (no entertainment support), skipped");
+                        pending.Add("\"" + device.GetDeviceName() + "\" cannot stream (no entertainment support), skipped");
                         continue;
                     }
                     if (chosen.Count >= MaxLights)
                     {
-                        Log("more than " + MaxLights + " lights, \"" + device.GetDeviceName() + "\" skipped");
+                        pending.Add("more than " + MaxLights + " lights, \"" + device.GetDeviceName() + "\" skipped");
                         continue;
                     }
                     chosen.Add(new KeyValuePair<StreamingLight, EntertainmentChannel>(light, PositionFromSectors(device.ScreenSectors)));
@@ -186,7 +203,7 @@ namespace AmbiBack.PhilipsHue
                         if (newLightIds.Contains(old))
                             continue;
                         try { HueClipV2.SetLightOn(old, false); }
-                        catch (Exception ex) { Log("switching light off failed: " + ex.Message); }
+                        catch (Exception ex) { pending.Add("switching light off failed: " + ex.Message); }
                     }
                 }
                 usedLightIds.Clear();
@@ -199,7 +216,7 @@ namespace AmbiBack.PhilipsHue
                 if (area == null)
                 {
                     id = HueClipV2.CreateEntertainmentArea(name, chosen);
-                    Log("area \"" + name + "\" created with " + chosen.Count + " lights");
+                    pending.Add("area \"" + name + "\" created with " + chosen.Count + " lights");
                 }
                 else
                 {
@@ -207,7 +224,7 @@ namespace AmbiBack.PhilipsHue
                     if (area.IsActive)
                         HueClipV2.SetStreaming(id, false);   // a left over session of ours
                     HueClipV2.UpdateEntertainmentArea(id, chosen);
-                    Log("area \"" + name + "\" updated with " + chosen.Count + " lights");
+                    pending.Add("area \"" + name + "\" updated with " + chosen.Count + " lights");
                 }
 
                 var layout = new Layout { AreaID = id, Area = HueClipV2.GetEntertainmentArea(id) };
