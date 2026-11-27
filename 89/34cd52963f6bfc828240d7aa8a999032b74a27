@@ -1,0 +1,65 @@
+frmMain.cs
+  s_fde109b51c2c38::t_61490d6e09a25b 159,222,226,254,270,327,336-360,702-712,732,759,764,766-777,1245-1246,1284,2030
+frmAddDevice.cs
+  s_fde109b51c2c38::t_c196ec4d42054e 28-44
+CDeviceLifx.cs
+  s_fde109b51c2c38::t_2c19f1c3681d36 50,128-134,166
+CDeviceOpenRgb.cs
+  s_fde109b51c2c38::t_05aac5a856826d 403-417,419,421,423
+  s_fde109b51c2c38::t_e3a06facfafa9d 437-447
+frmHueLamps.cs
+  s_fde109b51c2c38::t_f406b61415c1cb 226-234,277-281
+CDevicesList.cs
+  s_fde109b51c2c38::t_140fbc32d8e6cd 26-36,49-52,61-63,68-74,76-78,87-93,160-170,176-182,185-187,191-192,202-210,229-235,259-267
+  s_fde109b51c2c38::t_c68c502f2f20fa 285-286,296-299,313-317,332-335,340-343,349-352,357,370,383-384,387-390
+frmWeb.cs
+  s_fde109b51c2c38::t_e342b4e8c1fa51 86-88,111-113
+HueDiscovery.cs
+  s_fde109b51c2c38::t_c20bc081499df9 103-104
+  s_fde109b51c2c38::t_4f82d7c8ef9258 91,94
+WebViewHost.cs
+  s_fde109b51c2c38::t_e342b4e8c1fa51 50-63
+HuePcGroup.cs
+  s_fde109b51c2c38::t_7a9bebe1e4475f 153-170,181,186,206,219,227
+HueEntertainmentSession.cs
+  s_fde109b51c2c38::t_d991d179dbd6a9 188-190
+CDevice.cs
+  s_fde109b51c2c38::t_4eb18668fe3976 199,209,280-285
+CDeviceLedStrip.cs
+  s_fde109b51c2c38::t_22383e74793f78 278-280
+  s_fde109b51c2c38::t_49181b7d1dac67 398
+  s_fde109b51c2c38::t_335a99a46e2022 447
+  s_fde109b51c2c38::t_3f351cc7fd317b 418-419,428-431
+  s_fde109b51c2c38::t_c81f3d02588d0d 309-319
+AmbiMonitor.cs
+  s_fde109b51c2c38::t_94831fd38b87d1 81-82,94-96,409-419,483-487,700-702
+CDevicesController.cs
+  s_fde109b51c2c38::t_94cf213b9c6b3d 527-529,531-536,538-543,549-554,556-557,559-561,832,845,859-871,1008-1021,1069-1076
+CDeviceHueEntertainment.cs
+  s_fde109b51c2c38::t_c82cbe56aabd5f 276-278
+  s_fde109b51c2c38::t_4ae8ce157a4bfb 595
+  s_fde109b51c2c38::t_1064d8e580fcb6 577-578,580-581
+CDeviceNanoleaf.cs
+  s_fde109b51c2c38::t_24a64788618df7 298-307
+  s_fde109b51c2c38::t_824a407c6003d9 204-207
+CDeviceAmbiBack.cs
+  s_fde109b51c2c38::t_75ab690938ef96 55-58,290-298,413-420,494-501,604-610,612,614-621,652-659,825-827,851,853-855
+CDeviceDreamScreen.cs
+  s_fde109b51c2c38::t_cf3decce875f9d 447-450,531-538
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8934cd52963f6bfc828240d7aa8a999032b74a27",
+  "prompts": {},
+  "sessions": {
+    "s_fde109b51c2c38": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e35020d6-9673-4f21-80c9-efad7209a427",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
