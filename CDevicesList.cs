@@ -366,6 +366,16 @@ namespace AmbiBack
         {
             string szTmp = this.m_szFileName + ".tmp";
             bool bTmpVerified = false;
+
+            // The main file is gone and a .tmp is left over (a failed rotation earlier in this session): that .tmp may
+            // be the newest complete copy. Writing would truncate it first (XmlDocument.Save recreates the file), and
+            // if that write failed too, the newest copy would be lost. So no save until a restart promotes it.
+            if (!File.Exists(this.m_szFileName) && File.Exists(szTmp))
+            {
+                CGlobals.LogEvent("SaveList: " + this.m_szFileName + " is missing, not saving; the kept " + szTmp + " is preserved and used at the next start");
+                return;
+            }
+
             try
             {
 //                XmlNode myChildNode;

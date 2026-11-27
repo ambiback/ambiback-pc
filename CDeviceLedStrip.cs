@@ -327,14 +327,16 @@ namespace AmbiBack
             }
             catch (ThreadAbortException)
             {
-                DoDebugOutput(name + "|HandleThread|Aborted");
+                // Flag first: the debug output can Invoke onto the UI thread, and a StartThread that comes in
+                // meanwhile must see this thread as ending, or its restart is lost
                 this.SetAbortThread(true);
+                DoDebugOutput(name + "|HandleThread|Aborted");
             }
             catch (Exception ex)
             {
+                this.SetAbortThread(true);
                 CGlobals.DebugOutput(ex);
                 DoDebugOutput(name + "|HandleThread|Exception: " + ex.Message);
-                this.SetAbortThread(true);
             }
             finally
             {
@@ -392,6 +394,10 @@ namespace AmbiBack
                     // finally) counts as running, so the restart would be lost. It is not waited for: the exit path
                     // can call into the UI thread (debug output), so a wait on the caller would only time out. The
                     // ending thread starts the new one as its last step. Never a second thread while one is alive
+                    // A live thread that is already dead (aborted before FinishThread could release it) would defer
+                    // every start forever, so it is dropped and the normal start path is taken
+                    if (liveThread != null && !liveThread.IsAlive)
+                        liveThread = null;
                     if (liveThread != null && bAbortThread && liveThread != Thread.CurrentThread)
                     {
                         restartPending = true;
