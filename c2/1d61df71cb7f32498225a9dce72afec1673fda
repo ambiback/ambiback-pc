@@ -1,0 +1,37 @@
+App.config
+  s_a67009b79aaf86::t_df1cd863310041 31-33
+Properties/Settings.settings
+  s_a67009b79aaf86::t_df1cd863310041 26-28
+HueEntertainment.cs
+  s_a67009b79aaf86::t_70f24bd6e2e08e 295
+  s_a67009b79aaf86::t_258003b73bc13e 328-333,338-379
+CGlobals.cs
+  s_a67009b79aaf86::t_578c1c05b41cfc 1062-1064
+  s_a67009b79aaf86::t_3f9433c3269c4e 1043
+  s_a67009b79aaf86::t_3e83a50efd670a 1019-1029
+HueClient.cs
+  s_a67009b79aaf86::t_b1c7b11579a629 34-72
+Properties/Settings.Designer.cs
+  s_a67009b79aaf86::t_df1cd863310041 111-122
+frmConnectHue.cs
+  s_a67009b79aaf86::t_6c5d5b91d22e03 109-119
+  s_a67009b79aaf86::t_5f0a01662f8d5c 37-38,46
+HueSelfTest.cs
+  s_a67009b79aaf86::t_de6ad8982b3742 45-47,404-428
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c21d61df71cb7f32498225a9dce72afec1673fda",
+  "prompts": {},
+  "sessions": {
+    "s_a67009b79aaf86": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6017f229-9f9f-4671-ad66-22a6e807f52c",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
