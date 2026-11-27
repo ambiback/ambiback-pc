@@ -108,6 +108,18 @@ namespace AmbiBack.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string szHueBridgeId {
+            get {
+                return ((string)(this["szHueBridgeId"]));
+            }
+            set {
+                this["szHueBridgeId"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("127.0.0.1")]
         public string DebugSyslogServer {
             get {

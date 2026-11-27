@@ -34,6 +34,8 @@ namespace AmbiBack
                 // Init Hue Configuration
                 Configuration.DeviceIP = System.Net.IPAddress.Parse(szHueDeviceIP);
                 Configuration.AppID = CGlobals.szHueAppID;
+                // A new pairing starts a new pin: the id from discovery, or learned on the first HTTPS connection
+                Configuration.BridgeId = DiscoveredBridgeId(Configuration.DeviceIP);
 
                 if (Configuration.RegisterNewUser())
                 {
@@ -41,6 +43,7 @@ namespace AmbiBack
                     Properties.Settings.Default.szHueDeviceIP = szHueDeviceIP;
                     Properties.Settings.Default.szHueUsername = Configuration.Username;
                     Properties.Settings.Default.szHueClientKey = HueSecrets.Protect(Configuration.ClientKey);
+                    Properties.Settings.Default.szHueBridgeId = Configuration.BridgeId ?? "";
                     Properties.Settings.Default.Save();
                 }
 
@@ -101,6 +104,17 @@ namespace AmbiBack
             statusTimer.Tick += (s, a) => UpdateDeviceColumn();
             statusTimer.Start();
             FormClosed += (s, a) => statusTimer.Dispose();
+        }
+
+        /// <summary>Bridge id of the found bridge with this address, null when it was not found by the search.</summary>
+        private string DiscoveredBridgeId(System.Net.IPAddress address)
+        {
+            foreach (object item in cbBridge.Items)
+            {
+                if (item is DiscoveredBridge bridge && bridge.Address.Equals(address))
+                    return Configuration.NormalizeBridgeId(bridge.BridgeID);
+            }
+            return null;
         }
 
         /// <summary>Address from the field: a found bridge ("Name (192.168.0.2)") or what was typed.</summary>
