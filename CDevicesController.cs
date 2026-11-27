@@ -418,6 +418,10 @@ namespace AmbiBack
             serialPort.ReadTimeout = CGlobals.SerialReadTimeout;
             serialPort.WriteTimeout = CGlobals.SerialWriteTimeout;
 
+            // Every COM port is asked; most are no AmbiBack controller (mainboard port, Bluetooth links, other
+            // devices) and fail to open or do not answer. That is expected, so it is debug info, not an error
+            List<string> aFoundPorts = new List<string>();
+
             foreach (string szExistingPort in serialPorts)
             {
                 JSONNode jsonResults = null;
@@ -458,18 +462,20 @@ namespace AmbiBack
                     }
                     catch (Exception ex2)
                     {
-                        CGlobals.DebugOutput(ex2);
+                        // No answer at the fast rate either, or the port does not support it
+                        LogSerialProbe(szExistingPort, "no answer", ex2);
                     }
                 }
                 catch (System.UnauthorizedAccessException ex)
                 {
-                    // ACCESS DENIED!
-                    CGlobals.HandleException("ReadInfoFromComPorts", ex);
+                    // ACCESS DENIED: the port is open in another program
+                    LogSerialProbe(szExistingPort, "in use", ex);
                 }
                 catch (Exception ex)
                 {
-                    CGlobals.HandleException("ReadInfoFromComPorts", ex);
-                } 
+                    // The port cannot be opened (e.g. a Bluetooth link without a connected device)
+                    LogSerialProbe(szExistingPort, "cannot be opened", ex);
+                }
                 finally
                 {
                     if (serialPort.IsOpen)
@@ -491,6 +497,7 @@ namespace AmbiBack
                         {
                             // Handle found device
                             this.CheckAndAddDevice(jsonResults, true, szExistingPort);
+                            aFoundPorts.Add(szExistingPort);
                         }
                     }
                 }
@@ -505,6 +512,15 @@ namespace AmbiBack
                 // Process GUI stuff
                 Application.DoEvents();
             }
+
+            CGlobals.LogEvent("Serial ports checked: " + string.Join(", ", serialPorts) + "; AmbiBack controllers on: " +
+                (aFoundPorts.Count > 0 ? string.Join(", ", aFoundPorts) : "none"));
+        }
+
+        /// <summary>Debug output for a COM port that is not (or not reachable as) an AmbiBack controller.</summary>
+        private static void LogSerialProbe(string szPort, string szWhat, Exception ex)
+        {
+            CGlobals.DebugOutput("ReadInfoFromComPorts: " + szPort + " " + szWhat + " (" + ex.GetType().Name + ": " + ex.Message + ")");
         }
 
         private void EnumDevices()
