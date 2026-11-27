@@ -440,6 +440,8 @@ namespace AmbiBack
             {
                 myThread.Start();
                 liveThread = myThread;
+                // A new thread runs now: a restart left over from a thread that died before FinishThread is done
+                restartPending = false;
             }
         }
 
