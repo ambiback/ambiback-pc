@@ -26,8 +26,9 @@ namespace AmbiBack
         // Discovery tasks add devices from thread-pool threads while the UI enumerates the list
         private readonly object m_lock = new object();
 
-        // Only set when the device file is unusable AND could not be moved aside. SaveList then must not
-        // touch it, otherwise it would be replaced by an empty or shortened list.
+        // Set when a device file could not be read for access reasons (locked, permissions) or a broken one could
+        // not be moved aside. SaveList then must not touch the files, otherwise a good file would be replaced
+        // by an empty or older list.
         private bool m_bLoadFailed = false;
 
         // Two saves at once would write the same temp file
@@ -57,62 +58,123 @@ namespace AmbiBack
         public string GetListName() { return m_szListName; }
 
 
+        private enum LoadResult { Ok, Missing, Content, Access }
+
         /// <summary>
-        /// Loads the device file. If the main file is missing (interrupted save) or unreadable, the .bak is used.
-        /// An unreadable main file is moved aside (never deleted) so the next save cannot overwrite it.
+        /// Loads the device file. Order: main file, then (only if main is missing or broken) a verified .tmp left by
+        /// an interrupted save, then the .bak. A file with broken CONTENT is moved aside (never deleted). A file we
+        /// merely cannot ACCESS (locked, no permission) is left alone and blocks saving, because the list we would
+        /// then write may be older than the good file sitting there.
         /// </summary>
         public void InitList()
         {
             m_bLoadFailed = false;
+            string szTmp = this.m_szFileName + ".tmp";
             string szBak = this.m_szFileName + ".bak";
-            try
-            {
-                ReadDevicesFromFile(this.m_szFileName);
+            bool bAnyFile = false;
+            bool bTryTmp = false;
+
+            LoadResult res = TryRead(this.m_szFileName);
+            if (res == LoadResult.Ok)
                 return;
-            }
-            catch (FileNotFoundException)
+
+            if (res == LoadResult.Missing)
             {
-                if (!File.Exists(szBak))
+                bTryTmp = true;
+            }
+            else if (res == LoadResult.Content)
+            {
+                bAnyFile = true;
+                bTryTmp = true;
+                HandleBrokenFile(this.m_szFileName);
+            }
+            else
+            {
+                // Access problem: the main file may be perfectly good, so it is neither renamed nor replaced
+                bAnyFile = true;
+                m_bLoadFailed = true;
+                CGlobals.LogEvent("InitList: " + this.m_szFileName + " cannot be accessed, saving is disabled for this session");
+            }
+
+            // Fallbacks, read-only unless a file has broken content
+            string[] aFallbacks = bTryTmp ? new string[] { szTmp, szBak } : new string[] { szBak };
+            foreach (string szFile in aFallbacks)
+            {
+                res = TryRead(szFile);
+                if (res == LoadResult.Ok)
                 {
-                    // No file yet: first start, nothing to protect
-                    CGlobals.IsFirstTime = true;
+                    CGlobals.LogEvent("InitList: devices restored from " + szFile);
                     return;
                 }
-                // The main file is gone but a backup exists, e.g. a save was interrupted
-                CGlobals.LogEvent("InitList: " + this.m_szFileName + " is missing, loading the backup");
-            }
-            catch (Exception ex)
-            {
-                CGlobals.LogEvent("InitList: device file is not readable: " + ex.Message);
-                if (!MoveAsideCorrupt(this.m_szFileName))
+                if (res == LoadResult.Missing)
+                    continue;
+
+                bAnyFile = true;
+                if (res == LoadResult.Content)
                 {
-                    // Cannot preserve it, so SaveList must not overwrite it either
+                    HandleBrokenFile(szFile);
+                }
+                else
+                {
                     m_bLoadFailed = true;
-                    return;
+                    CGlobals.LogEvent("InitList: " + szFile + " cannot be accessed, saving is disabled for this session");
                 }
             }
 
-            // Main file missing or moved aside: the backup is the last good copy
+            if (!bAnyFile)
+            {
+                // No file at all: first start, nothing to protect
+                CGlobals.IsFirstTime = true;
+                return;
+            }
+
+            // Nothing usable left (broken files are kept aside, locked ones untouched): start with an empty list
+            lock (m_lock)
+            {
+                m_aDevices.Clear();
+            }
+            m_aPreservedNodes.Clear();
+            XMLdoc = new XmlDocument();
+        }
+
+        // Content errors mean the file is bad, anything else (sharing violation, permissions) says nothing about it
+        private LoadResult TryRead(string szFile)
+        {
             try
             {
-                ReadDevicesFromFile(szBak);
-                CGlobals.LogEvent("InitList: devices restored from " + szBak);
+                ReadDevicesFromFile(szFile);
+                return LoadResult.Ok;
             }
-            catch (Exception exBak)
+            catch (FileNotFoundException)
             {
-                if (!(exBak is FileNotFoundException))
-                {
-                    CGlobals.LogEvent("InitList: backup is not readable either: " + exBak.Message);
-                    MoveAsideCorrupt(szBak);
-                }
-                // Nothing usable left (the broken files are kept aside): start with an empty list, saving is allowed
-                lock (m_lock)
-                {
-                    m_aDevices.Clear();
-                }
-                m_aPreservedNodes.Clear();
-                XMLdoc = new XmlDocument();
+                return LoadResult.Missing;
             }
+            catch (DirectoryNotFoundException)
+            {
+                return LoadResult.Missing;
+            }
+            catch (XmlException ex)
+            {
+                CGlobals.LogEvent("InitList: " + szFile + " has broken content: " + ex.Message);
+                return LoadResult.Content;
+            }
+            catch (InvalidDataException ex)
+            {
+                CGlobals.LogEvent("InitList: " + szFile + " has broken content: " + ex.Message);
+                return LoadResult.Content;
+            }
+            catch (Exception ex)
+            {
+                CGlobals.LogEvent("InitList: could not access " + szFile + ": " + ex.Message);
+                return LoadResult.Access;
+            }
+        }
+
+        // A file with broken content is kept aside; if that fails it stays in place, so saving must not touch it
+        private void HandleBrokenFile(string szFile)
+        {
+            if (!MoveAsideCorrupt(szFile))
+                m_bLoadFailed = true;
         }
 
         /// <summary>Renames a broken file to name.corrupt-yyyyMMdd-HHmmss. Returns false if it could not be kept.</summary>
@@ -281,6 +343,7 @@ namespace AmbiBack
         private void WriteDeviceFile()
         {
             string szTmp = this.m_szFileName + ".tmp";
+            bool bTmpVerified = false;
             try
             {
 //                XmlNode myChildNode;
@@ -341,6 +404,7 @@ namespace AmbiBack
                 // the existing file and its .bak stay untouched, so a failed write loses nothing.
                 XMLdoc.Save(szTmp);
                 new XmlDocument().Load(szTmp);
+                bTmpVerified = true;
 
                 // Only now rotate: File.Replace turns the old main file into the .bak and puts the new one in
                 // its place in one step; no copy is ever deleted before its successor exists.
@@ -353,7 +417,15 @@ namespace AmbiBack
             {
                 CGlobals.LogEvent("SaveList: could not write " + this.m_szFileName + ", the old files are kept: " + ex.Message);
                 CGlobals.HandleException("SaveList", ex);
-                try { File.Delete(szTmp); } catch (Exception) { }
+
+                // Normally the leftover .tmp is just noise. But if the main file is gone (a partial File.Replace)
+                // the verified .tmp is the newest complete copy, so it stays and InitList will pick it up.
+                if (bTmpVerified && !File.Exists(this.m_szFileName))
+                    CGlobals.LogEvent("SaveList: " + this.m_szFileName + " is missing, keeping the verified " + szTmp + " for the next start");
+                else
+                {
+                    try { File.Delete(szTmp); } catch (Exception) { }
+                }
             }
         }
 

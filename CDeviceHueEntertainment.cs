@@ -308,7 +308,15 @@ namespace AmbiBack
                     catch (ThreadInterruptedException)
                     {
                         DoDebugOutput("CDeviceHueEntertainment|HandleThread|Interrupted");
-                        session?.Stop();
+                        try
+                        {
+                            session?.Stop();
+                        }
+                        catch (ThreadInterruptedException)
+                        {
+                            // SleepThread() called again while Stop() sleeps (it sends black): the extra interrupt
+                            // must not leave this catch, the thread goes on into the wait below
+                        }
                         if (PcGroup)
                         {
                             session = null;

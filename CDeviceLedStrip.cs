@@ -256,6 +256,8 @@ namespace AmbiBack
         protected virtual void OnStreamStart() { }
         /// <summary>After the last frame: stop, monitor off, new address.</summary>
         protected virtual void OnStreamStop() { }
+        /// <summary>When the device thread ends for good (device stopped, disabled, app exit); not on a pause.</summary>
+        protected virtual void OnDeviceStopped() { }
         #endregion
 
         #region Threading
@@ -339,6 +341,8 @@ namespace AmbiBack
                 StopStream();
                 CloseClient();
                 bInitDone = false;
+                // Very last: the device is really stopped, not just paused
+                OnDeviceStopped();
             }
             DoDebugOutput(name + "|HandleThread|Finished Thread");
         }
@@ -366,6 +370,14 @@ namespace AmbiBack
         {
             try
             {
+                // A thread that was told to end but is still in its exit path (restoring the device in the finally)
+                // counts as running, so the restart would be lost. Wait for it while the abort flag is still set,
+                // then it is finished and replaced below. Never a second thread while the old one is alive
+                if (myThread != null && bAbortThread && myThread.IsAlive && myThread != Thread.CurrentThread)
+                {
+                    if (!myThread.Join(2000))
+                        DoDebugOutput(this.GetType().Name + "|StartThread|Previous thread still ending, not replaced");
+                }
                 this.SetAbortThread(false);
                 this.SetSleepThread(false);
                 // A finished thread (stopped, or aborted by AbortThread) cannot start again, use a new one
