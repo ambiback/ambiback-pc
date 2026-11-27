@@ -1,0 +1,36 @@
+CDeviceHueEntertainment.cs
+  s_fde109b51c2c38::t_1eda331fcd8c6f 317,319-327
+  s_fde109b51c2c38::t_d52899ada27481 372-375
+frmMain.cs
+  s_fde109b51c2c38::t_df1dc5deb31588 1165-1167
+CDevicesList.cs
+  s_fde109b51c2c38::t_1a5f322773fa1d 29-30,33-35,60-63,66-67,70-93,95-108,111,113-137,139-141,157,162,172,267,274-275,283,340-350,354,356,363-365,367-368,370,372-373,376-377,440
+  s_fde109b51c2c38::t_935361a3696888 142,144-145,147-153,155-156,158-161,163-171,174-177,179-182,184,186-188,190-196,198-250,252-260,276-282,432-439,441,444,446
+CDeviceLedStrip.cs
+  s_fde109b51c2c38::t_be8db90fdf7977 29-33
+  s_fde109b51c2c38::t_1503a1a3ce13ae 409,416-417
+  s_fde109b51c2c38::t_977d7876ccd1ce 306
+  s_fde109b51c2c38::t_214f4d51a00c93 321
+  s_fde109b51c2c38::t_63fb89b377e832 346-364,371-374
+CDeviceLifx.cs
+  s_fde109b51c2c38::t_0a52817f825487 127-130
+frmHueLamps.cs
+  s_fde109b51c2c38::t_a14bac8c8a5c68 256,266
+  s_fde109b51c2c38::t_90215b2293dc9e 279-286
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e9af2728d14ce93f80789f71cd530784854b5921",
+  "prompts": {},
+  "sessions": {
+    "s_fde109b51c2c38": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e35020d6-9673-4f21-80c9-efad7209a427",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andre Lorbach <1675286+alorbach@users.noreply.github.com>"
+    }
+  }
+}
