@@ -42,6 +42,9 @@ namespace AmbiBack.PhilipsHue
                 Test("Channel position to screen region", TestScanRectangle),
                 Test("Channel list round trip", TestChannelFormat),
                 Test("Client key DPAPI round trip", TestSecrets),
+                Test("Bridge certificate: CN matches the stored bridge id", TestBridgeCertMatch),
+                Test("Bridge certificate: CN mismatch is refused", TestBridgeCertMismatch),
+                Test("Bridge certificate: no stored id keeps working (trust on first use)", TestBridgeCertNoStoredId),
                 Test("Entertainment device XML round trip", TestDeviceXml),
                 Test("New area: light positions", TestNewAreaPositions),
                 Test("Only color lights are listed", TestColorLight),
@@ -396,6 +399,31 @@ namespace AmbiBack.PhilipsHue
             True(stored.StartsWith("dpapi:", StringComparison.Ordinal) && !stored.Contains(secret), "secret stored in plain text");
             Equal(secret, HueSecrets.Unprotect(stored));
             True(HueSecrets.Unprotect(secret) == null, "plain value must not be accepted");
+        }
+
+        private static void TestBridgeCertMatch()
+        {
+            True(HueClipV2.IsTrustedBridgeCertificate("001788fffe23bfc2", "001788fffe23bfc2"), "same id refused");
+            // /api/0/config reports the id in upper case, the certificate in lower case
+            True(HueClipV2.IsTrustedBridgeCertificate("001788FFFE23BFC2", "001788fffe23bfc2"), "case difference refused");
+            Equal("001788fffe23bfc2", Configuration.NormalizeBridgeId(" 001788FFFE23BFC2 "));
+        }
+
+        private static void TestBridgeCertMismatch()
+        {
+            True(!HueClipV2.IsTrustedBridgeCertificate("001788fffe23bfc2", "001788fffe23bfc3"), "other bridge id accepted");
+            True(!HueClipV2.IsTrustedBridgeCertificate("001788fffe23bfc2", "192.168.0.2"), "IP address as CN accepted");
+            True(!HueClipV2.IsTrustedBridgeCertificate("001788fffe23bfc2", ""), "empty CN accepted");
+            True(!HueClipV2.IsTrustedBridgeCertificate("001788fffe23bfc2", null), "missing CN accepted");
+            True(!HueClipV2.IsTrustedBridgeCertificate("001788fffe23bfc2", "001788fffe23bfc2x"), "longer CN accepted");
+        }
+
+        private static void TestBridgeCertNoStoredId()
+        {
+            True(HueClipV2.IsTrustedBridgeCertificate(null, "001788fffe23bfc2"), "no stored id: certificate refused");
+            True(HueClipV2.IsTrustedBridgeCertificate("", "anything"), "empty stored id: certificate refused");
+            True(Configuration.NormalizeBridgeId("not-a-bridge-id") == null, "invalid id accepted");
+            True(Configuration.NormalizeBridgeId("001788fffe23bfc") == null, "15 characters accepted");
         }
 
         private static void TestNewAreaPositions()

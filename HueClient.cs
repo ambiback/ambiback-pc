@@ -31,6 +31,45 @@ namespace AmbiBack.PhilipsHue
         /// <summary>PSK for the Entertainment API (32 hex characters), null when the bridge gave none. Secret: never log it.</summary>
         public static string ClientKey { get; set; }
 
+        private static string _bridgeId;
+
+        /// <summary>
+        /// Bridge id (16 lowercase hex characters, e.g. 001788fffe23bfc2), null while unknown. The bridge
+        /// certificate must carry it as subject CN before the application key is sent over HTTPS.
+        /// </summary>
+        public static string BridgeId
+        {
+            get { return _bridgeId; }
+            set { _bridgeId = NormalizeBridgeId(value); }
+        }
+
+        /// <summary>Lowercase 16-hex bridge id, or null for anything else.</summary>
+        public static string NormalizeBridgeId(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return null;
+            id = id.Trim().ToLowerInvariant();
+            if (id.Length != 16)
+                return null;
+            foreach (char c in id)
+            {
+                if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
+                    return null;
+            }
+            return id;
+        }
+
+        /// <summary>
+        /// Sets the bridge id only when none is known yet (trust on first use).
+        /// Returns true when this call stored it.
+        /// </summary>
+        internal static bool LearnBridgeId(string id)
+        {
+            string normalized = NormalizeBridgeId(id);
+            return normalized != null
+                && System.Threading.Interlocked.CompareExchange(ref _bridgeId, normalized, null) == null;
+        }
+
         /// <summary>
         /// Registers this app. The link button on the bridge must be pressed first. Also requests the
         /// client key for entertainment streaming (bridges with API 1.22 and later return it).

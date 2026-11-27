@@ -292,7 +292,7 @@ namespace AmbiBack.PhilipsHue
             request.Proxy = null;
             request.Headers["hue-application-key"] = Configuration.Username;
             IPAddress bridge = Configuration.DeviceIP;
-            request.ServerCertificateValidationCallback = (sender, cert, chain, errors) => AcceptBridgeCertificate(sender, bridge, errors);
+            request.ServerCertificateValidationCallback = (sender, cert, chain, errors) => AcceptBridgeCertificate(sender, bridge, cert, errors);
 
             if (body != null)
             {
@@ -325,14 +325,58 @@ namespace AmbiBack.PhilipsHue
             return json;
         }
 
-        private static bool AcceptBridgeCertificate(object sender, IPAddress bridge, SslPolicyErrors errors)
+        /// <summary>
+        /// The bridge certificate is not signed by a CA that Windows trusts, so policy errors are accepted,
+        /// but only for the bridge IP and only when the subject CN is the stored bridge id. Without a stored
+        /// id (pairings from older versions) the first certificate seen is trusted and its CN is stored.
+        /// </summary>
+        private static bool AcceptBridgeCertificate(object sender, IPAddress bridge, X509Certificate cert, SslPolicyErrors errors)
         {
             if (errors == SslPolicyErrors.None)
                 return true;
             // Only for the bridge IP, never for other hosts (e.g. redirects)
-            if (sender is HttpWebRequest req && IPAddress.TryParse(req.RequestUri.Host.Trim('[', ']'), out IPAddress host))
-                return host.Equals(bridge);
-            return false;
+            if (!(sender is HttpWebRequest req && IPAddress.TryParse(req.RequestUri.Host.Trim('[', ']'), out IPAddress host)
+                  && host.Equals(bridge)))
+                return false;
+
+            string cn = CertificateCommonName(cert);
+            string stored = Configuration.BridgeId;
+            if (!IsTrustedBridgeCertificate(stored, cn))
+            {
+                CGlobals.LogEvent("Hue bridge " + bridge + ": certificate CN '" + cn + "' is not the paired bridge id "
+                    + stored + ", connection refused. Pair the bridge again if it was replaced.");
+                return false;
+            }
+            if (stored == null && Configuration.LearnBridgeId(cn))
+                CGlobals.LogEvent("Hue bridge " + bridge + ": bridge id " + Configuration.BridgeId + " stored (first connection).");
+            return true;
+        }
+
+        /// <summary>
+        /// True when a bridge certificate with this subject CN may be accepted: it must equal the stored bridge
+        /// id; without a stored id any certificate is accepted (trust on first use).
+        /// </summary>
+        internal static bool IsTrustedBridgeCertificate(string storedBridgeId, string certificateCn)
+        {
+            string stored = Configuration.NormalizeBridgeId(storedBridgeId);
+            if (stored == null)
+                return true;
+            return stored == Configuration.NormalizeBridgeId(certificateCn);
+        }
+
+        private static string CertificateCommonName(X509Certificate cert)
+        {
+            if (cert == null)
+                return null;
+            try
+            {
+                using (var cert2 = new X509Certificate2(cert))
+                    return cert2.GetNameInfo(X509NameType.SimpleName, false);
+            }
+            catch (System.Security.Cryptography.CryptographicException)
+            {
+                return null;
+            }
         }
 
         private static JToken SafeParse(string text)

@@ -1016,6 +1016,17 @@ namespace AmbiBack
         #endregion
 
         #region Hue Helper Functions
+        /// <summary>Stores Configuration.BridgeId in the settings when it differs from the saved one.</summary>
+        static public void SaveHueBridgeId()
+        {
+            string id = Configuration.BridgeId ?? "";
+            if (id.Length > 0 && id != (Properties.Settings.Default.szHueBridgeId ?? ""))
+            {
+                Properties.Settings.Default.szHueBridgeId = id;
+                Properties.Settings.Default.Save();
+            }
+        }
+
         static public bool InitHue() {
             bool bReturn = false;
 
@@ -1029,6 +1040,7 @@ namespace AmbiBack
                 Configuration.AppID = CGlobals.szHueAppID;
                 Configuration.Username = szHueUsername;
                 Configuration.ClientKey = HueSecrets.Unprotect(Properties.Settings.Default.szHueClientKey);
+                Configuration.BridgeId = Properties.Settings.Default.szHueBridgeId;
 
                 // Git list of Hue Lights
                 CGlobals.HueLights = new LightCollection();
@@ -1046,6 +1058,9 @@ namespace AmbiBack
                         CGlobals.DebugOutput("InitHue|Entertainment areas: " + ex.Message);
                     }
                 }
+
+                // Pairings from older versions: keep the bridge id learned on the first HTTPS connection
+                SaveHueBridgeId();
 
                 // If we reach this point, we had success
                 bReturn = true; 
