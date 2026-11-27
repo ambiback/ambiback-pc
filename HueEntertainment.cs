@@ -276,10 +276,25 @@ namespace AmbiBack.PhilipsHue
 
         internal static JToken Send(string method, string path, string body)
         {
-            if (Configuration.DeviceIP == null)
-                throw new InvalidOperationException("Hue bridge address is not set.");
             if (string.IsNullOrEmpty(Configuration.Username))
                 throw new InvalidOperationException("Not paired with the Hue bridge.");
+            return SendHttps(method, path, body, Configuration.Username);
+        }
+
+        /// <summary>HTTPS request without the application key (pairing: POST /api).</summary>
+        internal static JToken SendUnauthenticated(string method, string path, string body)
+        {
+            return SendHttps(method, path, body, null);
+        }
+
+        /// <summary>
+        /// HTTPS request to the bridge with the pinned certificate check. A bridge without HTTPS (first
+        /// generation) fails with <see cref="WebExceptionStatus.ConnectFailure"/>, see <see cref="Configuration.IsNoHttps"/>.
+        /// </summary>
+        private static JToken SendHttps(string method, string path, string body, string applicationKey)
+        {
+            if (Configuration.DeviceIP == null)
+                throw new InvalidOperationException("Hue bridge address is not set.");
 
             string host = Configuration.DeviceIP.ToString();
             if (Configuration.DeviceIP.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
@@ -290,7 +305,8 @@ namespace AmbiBack.PhilipsHue
             request.Timeout = TimeoutMs;
             request.ReadWriteTimeout = TimeoutMs;
             request.Proxy = null;
-            request.Headers["hue-application-key"] = Configuration.Username;
+            if (applicationKey != null)
+                request.Headers["hue-application-key"] = applicationKey;
             IPAddress bridge = Configuration.DeviceIP;
             request.ServerCertificateValidationCallback = (sender, cert, chain, errors) => AcceptBridgeCertificate(sender, bridge, cert, errors);
 

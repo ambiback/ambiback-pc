@@ -31,6 +31,29 @@ namespace AmbiBack.PhilipsHue
         /// <summary>PSK for the Entertainment API (32 hex characters), null when the bridge gave none. Secret: never log it.</summary>
         public static string ClientKey { get; set; }
 
+        /// <summary>
+        /// True when plain HTTP may be used if the bridge has no HTTPS (first generation bridge): while
+        /// pairing, for bridges paired over HTTP, and for old pairings never confirmed over HTTPS.
+        /// Once HTTPS worked for a pairing it is never given up, so a host that spoofs the bridge IP
+        /// and closes port 443 cannot get the key over HTTP.
+        /// </summary>
+        public static bool AllowHttpFallback { get; set; }
+
+        /// <summary>True after the bridge was reached over HTTP because it has no HTTPS.</summary>
+        public static bool UsesHttp { get; set; }
+
+        /// <summary>HTTPS port closed (connection refused): the bridge has no HTTPS. TLS errors do not count.</summary>
+        public static bool IsNoHttps(WebExceptionStatus status)
+        {
+            return status == WebExceptionStatus.ConnectFailure;
+        }
+
+        /// <summary>HTTP fallback for a saved pairing: paired over HTTP, or never confirmed over HTTPS (no bridge id).</summary>
+        public static bool HttpFallbackAllowed(bool pairedOverHttp, string storedBridgeId)
+        {
+            return pairedOverHttp || NormalizeBridgeId(storedBridgeId) == null;
+        }
+
         private static string _bridgeId;
 
         /// <summary>
@@ -82,7 +105,19 @@ namespace AmbiBack.PhilipsHue
                 deviceType = deviceType.Substring(0, MaxDeviceTypeLength);
 
             JObject body = new JObject { ["devicetype"] = deviceType, ["generateclientkey"] = true };
-            JToken response = HueHttp.Send("POST", "/api", body.ToString(Newtonsoft.Json.Formatting.None));
+            string json = body.ToString(Newtonsoft.Json.Formatting.None);
+            JToken response;
+            try
+            {
+                // HTTPS: the reply carries the new user name and client key
+                response = HueClipV2.SendUnauthenticated("POST", "/api", json);
+            }
+            catch (WebException ex) when (AllowHttpFallback && IsNoHttps(ex.Status))
+            {
+                CGlobals.LogEvent("Hue bridge " + DeviceIP + ": no HTTPS (first generation bridge?), pairing over HTTP.");
+                UsesHttp = true;
+                response = HueHttp.Send("POST", "/api", json);
+            }
             HueHttp.ThrowOnError(response);
 
             JToken success = response is JArray items && items.Count > 0 ? items[0]["success"] : null;
@@ -127,9 +162,43 @@ namespace AmbiBack.PhilipsHue
 
         public LightCollection()
         {
-            _lights = Parse(HueClipV2.Send("GET", "/clip/v2/resource/light", null),
-                HueClipV2.Send("GET", "/clip/v2/resource/device", null),
-                HueClipV2.Send("GET", "/clip/v2/resource/zigbee_connectivity", null));
+            try
+            {
+                _lights = Parse(HueClipV2.Send("GET", "/clip/v2/resource/light", null),
+                    HueClipV2.Send("GET", "/clip/v2/resource/device", null),
+                    HueClipV2.Send("GET", "/clip/v2/resource/zigbee_connectivity", null));
+            }
+            catch (WebException ex) when (Configuration.AllowHttpFallback && Configuration.IsNoHttps(ex.Status))
+            {
+                CGlobals.LogEvent("Hue bridge " + Configuration.DeviceIP + ": no HTTPS (first generation bridge?), light list over HTTP.");
+                Configuration.UsesHttp = true;
+                _lights = LoadV1();
+            }
+        }
+
+        /// <summary>Old API over plain HTTP, only for bridges without HTTPS (see <see cref="Configuration.AllowHttpFallback"/>).</summary>
+        private static List<Light> LoadV1()
+        {
+            string path = "/api/" + Uri.EscapeDataString(Configuration.Username ?? "") + "/lights";
+            JToken response = HueHttp.Send("GET", path, null);
+            HueHttp.ThrowOnError(response);
+
+            if (!(response is JObject lights))
+                throw new HueException(0, "Unexpected response from Hue bridge.");
+
+            var result = new List<Light>();
+            foreach (JProperty entry in lights.Properties())
+            {
+                result.Add(new Light
+                {
+                    ID = entry.Name,
+                    Name = (string)entry.Value["name"],
+                    Type = (string)entry.Value["type"],
+                    ModelID = (string)entry.Value["modelid"],
+                    UniqueID = (string)entry.Value["uniqueid"],
+                });
+            }
+            return result;
         }
 
         internal LightCollection(List<Light> lights)

@@ -47,6 +47,7 @@ namespace AmbiBack.PhilipsHue
                 Test("Bridge certificate: CN mismatch is refused", TestBridgeCertMismatch),
                 Test("Bridge certificate: no stored id keeps working (trust on first use)", TestBridgeCertNoStoredId),
                 Test("Light list from CLIP v2, old saved ids still match", TestClipLights),
+                Test("HTTP fallback only for bridges without HTTPS", TestHttpFallback),
                 Test("Entertainment device XML round trip", TestDeviceXml),
                 Test("New area: light positions", TestNewAreaPositions),
                 Test("Only color lights are listed", TestColorLight),
@@ -401,6 +402,22 @@ namespace AmbiBack.PhilipsHue
             True(stored.StartsWith("dpapi:", StringComparison.Ordinal) && !stored.Contains(secret), "secret stored in plain text");
             Equal(secret, HueSecrets.Unprotect(stored));
             True(HueSecrets.Unprotect(secret) == null, "plain value must not be accepted");
+        }
+
+        private static void TestHttpFallback()
+        {
+            // Old pairing never confirmed over HTTPS (no id): may still be a first generation bridge
+            True(Configuration.HttpFallbackAllowed(false, ""), "old pairing without id: no fallback");
+            True(Configuration.HttpFallbackAllowed(false, null), "old pairing without id: no fallback");
+            // Paired over HTTP: stays on HTTP
+            True(Configuration.HttpFallbackAllowed(true, "001788fffe23bfc2"), "HTTP pairing: no fallback");
+            // HTTPS confirmed or discovered id with HTTPS pairing: never HTTP again
+            True(!Configuration.HttpFallbackAllowed(false, "001788fffe23bfc2"), "HTTPS pairing falls back to HTTP");
+            // Only a closed port counts, never a refused certificate or a timeout
+            True(Configuration.IsNoHttps(WebExceptionStatus.ConnectFailure), "connection refused not detected");
+            True(!Configuration.IsNoHttps(WebExceptionStatus.TrustFailure), "certificate error treated as no HTTPS");
+            True(!Configuration.IsNoHttps(WebExceptionStatus.SecureChannelFailure), "TLS error treated as no HTTPS");
+            True(!Configuration.IsNoHttps(WebExceptionStatus.Timeout), "timeout treated as no HTTPS");
         }
 
         private static void TestClipLights()
