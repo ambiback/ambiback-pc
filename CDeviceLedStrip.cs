@@ -267,9 +267,9 @@ namespace AmbiBack
                         FramePacer pacer = new FramePacer();
                         while (!bAbortThread)
                         {
-                            if (!CGlobals.monitorPowerStatus)
+                            if (!CGlobals.monitorPowerStatus || this.CaptureInterrupted)
                             {
-                                // Monitor off: stop sending, the device returns to its own effect
+                                // Monitor off or no capture: stop sending, the device returns to its own effect
                                 StopStream();
                                 Thread.Sleep(1000);
                                 continue;

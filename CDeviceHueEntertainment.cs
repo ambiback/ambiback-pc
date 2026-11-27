@@ -205,12 +205,13 @@ namespace AmbiBack
                     {
                         long frameStart = frameClock.ElapsedMilliseconds;
 
-                        if (!CGlobals.monitorPowerStatus)
+                        if (!CGlobals.monitorPowerStatus || this.CaptureInterrupted)
                         {
-                            // Monitor off: release the area so the lights return to normal
+                            // Monitor off or no capture: release the area so the lights return to normal
+                            // instead of repeating the last frame (e.g. the colors of the logon screen)
                             if (session != null && session.State != HueEntertainmentSession.SessionState.Idle)
                                 session.Stop();
-                            SetStatus(L.T("hue_st_monitor_off"));
+                            SetStatus(CGlobals.monitorPowerStatus ? L.T("mon_waiting") : L.T("hue_st_monitor_off"));
                             Thread.Sleep(1000);
                             continue;
                         }

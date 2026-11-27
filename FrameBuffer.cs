@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace AmbiBack
 {
@@ -21,6 +22,29 @@ namespace AmbiBack
 
         /// <summary>Incremented with every new frame; readers can skip work when it did not change.</summary>
         public long FrameNumber { get; private set; }
+
+        // UTC ticks since when the capture delivers no frames because of an error; 0 = capturing.
+        // A static screen also delivers no new frames, so FrameNumber alone cannot tell the two apart.
+        private long captureLostSince = 0;
+
+        /// <summary>Set by the monitor when its capture is interrupted (lock screen, display off, DXGI errors) or runs again.</summary>
+        public void SetCaptureLost(bool lost)
+        {
+            if (lost)
+                Interlocked.CompareExchange(ref captureLostSince, DateTime.UtcNow.Ticks, 0);
+            else
+                Interlocked.Exchange(ref captureLostSince, 0);
+        }
+
+        /// <summary>
+        /// True when the capture has been interrupted for at least minMs. The frame in the buffer is
+        /// stale then: devices should not keep showing it (e.g. the colors of the logon screen).
+        /// </summary>
+        public bool IsCaptureInterrupted(int minMs = 3000)
+        {
+            long since = Interlocked.Read(ref captureLostSince);
+            return since != 0 && (DateTime.UtcNow.Ticks - since) >= minMs * TimeSpan.TicksPerMillisecond;
+        }
 
         /// <summary>Copy a 32 bpp bitmap into the buffer (one LockBits per frame). Called by the capture thread.</summary>
         public void Update(Bitmap source)

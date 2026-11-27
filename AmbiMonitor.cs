@@ -562,6 +562,7 @@ namespace AmbiBack
                 screenHelper.ReceivedScreenshot += new ScreenHelperReceivedScreenshot(this.ScreenHelperReceivedScreenshot);
                 screenHelper.DebugOutput += new EventDebugOutput(this.EventDebugOutput);
                 screenHelper.UpdateStatus += new EventUpdateStatus(this.ScreenHelperUpdateStatus);
+                screenHelper.CaptureStateChanged += lost => this.frameBuffer.SetCaptureLost(lost);
 
                 // Allow more LEDs than DreamScreen!
 

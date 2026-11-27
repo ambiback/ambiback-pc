@@ -412,8 +412,9 @@ namespace AmbiBack
                         if (iFramesPerSec >= 0)
                             DoUpdateStatus("Framerate send: " + iFramesPerSec + " - Target: " + this.GetDeviceName());
 
-                        // Loop to avoid running wenn Monitor is turned off
-                        while (!CGlobals.monitorPowerStatus)
+                        // Loop to avoid running wenn Monitor is turned off or the capture is interrupted
+                        // (stop sending, so the controller does not keep the colors of a stale frame)
+                        while (!CGlobals.monitorPowerStatus || this.CaptureInterrupted)
                         {
                             // Wait for monitor to come back online
                             CGlobals.DebugOutput("CDeviceAmbiBack:HandleThread:WaitForMonitorLoop");

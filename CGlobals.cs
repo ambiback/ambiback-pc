@@ -481,12 +481,18 @@ namespace AmbiBack
 
         public static void PowerModeChanged(object sender, PowerModeChangedEventArgs e)
         {
-            CGlobals.DebugOutput("CGlobals:PowerModeChanged:" + e.Mode.ToString());
+            CGlobals.LogEvent("PowerModeChanged:" + e.Mode.ToString());
         }
 
         public static void DisplaySettingsChanged(object sender, EventArgs e)
         {
-            CGlobals.DebugOutput("CGlobals:DisplaySettingsChanged:" + e.ToString() );
+            CGlobals.LogEvent("DisplaySettingsChanged");
+        }
+
+        public static void SessionSwitch(object sender, SessionSwitchEventArgs e)
+        {
+            // Lock, unlock, logon, logoff, remote connect: the capture is interrupted around these
+            CGlobals.LogEvent("SessionSwitch:" + e.Reason.ToString());
         }
         #endregion
 
@@ -695,6 +701,11 @@ namespace AmbiBack
                     }
                 }
 #endif
+#if (!DEBUG)
+                // Release builds keep a small log of errors and events, so problems can be traced later
+                if (szFacility == "Error" || szFacility == "Event")
+                    WriteReleaseLog(szDbgMsg);
+#endif
                 if (szDbgMsg.EndsWith("\r\n"))
                     Debug.Write(szDbgMsg);
                 else
@@ -716,6 +727,43 @@ namespace AmbiBack
 #endif
             }
 
+        }
+
+        /// <summary>
+        /// Logs an event worth keeping in Release builds too (monitor power, session switches,
+        /// capture recovery). It goes to the debug output and to the release log.
+        /// </summary>
+        public static void LogEvent(string szEvent, [CallerMemberName] string callerName = "Unknown")
+        {
+            CGlobals.DebugOutput(szEvent, callerName, "Event");
+        }
+
+        private const long RELEASE_LOG_MAX_BYTES = 1024 * 1024;
+        private static readonly object releaseLogLock = new object();
+
+        /// <summary>Appends a line to the release log; at 1 MB the log moves to ambiback.log.old.</summary>
+        private static void WriteReleaseLog(string szLine)
+        {
+            try
+            {
+                lock (releaseLogLock)
+                {
+                    string szFile = AppPaths.ReleaseLog;
+                    FileInfo fi = new FileInfo(szFile);
+                    if (fi.Exists && fi.Length > RELEASE_LOG_MAX_BYTES)
+                    {
+                        string szOld = szFile + ".old";
+                        if (File.Exists(szOld))
+                            File.Delete(szOld);
+                        File.Move(szFile, szOld);
+                    }
+                    File.AppendAllText(szFile, szLine.EndsWith("\r\n") ? szLine : szLine + "\r\n");
+                }
+            }
+            catch (Exception)
+            {
+                // Logging must never break the caller
+            }
         }
 
         public static void DebugOutput(Exception ex)

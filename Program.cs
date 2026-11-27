@@ -85,6 +85,7 @@ namespace AmbiBack
                 SystemEvents.SessionEnded += new SessionEndedEventHandler(CGlobals.SessionEnded);
                 SystemEvents.PowerModeChanged += new PowerModeChangedEventHandler(CGlobals.PowerModeChanged);
                 SystemEvents.DisplaySettingsChanged += new EventHandler(CGlobals.DisplaySettingsChanged);
+                SystemEvents.SessionSwitch += new SessionSwitchEventHandler(CGlobals.SessionSwitch);
 
                 try
                 {
