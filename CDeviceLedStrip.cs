@@ -343,8 +343,16 @@ namespace AmbiBack
                 bInitDone = false;
                 // Very last: the device is really stopped, not just paused
                 OnDeviceStopped();
+                try
+                {
+                    DoDebugOutput(name + "|HandleThread|Finished Thread");
+                }
+                finally
+                {
+                    // Very last: a start that came in while this thread was still ending
+                    FinishThread();
+                }
             }
-            DoDebugOutput(name + "|HandleThread|Finished Thread");
         }
 
         /// <summary>
@@ -366,34 +374,97 @@ namespace AmbiBack
             }
         }
 
+        // Guards the hand-over between a thread that is ending and a start that comes in meanwhile
+        private readonly object threadLock = new object();
+        // The thread started by StartThread, until its HandleThread is completely done
+        private Thread liveThread;
+        // StartThread came in while the old thread was still ending: that thread starts the new one itself
+        private bool restartPending;
+
         public override void StartThread()
         {
+            bool deferred = false;
             try
             {
-                // A thread that was told to end but is still in its exit path (restoring the device in the finally)
-                // counts as running, so the restart would be lost. Wait for it while the abort flag is still set,
-                // then it is finished and replaced below. Never a second thread while the old one is alive
-                if (myThread != null && bAbortThread && myThread.IsAlive && myThread != Thread.CurrentThread)
+                lock (threadLock)
                 {
-                    if (!myThread.Join(2000))
-                        DoDebugOutput(this.GetType().Name + "|StartThread|Previous thread still ending, not replaced");
+                    // A thread that was told to end but is still in its exit path (restoring the device in the
+                    // finally) counts as running, so the restart would be lost. It is not waited for: the exit path
+                    // can call into the UI thread (debug output), so a wait on the caller would only time out. The
+                    // ending thread starts the new one as its last step. Never a second thread while one is alive
+                    if (liveThread != null && bAbortThread && liveThread != Thread.CurrentThread)
+                    {
+                        restartPending = true;
+                        deferred = true;
+                    }
+                    else
+                        StartDeviceThread();
                 }
-                this.SetAbortThread(false);
-                this.SetSleepThread(false);
-                // A finished thread (stopped, or aborted by AbortThread) cannot start again, use a new one
-                if (myThread != null &&
-                    (myThread.ThreadState == System.Threading.ThreadState.Stopped ||
-                     myThread.ThreadState == System.Threading.ThreadState.Aborted))
-                    myThread = null;
-                CreateThread();
-                if (myThread.ThreadState == System.Threading.ThreadState.Unstarted)
-                    myThread.Start();
+                if (deferred)
+                    DoDebugOutput(this.GetType().Name + "|StartThread|Previous thread still ending, restart follows");
             }
             catch (Exception ex)
             {
                 CGlobals.DebugOutput(ex);
                 DoDebugOutput(this.GetType().Name + "|StartThread|Exception: " + ex.Message);
             }
+        }
+
+        protected override void OnAbortRequested()
+        {
+            // Stopped for good (device removed, app exit): drop a restart that waits for the ending thread
+            lock (threadLock)
+                restartPending = false;
+        }
+
+        /// <summary>Starts a thread unless one is running; the caller holds <see cref="threadLock"/>.</summary>
+        private void StartDeviceThread()
+        {
+            this.SetAbortThread(false);
+            this.SetSleepThread(false);
+            // A finished thread (stopped, aborted by AbortThread, or past its exit path) cannot start again, use a
+            // new one. A started thread that is not the live one has left HandleThread
+            if (myThread != null && myThread.ThreadState != System.Threading.ThreadState.Unstarted &&
+                (myThread != liveThread ||
+                 myThread.ThreadState == System.Threading.ThreadState.Stopped ||
+                 myThread.ThreadState == System.Threading.ThreadState.Aborted))
+                myThread = null;
+            CreateThread();
+            if (myThread.ThreadState == System.Threading.ThreadState.Unstarted)
+            {
+                myThread.Start();
+                liveThread = myThread;
+            }
+        }
+
+        /// <summary>
+        /// Last step of HandleThread. Releases the live thread and, when a start came in while this thread was
+        /// ending, starts the new one here (the old thread is gone from the caller's point of view by then).
+        /// </summary>
+        private void FinishThread()
+        {
+            bool restarted = false;
+            try
+            {
+                lock (threadLock)
+                {
+                    if (liveThread != Thread.CurrentThread)
+                        return;
+                    liveThread = null;
+                    // No new thread while the app is closing
+                    if (!restartPending || CGlobals.appIsStopping)
+                        return;
+                    restartPending = false;
+                    StartDeviceThread();
+                    restarted = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                CGlobals.DebugOutput(ex);
+            }
+            if (restarted)
+                DoDebugOutput(this.GetType().Name + "|HandleThread|Restarted by a start during the exit");
         }
 
         /// <summary>Connects to the current address and starts the stream; false while the address is unknown.</summary>

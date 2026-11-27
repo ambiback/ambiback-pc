@@ -104,6 +104,8 @@ namespace AmbiBack
                 if (res == LoadResult.Ok)
                 {
                     CGlobals.LogEvent("InitList: devices restored from " + szFile);
+                    if (szFile == szTmp)
+                        PromoteTmpToMain(szTmp);
                     return;
                 }
                 if (res == LoadResult.Missing)
@@ -135,6 +137,26 @@ namespace AmbiBack
             }
             m_aPreservedNodes.Clear();
             XMLdoc = new XmlDocument();
+        }
+
+        // The list was loaded from the .tmp of an interrupted save. If the main file is gone (missing, or a broken
+        // one was moved aside) the .tmp is the newest good copy. Make it the main file right away: otherwise the
+        // next save would write into this very .tmp, and a failed write would truncate or delete the only good copy.
+        private void PromoteTmpToMain(string szTmp)
+        {
+            try
+            {
+                if (File.Exists(this.m_szFileName))
+                    return; // main could not be moved aside, SaveList is already blocked by m_bLoadFailed
+                File.Move(szTmp, this.m_szFileName);
+                CGlobals.LogEvent("InitList: " + szTmp + " is the newest copy and is now the device file " + this.m_szFileName);
+            }
+            catch (Exception ex)
+            {
+                // Cannot promote it: no saves this session, so the .tmp is not overwritten
+                m_bLoadFailed = true;
+                CGlobals.LogEvent("InitList: could not promote " + szTmp + " to " + this.m_szFileName + ", saving is disabled for this session: " + ex.Message);
+            }
         }
 
         // Content errors mean the file is bad, anything else (sharing violation, permissions) says nothing about it
@@ -418,10 +440,11 @@ namespace AmbiBack
                 CGlobals.LogEvent("SaveList: could not write " + this.m_szFileName + ", the old files are kept: " + ex.Message);
                 CGlobals.HandleException("SaveList", ex);
 
-                // Normally the leftover .tmp is just noise. But if the main file is gone (a partial File.Replace)
-                // the verified .tmp is the newest complete copy, so it stays and InitList will pick it up.
-                if (bTmpVerified && !File.Exists(this.m_szFileName))
-                    CGlobals.LogEvent("SaveList: " + this.m_szFileName + " is missing, keeping the verified " + szTmp + " for the next start");
+                // Normally the leftover .tmp is just noise. But if the main file is gone (a partial File.Replace,
+                // or this save was interrupted early) the .tmp may be the newest complete copy, so it stays and
+                // InitList will pick it up. This holds even when this save failed before the .tmp was verified.
+                if (!File.Exists(this.m_szFileName))
+                    CGlobals.LogEvent("SaveList: " + this.m_szFileName + " is missing, keeping the " + (bTmpVerified ? "verified " : "") + szTmp + " for the next start");
                 else
                 {
                     try { File.Delete(szTmp); } catch (Exception) { }

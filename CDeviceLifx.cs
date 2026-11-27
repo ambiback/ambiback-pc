@@ -126,20 +126,8 @@ namespace AmbiBack
         {
             base.Connect(ip);
             target = MacTarget(this.InternalNetworkMAC);
-            // State to restore on stop. The lamp shows the stream color after a lost connection, also when the
-            // stream was paused (monitor off) without a restore, so it is only read while no restore is pending
-            // and no stream is running. It is asked for once per run: a failed read leaves nothing pending (no
-            // restore for that stream) and is not repeated on a reconnect, when the lamp may show the stream color
-            if (!stateReadAttempted && !restorePending && !StreamActive)
-            {
-                stateReadAttempted = true;
-                byte[] state = Request(MsgGetColor, new byte[0], MsgLightState);
-                if (state != null && state.Length >= 12)
-                {
-                    savedState = state;
-                    restorePending = true;
-                }
-            }
+            // The state to restore is not read here: a monitor off/on on a connected lamp starts the next stream
+            // without a new Connect, so the read lives in OnStreamStart
         }
 
         protected override void OnDeviceStopped()
@@ -173,6 +161,22 @@ namespace AmbiBack
 
         protected override void OnStreamStart()
         {
+            // State to restore on stop. Runs before the first frame of every stream, also after a pause on a
+            // connected lamp and after a reconnect. The lamp shows the stream color after a lost connection, also
+            // when the stream was paused without a restore, so it is only read while no restore is pending. It is
+            // asked for once per stream: a failed read leaves nothing pending (no restore for that stream) and is
+            // not repeated on a reconnect, when the lamp may already show the stream color. The flag is reset when
+            // the stream ends while connected (OnStreamStop) and when the device thread ends (OnDeviceStopped)
+            if (!stateReadAttempted && !restorePending)
+            {
+                stateReadAttempted = true;
+                byte[] state = Request(MsgGetColor, new byte[0], MsgLightState);
+                if (state != null && state.Length >= 12)
+                {
+                    savedState = state;
+                    restorePending = true;
+                }
+            }
             Send(MsgSetLightPower, PowerPayload(true, 0));
         }
 

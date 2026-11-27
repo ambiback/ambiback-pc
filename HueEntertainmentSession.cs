@@ -91,15 +91,22 @@ namespace AmbiBack.PhilipsHue
         /// </summary>
         public void Stop(bool turnOff = true)
         {
-            if (State == SessionState.Streaming && turnOff)
-                SendBlack();
-            CloseDtls(true);
-            StopStreamingMode();
-            State = SessionState.Idle;
-            if (turnOff && _lightsUsed)
+            try
             {
-                _lightsUsed = false;
-                TurnLightsOff();
+                if (State == SessionState.Streaming && turnOff)
+                    SendBlack();
+            }
+            finally
+            {
+                // Always, also when the black frames failed: an open session or a lit lamp would stay behind
+                CloseDtls(true);
+                StopStreamingMode();
+                State = SessionState.Idle;
+                if (turnOff && _lightsUsed)
+                {
+                    _lightsUsed = false;
+                    TurnLightsOff();
+                }
             }
         }
 
@@ -122,7 +129,17 @@ namespace AmbiBack.PhilipsHue
             for (int i = 0; i < 3 && State == SessionState.Streaming; i++)
             {
                 Send(ids, black, n);
-                Thread.Sleep(20);
+                try
+                {
+                    Thread.Sleep(20);
+                }
+                catch (ThreadInterruptedException)
+                {
+                    // The device thread is interrupted again (pause called twice) while it closes the session. The
+                    // session must still be closed and the lights turned off, so the wait is just cut short; the
+                    // caller handles the pause afterwards
+                    break;
+                }
             }
         }
 

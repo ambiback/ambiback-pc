@@ -771,8 +771,12 @@ namespace AmbiBack
                 // False means Interrupt has to be ignored
                 return false;
         }
+        /// <summary>Called first in AbortThread: the device is stopped for good, a deferred restart must not follow.</summary>
+        protected virtual void OnAbortRequested() { }
+
         public bool AbortThread()
         {
+            this.OnAbortRequested();
             if (myThread != null)
             {
                 if (myThread.ThreadState == System.Threading.ThreadState.Running ||
