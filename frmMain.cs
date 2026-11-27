@@ -1162,7 +1162,9 @@ namespace AmbiBack
             foreach (Control myControl in panScreens.Controls)
             {
                 AmbiMonitor myAmbiScreen = (AmbiMonitor)myControl;
-                myAmbiScreen.screenHelper.AbortThread();
+                // screenHelper is null when its D3D11 device could not be created at startup
+                if (myAmbiScreen.screenHelper != null)
+                    myAmbiScreen.screenHelper.AbortThread();
             }
 
             // Hue entertainment areas: end streaming and switch the lights off before the process ends

@@ -314,8 +314,17 @@ namespace AmbiBack
                             session = null;
                             pcVersion = -1;     // set the area up again on Start
                         }
+                        // SleepThread() can interrupt again during the wait; that must not end the thread
                         while (bSleepThread && !bAbortThread)
-                            Thread.Sleep(10);
+                        {
+                            try
+                            {
+                                Thread.Sleep(10);
+                            }
+                            catch (ThreadInterruptedException)
+                            {
+                            }
+                        }
                     }
 
                     if (StreamStatus != lastStatus)
@@ -360,7 +369,10 @@ namespace AmbiBack
             {
                 this.SetAbortThread(false);
                 this.SetSleepThread(false);
-                if (myThread != null && myThread.ThreadState == System.Threading.ThreadState.Stopped)
+                // A finished thread (stopped, or aborted by AbortThread) cannot start again, use a new one
+                if (myThread != null &&
+                    (myThread.ThreadState == System.Threading.ThreadState.Stopped ||
+                     myThread.ThreadState == System.Threading.ThreadState.Aborted))
                     myThread = null;
                 CreateThread();
                 if (myThread.ThreadState == System.Threading.ThreadState.Unstarted)

@@ -26,6 +26,11 @@ namespace AmbiBack
         private bool connected;
         private IPAddress connectedAddress;
         private bool streaming;
+        /// <summary>
+        /// A stream has started and was not stopped yet. Unlike the internal streaming flag it survives a lost
+        /// connection, so a subclass can tell a reconnect during a stream from a fresh start.
+        /// </summary>
+        protected bool StreamActive { get; private set; }
         private byte[] rgb;
         private float[] smoothed;
 
@@ -298,8 +303,7 @@ namespace AmbiBack
                         // Stop of the monitor (SleepThread): end the stream, it starts again on resume
                         DoDebugOutput(name + "|HandleThread|Interrupted");
                         StopStream();
-                        while (bSleepThread && !bAbortThread)
-                            Thread.Sleep(10);
+                        WaitWhilePaused();
                     }
                     catch (Exception ex) when (ex is SocketException || ex is IOException)
                     {
@@ -314,8 +318,7 @@ namespace AmbiBack
                         {
                             // SleepThread() during the back-off: same as the interrupt in the stream loop above
                             // (the stream is already closed here)
-                            while (bSleepThread && !bAbortThread)
-                                Thread.Sleep(10);
+                            WaitWhilePaused();
                         }
                     }
                 }
@@ -340,13 +343,35 @@ namespace AmbiBack
             DoDebugOutput(name + "|HandleThread|Finished Thread");
         }
 
+        /// <summary>
+        /// Waits while the thread is paused. SleepThread() can interrupt again during the wait (called twice);
+        /// that must not leave the wait, an exception here would end the whole thread.
+        /// </summary>
+        private void WaitWhilePaused()
+        {
+            while (bSleepThread && !bAbortThread)
+            {
+                try
+                {
+                    Thread.Sleep(10);
+                }
+                catch (ThreadInterruptedException)
+                {
+                    // Interrupted again: keep waiting until the pause is over
+                }
+            }
+        }
+
         public override void StartThread()
         {
             try
             {
                 this.SetAbortThread(false);
                 this.SetSleepThread(false);
-                if (myThread != null && myThread.ThreadState == System.Threading.ThreadState.Stopped)
+                // A finished thread (stopped, or aborted by AbortThread) cannot start again, use a new one
+                if (myThread != null &&
+                    (myThread.ThreadState == System.Threading.ThreadState.Stopped ||
+                     myThread.ThreadState == System.Threading.ThreadState.Aborted))
                     myThread = null;
                 CreateThread();
                 if (myThread.ThreadState == System.Threading.ThreadState.Unstarted)
@@ -381,12 +406,15 @@ namespace AmbiBack
             {
                 OnStreamStart();
                 streaming = true;
+                StreamActive = true;
             }
             return true;
         }
 
         private void StopStream()
         {
+            // Also when the connection was lost before: the stream is over, the next start is a fresh one
+            StreamActive = false;
             if (!streaming)
                 return;
             streaming = false;

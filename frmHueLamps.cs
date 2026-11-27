@@ -253,6 +253,7 @@ namespace AmbiBack
 
             Cursor = Cursors.WaitCursor;
             Enabled = false;
+            bool applied = false;     // from MembershipChanged on the new members are in use and must stay
             try
             {
                 // Create or update the group now, so it can be assigned to the monitor right away
@@ -262,6 +263,7 @@ namespace AmbiBack
                     HuePcGroup.Layout layout = HuePcGroup.Configure(HuePcGroup.Members(), true);
                     group = HuePcGroup.EnsureDevice(layout.Area);
                 }
+                applied = true;
                 HuePcGroup.MembershipChanged();   // a running group picks the change up by itself
 
                 int monitor = cbMonitor.SelectedIndex - 1;
@@ -274,11 +276,14 @@ namespace AmbiBack
             catch (Exception ex)
             {
                 CGlobals.DebugOutput("frmHueLamps|OK: " + ex.Message);
-                for (int i = 0; i < rows.Count; i++)
-                {
-                    rows[i].Lamp.InGroup = oldInGroup[i];
-                    rows[i].Lamp.ScreenSectors = oldSectors[i];
-                }
+                // Put the old members back only while nothing used the new ones yet; after MembershipChanged the
+                // group and the bridge already follow the new members, rolling back would make them differ
+                if (!applied)
+                    for (int i = 0; i < rows.Count; i++)
+                    {
+                        rows[i].Lamp.InGroup = oldInGroup[i];
+                        rows[i].Lamp.ScreenSectors = oldSectors[i];
+                    }
                 lblStatus.ForeColor = Theme.Destructive;
                 lblStatus.Text = HueClipV2.IsAreaLimitError(ex) ? L.T("hue_area_limit") : L.F("hue_area_err", ex.Message);
             }

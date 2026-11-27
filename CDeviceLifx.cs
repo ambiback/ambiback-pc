@@ -47,7 +47,6 @@ namespace AmbiBack
         private byte sequence;
         private byte[] target = new byte[8];
         private byte[] savedState;          // LightState payload before the start, restored on stop
-        private bool restorePending;        // savedState was read and not restored yet (survives a reconnect)
         private byte[] zonePayload;
 
         #region Stored settings
@@ -125,13 +124,11 @@ namespace AmbiBack
         {
             base.Connect(ip);
             target = MacTarget(this.InternalNetworkMAC);
-            // State to restore on stop. After a lost connection the lamp still shows the stream color, so the
-            // state from before the stream is kept until a real stop has restored it
-            if (!restorePending)
-            {
+            // State to restore on stop. After a lost connection during a stream the lamp still shows the stream
+            // color, so the state from before the stream is kept (even when its first read timed out) and only
+            // read again for a fresh start
+            if (!StreamActive)
                 savedState = Request(MsgGetColor, new byte[0], MsgLightState);
-                restorePending = savedState != null;
-            }
         }
 
         /// <summary>Sends a message that asks for an answer and waits for that answer; null after the timeout.</summary>
@@ -163,7 +160,6 @@ namespace AmbiBack
         protected override void OnStreamStop()
         {
             // Back to the color and power before the start
-            restorePending = false;
             if (savedState == null || savedState.Length < 12)
                 return;
             byte[] color = new byte[13];
