@@ -1079,16 +1079,8 @@ namespace AmbiBack
 
         static public Light GetHueLightByUniqueID(string szUniqueId)
         {
-            if (szUniqueId != null && szUniqueId.Length > 0 && CGlobals.HueLights != null) {
-                foreach (Light myLight in CGlobals.HueLights)
-                {
-                    if (myLight.UniqueID == szUniqueId)
-                        return myLight;
-                }
-            }
-
-            // null if not found
-            return null; 
+            // Also matches ids saved with the old API ("<mac>-0b"); null if not found
+            return CGlobals.HueLights?.Find(szUniqueId);
         }
         #endregion
 

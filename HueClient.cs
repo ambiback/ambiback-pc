@@ -104,6 +104,10 @@ namespace AmbiBack.PhilipsHue
         public string Type { get; internal set; }
         public string ModelID { get; internal set; }
         public string UniqueID { get; internal set; }
+        /// <summary>CLIP v2 light resource id.</summary>
+        public string ClipID { get; internal set; }
+        /// <summary>Zigbee MAC address of the device (lower case), null for lights without Zigbee.</summary>
+        public string MacAddress { get; internal set; }
 
         /// <summary>True for lights with a color gamut ("Extended color light", "Color light").</summary>
         public bool IsColorLight
@@ -113,31 +117,134 @@ namespace AmbiBack.PhilipsHue
 
     }
 
-    /// <summary>Loads the lights from the bridge once on creation.</summary>
+    /// <summary>
+    /// Loads the lights from the bridge once on creation, over CLIP API v2 (HTTPS with the pinned bridge
+    /// certificate, see <see cref="HueClipV2"/>), so the application key never goes over plain HTTP.
+    /// </summary>
     public class LightCollection : IEnumerable<Light>
     {
-        private readonly List<Light> _lights = new List<Light>();
+        private readonly List<Light> _lights;
 
         public LightCollection()
         {
-            string path = "/api/" + Uri.EscapeDataString(Configuration.Username ?? "") + "/lights";
-            JToken response = HueHttp.Send("GET", path, null);
-            HueHttp.ThrowOnError(response);
+            _lights = Parse(HueClipV2.Send("GET", "/clip/v2/resource/light", null),
+                HueClipV2.Send("GET", "/clip/v2/resource/device", null),
+                HueClipV2.Send("GET", "/clip/v2/resource/zigbee_connectivity", null));
+        }
 
-            if (!(response is JObject lights))
+        internal LightCollection(List<Light> lights)
+        {
+            _lights = lights;
+        }
+
+        /// <summary>
+        /// Builds the light list from the CLIP v2 light, device and zigbee_connectivity resources.
+        /// Name, type and model are filled in like the old API reported them, because they are stored in the
+        /// device XML. UniqueID is the Zigbee MAC address of the device (the old API added an endpoint,
+        /// e.g. "-0b"; <see cref="Find"/> matches both forms).
+        /// </summary>
+        internal static List<Light> Parse(JToken lightResponse, JToken deviceResponse, JToken zigbeeResponse)
+        {
+            var devices = new Dictionary<string, JToken>();
+            if (deviceResponse?["data"] is JArray deviceData)
+                foreach (JToken d in deviceData)
+                    if ((string)d["id"] != null)
+                        devices[(string)d["id"]] = d;
+
+            var macByDevice = new Dictionary<string, string>();
+            if (zigbeeResponse?["data"] is JArray zigbeeData)
+                foreach (JToken z in zigbeeData)
+                {
+                    string owner = (string)z["owner"]?["rid"];
+                    string mac = (string)z["mac_address"];
+                    if (owner != null && !string.IsNullOrEmpty(mac))
+                        macByDevice[owner] = mac.ToLowerInvariant();
+                }
+
+            var lights = new List<Light>();
+            if (!(lightResponse?["data"] is JArray lightData))
                 throw new HueException(0, "Unexpected response from Hue bridge.");
 
-            foreach (JProperty entry in lights.Properties())
+            var lightsPerDevice = new Dictionary<string, int>();
+            foreach (JToken l in lightData)
             {
-                _lights.Add(new Light
+                string owner = (string)l["owner"]?["rid"] ?? "";
+                lightsPerDevice.TryGetValue(owner, out int count);
+                lightsPerDevice[owner] = count + 1;
+            }
+
+            foreach (JToken l in lightData)
+            {
+                string id = (string)l["id"];
+                if (id == null)
+                    continue;
+                string owner = (string)l["owner"]?["rid"] ?? "";
+                devices.TryGetValue(owner, out JToken device);
+                macByDevice.TryGetValue(owner, out string mac);
+                string v1 = (string)l["id_v1"];
+                v1 = v1 != null && v1.StartsWith("/lights/", StringComparison.Ordinal) ? v1.Substring(8) : null;
+
+                string uniqueId;
+                if (mac == null)
+                    uniqueId = "clip:" + id;                      // no Zigbee light (e.g. Matter): the v2 id
+                else if (lightsPerDevice[owner] == 1)
+                    uniqueId = mac;
+                else
+                    uniqueId = mac + "#" + (v1 ?? id);            // several lights in one device
+
+                lights.Add(new Light
                 {
-                    ID = entry.Name,
-                    Name = (string)entry.Value["name"],
-                    Type = (string)entry.Value["type"],
-                    ModelID = (string)entry.Value["modelid"],
-                    UniqueID = (string)entry.Value["uniqueid"],
+                    ID = v1,
+                    ClipID = id,
+                    MacAddress = mac,
+                    Name = (string)l["metadata"]?["name"] ?? (string)device?["metadata"]?["name"] ?? id,
+                    Type = V1Type(l),
+                    ModelID = (string)device?["product_data"]?["model_id"],
+                    UniqueID = uniqueId,
                 });
             }
+            return lights;
+        }
+
+        /// <summary>Light type names of the old API, derived from the capabilities of the v2 light.</summary>
+        private static string V1Type(JToken light)
+        {
+            bool color = light["color"] != null;
+            bool temperature = light["color_temperature"] != null;
+            if (color)
+                return temperature ? "Extended color light" : "Color light";
+            if (temperature)
+                return "Color temperature light";
+            return light["dimming"] != null ? "Dimmable light" : "On/Off light";
+        }
+
+        /// <summary>
+        /// Light for a stored HueUniqueID: the same id, otherwise (devices saved with the old API id
+        /// "00:17:88:01:xx:xx:xx:xx-0b") the only light with that MAC address.
+        /// </summary>
+        public Light Find(string storedUniqueId)
+        {
+            if (string.IsNullOrEmpty(storedUniqueId))
+                return null;
+            foreach (Light light in _lights)
+                if (string.Equals(light.UniqueID, storedUniqueId, StringComparison.OrdinalIgnoreCase))
+                    return light;
+
+            string mac = storedUniqueId;
+            int cut = mac.IndexOfAny(new[] { '-', '#' });
+            if (cut > 0)
+                mac = mac.Substring(0, cut);
+            Light found = null;
+            foreach (Light light in _lights)
+            {
+                if (light.MacAddress != null && string.Equals(light.MacAddress, mac, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (found != null)
+                        return null;                              // ambiguous: several lights in one device
+                    found = light;
+                }
+            }
+            return found;
         }
 
         public IEnumerator<Light> GetEnumerator()
