@@ -196,6 +196,7 @@ namespace AmbiBack
         public bool CheckIsOnline()
         {
             bool bReturn = false;
+            CPingHelper myPing = null;
 
             try
             {
@@ -205,7 +206,7 @@ namespace AmbiBack
                 string szScanMyIp = this.m_IPAddress.ToString(); 
 
                 // Create a PingHelper!
-                CPingHelper myPing = new CPingHelper();
+                myPing = new CPingHelper();
                 myPing.InitSocket();
                 myPing.iMyTimeout = 2000;   // Hardcoded
                 myPing.iMyBytes2Send = 32;  // Hardcoded
@@ -275,6 +276,12 @@ namespace AmbiBack
             catch (Exception ex)
             {
                 CGlobals.DebugOutput(ex);
+            }
+            finally
+            {
+                // Release the raw ICMP socket, otherwise one is leaked per call
+                if (myPing != null)
+                    myPing.DestroySocket();
             }
 
             // Store local helper value
@@ -764,8 +771,12 @@ namespace AmbiBack
                 // False means Interrupt has to be ignored
                 return false;
         }
+        /// <summary>Called first in AbortThread: the device is stopped for good, a deferred restart must not follow.</summary>
+        protected virtual void OnAbortRequested() { }
+
         public bool AbortThread()
         {
+            this.OnAbortRequested();
             if (myThread != null)
             {
                 if (myThread.ThreadState == System.Threading.ThreadState.Running ||

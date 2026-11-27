@@ -88,9 +88,10 @@ namespace AmbiBack.PhilipsHue
             {
                 foreach (IPAddress local in LocalIPv4Addresses())
                 {
+                    Socket s = null;
                     try
                     {
-                        var s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                        s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                         s.Bind(new IPEndPoint(local, 0));
                         s.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastInterface, local.GetAddressBytes());
                         s.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, 255);
@@ -99,6 +100,8 @@ namespace AmbiBack.PhilipsHue
                     }
                     catch (SocketException ex)
                     {
+                        // Not in the list yet, so the cleanup below would never close it
+                        s?.Close();
                         CGlobals.DebugOutput("HueDiscovery|mDNS on " + local + ": " + ex.SocketErrorCode);
                     }
                 }

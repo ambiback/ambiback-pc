@@ -26,6 +26,23 @@ namespace AmbiBack
 
         private void cmdOK_Click(object sender, EventArgs e)
         {
+            try
+            {
+                this.AddDeviceFromInput(sender, e);
+            }
+            finally
+            {
+                // Every early return in AddDeviceFromInput leaves the form usable again
+                if (!this.IsDisposed)
+                {
+                    this.Cursor = Cursors.Default;
+                    this.Enabled = true;
+                }
+            }
+        }
+
+        private void AddDeviceFromInput(object sender, EventArgs e)
+        {
             this.Cursor = Cursors.WaitCursor;
             this.Enabled = false;
 

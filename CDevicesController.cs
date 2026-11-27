@@ -524,38 +524,41 @@ namespace AmbiBack
             // LIFX lights via broadcast on UDP 56700
             System.Threading.Tasks.Task.Run(() => this.EnumLifxDevices());
 
-            // UDP Helper Client
-            UdpClient client = new UdpClientBroadcast();
-
+            // UDP Helper Client (disposed after the broadcasts are sent)
+            using (UdpClient client = new UdpClientBroadcast())
+            {
 #if USE_DREAMSCREEN
-            // Start DreamScreen Device discovery
-            IPEndPoint ipBroadcastDreamScreen = new IPEndPoint(IPAddress.Broadcast, this.udpPortNumberDreamScreen);
-            byte[] bytes = new byte[0]; // { 0x01 }; // CreateUdpPacket(DsCommands.CurrentState, null, true);
-            byte[] bBroadcast = CreateUdpPacket(DsCommands.CurrentState, new byte[0], 0xFF /* All Groups?! */, (byte)DsFlags.Receive, true);
-            CGlobals.DebugOutput("EnumDevices: Sending Broadcast DreamScreen discovery"); 
-            client.Send(bBroadcast, bBroadcast.Length, ipBroadcastDreamScreen);
+                // Start DreamScreen Device discovery
+                IPEndPoint ipBroadcastDreamScreen = new IPEndPoint(IPAddress.Broadcast, this.udpPortNumberDreamScreen);
+                byte[] bytes = new byte[0]; // { 0x01 }; // CreateUdpPacket(DsCommands.CurrentState, null, true);
+                byte[] bBroadcast = CreateUdpPacket(DsCommands.CurrentState, new byte[0], 0xFF /* All Groups?! */, (byte)DsFlags.Receive, true);
+                CGlobals.DebugOutput("EnumDevices: Sending Broadcast DreamScreen discovery"); 
+                client.Send(bBroadcast, bBroadcast.Length, ipBroadcastDreamScreen);
 #endif
-            // Start AmbiBack Device discovery
-            IPEndPoint ipBroadcastAmbiBack = new IPEndPoint(IPAddress.Broadcast, this.udpPortNumberAmbiBack);
-            byte[] bBroadCastAmbiBack = CGlobals.GetByteArrayFromString(CGlobals.AMBIBACK_BROADCAST_DISCOVER);  
-            CGlobals.DebugOutput("EnumDevices: Sending Broadcast AmbiBack discovery");
-            client.Send(bBroadCastAmbiBack, bBroadCastAmbiBack.Length, ipBroadcastAmbiBack);
+                // Start AmbiBack Device discovery
+                IPEndPoint ipBroadcastAmbiBack = new IPEndPoint(IPAddress.Broadcast, this.udpPortNumberAmbiBack);
+                byte[] bBroadCastAmbiBack = CGlobals.GetByteArrayFromString(CGlobals.AMBIBACK_BROADCAST_DISCOVER);  
+                CGlobals.DebugOutput("EnumDevices: Sending Broadcast AmbiBack discovery");
+                client.Send(bBroadCastAmbiBack, bBroadCastAmbiBack.Length, ipBroadcastAmbiBack);
+            }
         }
 #if USE_DREAMSCREEN
 
         public void SendDreamscreenCommand(CDeviceDreamScreen myDevice, DsCommands dsCommand, byte bGroupNumber, byte bFlags, byte[] bPayload)
         {
-            UdpClient client = new UdpClientBroadcast();
-            IPEndPoint ipUnicast = new IPEndPoint(myDevice.GetIPAddress(), this.udpPortNumberDreamScreen);
-            byte[] bytes = new byte[0];
-            if (bPayload != null)
-                bytes = bPayload; 
+            using (UdpClient client = new UdpClientBroadcast())
+            {
+                IPEndPoint ipUnicast = new IPEndPoint(myDevice.GetIPAddress(), this.udpPortNumberDreamScreen);
+                byte[] bytes = new byte[0];
+                if (bPayload != null)
+                    bytes = bPayload; 
 
-            // Create UDP Packet 
-            byte[] bUnicast = CreateUdpPacket(dsCommand, bPayload, bGroupNumber /* myDevice.GetGroupNumber() */, bFlags, false);
+                // Create UDP Packet 
+                byte[] bUnicast = CreateUdpPacket(dsCommand, bPayload, bGroupNumber /* myDevice.GetGroupNumber() */, bFlags, false);
 
-            // Send to target
-            client.Send(bUnicast, bUnicast.Length, ipUnicast); 
+                // Send to target
+                client.Send(bUnicast, bUnicast.Length, ipUnicast); 
+            }
 
             // Send UDP Packet
             CGlobals.DebugOutput("SendDreamscreenCommand: Sending Unicast Command: " + dsCommand.ToString());
@@ -826,7 +829,7 @@ namespace AmbiBack
                     if (jsonResults.Count > 0)
                     {
                         // Handle found device
-                        this.CheckAndAddDevice(jsonResults, false, null); 
+                        this.CheckAndAddDevice(jsonResults, false, null, ip.Address); 
                     }
                 }
                 catch (Exception ex)
@@ -839,7 +842,7 @@ namespace AmbiBack
             StartUdpListeningAmbiBack();
         }
 
-        private void CheckAndAddDevice(JSONNode jsonResults, bool bSerial, string szComPort)
+        private void CheckAndAddDevice(JSONNode jsonResults, bool bSerial, string szComPort, IPAddress ipSource = null)
         {
             // Debug Output
             CGlobals.DebugOutput("CheckAndAddDevice: " + jsonResults.ToString());
@@ -852,6 +855,19 @@ namespace AmbiBack
             string szDeviceName = (jsonResults["DeviceName"] != null ? jsonResults["DeviceName"].Value.Trim(): null);
             string szDeviceIP = (jsonResults["DeviceIP"] != null ? jsonResults["DeviceIP"].Value.Trim(): null);
             int iDeviceType = CGlobals.FindDeviceId(szDeviceType);
+
+            // The UDP packet is not authenticated: trust the address it came from, not the one it claims,
+            // otherwise anyone on the network could redirect a known device's stream to any address
+            if (ipSource != null)
+            {
+                if (ipSource.IsIPv4MappedToIPv6)
+                    ipSource = ipSource.MapToIPv4();
+                if (szDeviceIP != ipSource.ToString())
+                {
+                    CGlobals.DebugOutput("CheckAndAddDevice: DeviceIP '" + szDeviceIP + "' differs from source " + ipSource + ", using the source address");
+                    szDeviceIP = ipSource.ToString();
+                }
+            }
 
             CDevice newDevice = null;
             newDevice = new CDeviceAmbiBack((DeviceType)iDeviceType, szDeviceIP);
@@ -989,7 +1005,20 @@ namespace AmbiBack
                         {
                             // Trigger EnumDevices
                             this.DoEnumDevices = false;
-                            this.EnumDevices();
+                            try
+                            {
+                                this.EnumDevices();
+                            }
+                            catch (ThreadInterruptedException)
+                            {
+                                // Handled by the outer block
+                                throw;
+                            }
+                            catch (Exception ex)
+                            {
+                                // E.g. the network is down: a failed discovery must not end this thread for good
+                                CGlobals.DebugOutput(ex);
+                            }
                         }
 
                         // Sleep a little 
@@ -1036,6 +1065,14 @@ namespace AmbiBack
             {
                 // Reset Abort Thread
                 this.AbortThread = false;
+
+                // A finished thread cannot be restarted, use a new one
+                if (myThread != null &&
+                    (myThread.ThreadState == System.Threading.ThreadState.Stopped ||
+                     myThread.ThreadState == System.Threading.ThreadState.Aborted))
+                {
+                    myThread = null;
+                }
 
                 // Create new Thread each time we start!
                 CreateThread();

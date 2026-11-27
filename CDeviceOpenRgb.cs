@@ -400,19 +400,28 @@ namespace AmbiBack
                 s.Connect(ip, port);
                 try
                 {
-                    s.Write(BuildPacket(0, PacketRequestProtocolVersion, BitConverter.GetBytes(ClientProtocolVersion)));
-                    Packet answer = s.ReadAnswer(PacketRequestProtocolVersion);
-                    uint server = answer.Data.Length >= 4 ? BitConverter.ToUInt32(answer.Data, 0) : 0;
-                    s.Version = Math.Min(server, ClientProtocolVersion);
+                    try
+                    {
+                        s.Write(BuildPacket(0, PacketRequestProtocolVersion, BitConverter.GetBytes(ClientProtocolVersion)));
+                        Packet answer = s.ReadAnswer(PacketRequestProtocolVersion);
+                        uint server = answer.Data.Length >= 4 ? BitConverter.ToUInt32(answer.Data, 0) : 0;
+                        s.Version = Math.Min(server, ClientProtocolVersion);
+                    }
+                    catch (IOException)
+                    {
+                        // Protocol 0 servers (OpenRGB 0.3) do not answer: connect again without asking
+                        s.Close();
+                        s.Connect(ip, port);
+                        s.Version = 0;
+                    }
+                    s.Write(BuildPacket(0, PacketSetClientName, Encoding.UTF8.GetBytes("AmbiBack PC\0")));
                 }
-                catch (IOException)
+                catch
                 {
-                    // Protocol 0 servers (OpenRGB 0.3) do not answer: connect again without asking
+                    // The caller never gets the session on failure: close the socket now instead of leaking it on every retry
                     s.Close();
-                    s.Connect(ip, port);
-                    s.Version = 0;
+                    throw;
                 }
-                s.Write(BuildPacket(0, PacketSetClientName, Encoding.UTF8.GetBytes("AmbiBack PC\0")));
                 return s;
             }
 
@@ -425,8 +434,17 @@ namespace AmbiBack
                     Client.Close();
                     throw new SocketException((int)SocketError.TimedOut);
                 }
-                Client.EndConnect(connecting);
-                Stream = Client.GetStream();
+                try
+                {
+                    Client.EndConnect(connecting);
+                    Stream = Client.GetStream();
+                }
+                catch
+                {
+                    // Connection refused or reset: the half-open client would stay until the finalizer runs
+                    Client.Close();
+                    throw;
+                }
             }
 
             public void Write(byte[] packet)

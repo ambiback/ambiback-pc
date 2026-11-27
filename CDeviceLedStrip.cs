@@ -26,6 +26,11 @@ namespace AmbiBack
         private bool connected;
         private IPAddress connectedAddress;
         private bool streaming;
+        /// <summary>
+        /// A stream has started and was not stopped yet. Unlike the internal streaming flag it survives a lost
+        /// connection, so a subclass can tell a reconnect during a stream from a fresh start.
+        /// </summary>
+        protected bool StreamActive { get; private set; }
         private byte[] rgb;
         private float[] smoothed;
 
@@ -251,6 +256,8 @@ namespace AmbiBack
         protected virtual void OnStreamStart() { }
         /// <summary>After the last frame: stop, monitor off, new address.</summary>
         protected virtual void OnStreamStop() { }
+        /// <summary>When the device thread ends for good (device stopped, disabled, app exit); not on a pause.</summary>
+        protected virtual void OnDeviceStopped() { }
         #endregion
 
         #region Threading
@@ -275,8 +282,9 @@ namespace AmbiBack
                                 continue;
                             }
 
-                            if (!this.bInitDone)
-                                InitHelpers();
+                            // No frame from the capture yet (monitor waking, capture restarting): try again
+                            if (!this.bInitDone && !InitHelpers())
+                                continue;
 
                             this.CalcColorsFromFrame(this.brPixels.Length, this.brPixels, this.UpdateScanAreas);
                             int bytes = BuildColors();
@@ -297,55 +305,174 @@ namespace AmbiBack
                         // Stop of the monitor (SleepThread): end the stream, it starts again on resume
                         DoDebugOutput(name + "|HandleThread|Interrupted");
                         StopStream();
-                        while (bSleepThread && !bAbortThread)
-                            Thread.Sleep(10);
+                        WaitWhilePaused();
                     }
                     catch (Exception ex) when (ex is SocketException || ex is IOException)
                     {
                         // Device not reachable or connection lost: close and retry
                         DoDebugOutput(name + "|Connection: " + ex.Message);
                         CloseClient();
-                        Thread.Sleep(1000);
+                        try
+                        {
+                            Thread.Sleep(1000);
+                        }
+                        catch (ThreadInterruptedException)
+                        {
+                            // SleepThread() during the back-off: same as the interrupt in the stream loop above
+                            // (the stream is already closed here)
+                            WaitWhilePaused();
+                        }
                     }
                 }
             }
             catch (ThreadAbortException)
             {
-                DoDebugOutput(name + "|HandleThread|Aborted");
+                // Flag first: the debug output can Invoke onto the UI thread, and a StartThread that comes in
+                // meanwhile must see this thread as ending, or its restart is lost
                 this.SetAbortThread(true);
+                DoDebugOutput(name + "|HandleThread|Aborted");
             }
             catch (Exception ex)
             {
+                this.SetAbortThread(true);
                 CGlobals.DebugOutput(ex);
                 DoDebugOutput(name + "|HandleThread|Exception: " + ex.Message);
-                this.SetAbortThread(true);
             }
             finally
             {
                 StopStream();
                 CloseClient();
                 bInitDone = false;
+                // Very last: the device is really stopped, not just paused
+                OnDeviceStopped();
+                try
+                {
+                    DoDebugOutput(name + "|HandleThread|Finished Thread");
+                }
+                finally
+                {
+                    // Very last: a start that came in while this thread was still ending
+                    FinishThread();
+                }
             }
-            DoDebugOutput(name + "|HandleThread|Finished Thread");
         }
+
+        /// <summary>
+        /// Waits while the thread is paused. SleepThread() can interrupt again during the wait (called twice);
+        /// that must not leave the wait, an exception here would end the whole thread.
+        /// </summary>
+        private void WaitWhilePaused()
+        {
+            while (bSleepThread && !bAbortThread)
+            {
+                try
+                {
+                    Thread.Sleep(10);
+                }
+                catch (ThreadInterruptedException)
+                {
+                    // Interrupted again: keep waiting until the pause is over
+                }
+            }
+        }
+
+        // Guards the hand-over between a thread that is ending and a start that comes in meanwhile
+        private readonly object threadLock = new object();
+        // The thread started by StartThread, until its HandleThread is completely done
+        private Thread liveThread;
+        // StartThread came in while the old thread was still ending: that thread starts the new one itself
+        private bool restartPending;
 
         public override void StartThread()
         {
+            bool deferred = false;
             try
             {
-                this.SetAbortThread(false);
-                this.SetSleepThread(false);
-                if (myThread != null && myThread.ThreadState == System.Threading.ThreadState.Stopped)
-                    myThread = null;
-                CreateThread();
-                if (myThread.ThreadState == System.Threading.ThreadState.Unstarted)
-                    myThread.Start();
+                lock (threadLock)
+                {
+                    // A thread that was told to end but is still in its exit path (restoring the device in the
+                    // finally) counts as running, so the restart would be lost. It is not waited for: the exit path
+                    // can call into the UI thread (debug output), so a wait on the caller would only time out. The
+                    // ending thread starts the new one as its last step. Never a second thread while one is alive
+                    // A live thread that is already dead (aborted before FinishThread could release it) would defer
+                    // every start forever, so it is dropped and the normal start path is taken
+                    if (liveThread != null && !liveThread.IsAlive)
+                        liveThread = null;
+                    if (liveThread != null && bAbortThread && liveThread != Thread.CurrentThread)
+                    {
+                        restartPending = true;
+                        deferred = true;
+                    }
+                    else
+                        StartDeviceThread();
+                }
+                if (deferred)
+                    DoDebugOutput(this.GetType().Name + "|StartThread|Previous thread still ending, restart follows");
             }
             catch (Exception ex)
             {
                 CGlobals.DebugOutput(ex);
                 DoDebugOutput(this.GetType().Name + "|StartThread|Exception: " + ex.Message);
             }
+        }
+
+        protected override void OnAbortRequested()
+        {
+            // Stopped for good (device removed, app exit): drop a restart that waits for the ending thread
+            lock (threadLock)
+                restartPending = false;
+        }
+
+        /// <summary>Starts a thread unless one is running; the caller holds <see cref="threadLock"/>.</summary>
+        private void StartDeviceThread()
+        {
+            this.SetAbortThread(false);
+            this.SetSleepThread(false);
+            // A finished thread (stopped, aborted by AbortThread, or past its exit path) cannot start again, use a
+            // new one. A started thread that is not the live one has left HandleThread
+            if (myThread != null && myThread.ThreadState != System.Threading.ThreadState.Unstarted &&
+                (myThread != liveThread ||
+                 myThread.ThreadState == System.Threading.ThreadState.Stopped ||
+                 myThread.ThreadState == System.Threading.ThreadState.Aborted))
+                myThread = null;
+            CreateThread();
+            if (myThread.ThreadState == System.Threading.ThreadState.Unstarted)
+            {
+                myThread.Start();
+                liveThread = myThread;
+                // A new thread runs now: a restart left over from a thread that died before FinishThread is done
+                restartPending = false;
+            }
+        }
+
+        /// <summary>
+        /// Last step of HandleThread. Releases the live thread and, when a start came in while this thread was
+        /// ending, starts the new one here (the old thread is gone from the caller's point of view by then).
+        /// </summary>
+        private void FinishThread()
+        {
+            bool restarted = false;
+            try
+            {
+                lock (threadLock)
+                {
+                    if (liveThread != Thread.CurrentThread)
+                        return;
+                    liveThread = null;
+                    // No new thread while the app is closing
+                    if (!restartPending || CGlobals.appIsStopping)
+                        return;
+                    restartPending = false;
+                    StartDeviceThread();
+                    restarted = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                CGlobals.DebugOutput(ex);
+            }
+            if (restarted)
+                DoDebugOutput(this.GetType().Name + "|HandleThread|Restarted by a start during the exit");
         }
 
         /// <summary>Connects to the current address and starts the stream; false while the address is unknown.</summary>
@@ -370,12 +497,15 @@ namespace AmbiBack
             {
                 OnStreamStart();
                 streaming = true;
+                StreamActive = true;
             }
             return true;
         }
 
         private void StopStream()
         {
+            // Also when the connection was lost before: the stream is over, the next start is a fresh one
+            StreamActive = false;
             if (!streaming)
                 return;
             streaming = false;
@@ -384,7 +514,7 @@ namespace AmbiBack
                 if (connected)
                     OnStreamStop();
             }
-            catch (Exception ex) when (ex is SocketException || ex is IOException || ex is ObjectDisposedException)
+            catch (Exception ex) when (ex is SocketException || ex is IOException || ex is ObjectDisposedException || ex is WebException)
             {
                 DoDebugOutput(this.GetType().Name + "|StopStream: " + ex.Message);
             }
@@ -404,7 +534,8 @@ namespace AmbiBack
             streaming = false;
         }
 
-        private void InitHelpers()
+        /// <summary>Allocates the buffers once the capture delivers a frame; false when there is none after 30 s (the caller retries).</summary>
+        private bool InitHelpers()
         {
             int iWait = 0;
             while ((this.Frame == null || this.Frame.Pixels == null) && iWait <= 300 && !bAbortThread)
@@ -413,7 +544,10 @@ namespace AmbiBack
                 iWait++;
             }
             if (this.Frame == null || this.Frame.Pixels == null)
-                throw new Exception("ERROR COULD NOT GRAB SCREENSHOT");
+            {
+                DoDebugOutput(this.GetType().Name + "|InitHelpers|No frame from the capture yet, retrying");
+                return false;
+            }
 
             int width, height;
             lock (this.Frame.Sync)
@@ -429,6 +563,7 @@ namespace AmbiBack
             lColorsFrameNumber = -1;
             UpdateScanAreas(width, height);
             bInitDone = true;
+            return true;
         }
 
         private void UpdateScanAreas(int width, int height)

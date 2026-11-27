@@ -78,6 +78,8 @@ namespace AmbiBack
                     m_aDevices.Add(newDevice);
 
                 // Bind necessary events to Selected Device
+                // (unsubscribe first so adding the same device twice never stacks handlers)
+                newDevice.DebugOutput -= new EventDebugOutput(this.EventDebugOutput);
                 newDevice.DebugOutput += new EventDebugOutput(this.EventDebugOutput);
 //                        myDevice.UpdateStatus += new EventUpdateStatus(this.DeviceUpdateStatus);
             }
@@ -89,6 +91,9 @@ namespace AmbiBack
                 // The capture thread enumerates m_aDevices under bmpLock
                 lock (CGlobals.bmpLock)
                     m_aDevices.Remove(newDevice);
+
+                // Counterpart of AddDevice, otherwise toggling a device stacks handlers
+                newDevice.DebugOutput -= new EventDebugOutput(this.EventDebugOutput);
             }
         }
         /// <summary>Title shown on the card, e.g. "Monitor 1".</summary>
@@ -401,10 +406,17 @@ namespace AmbiBack
             }
             
             // Draw Arrow
-            g.DrawLine(pen, iStartLeft,
-                            iStartTop,
-                            iEndLeft,
-                            iEndTop);
+            try
+            {
+                g.DrawLine(pen, iStartLeft,
+                                iStartTop,
+                                iEndLeft,
+                                iEndTop);
+            }
+            finally
+            {
+                pen.Dispose();
+            }
         }
         private void SetDirectionButtons()
         {
@@ -468,8 +480,11 @@ namespace AmbiBack
             // Abort if controls are hidden
             if (!chkTopLeft.Visible)
                 return; 
-            Graphics g = this.CreateGraphics();
-
+            using (Graphics g = this.CreateGraphics())
+                DrawDirectionsOn(g);
+        }
+        private void DrawDirectionsOn(Graphics g)
+        {
             if (selectedDevice != null && !this._SettingsLoading)
             {
                 if (selectedDevice is ILedStripLayout nodeMcuManagerDevice)
@@ -682,8 +697,9 @@ namespace AmbiBack
         private void btnEnable_Click(object sender, EventArgs e)
         {
             if (btnEnable.CheckState == CheckState.Checked) {
-                // Start Screenhelper Thread
-                screenHelper.StartThread();
+                // Start Screenhelper Thread (screenHelper is null after a failed init in AmbiMonitor_Load)
+                if (screenHelper != null)
+                    screenHelper.StartThread();
                 // Set Screen to enabled
                 this._MonitorEnabled = true;
 

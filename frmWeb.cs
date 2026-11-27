@@ -83,6 +83,9 @@ namespace AmbiBack
             try
             {
                 await WebViewHost.InitAsync(webBrowser);
+                // The window was closed while WebView2 was starting
+                if (IsDisposed || Disposing)
+                    return;
                 WebViewHost.MapPlayerPage(webBrowser);
                 // A video in full screen covers the whole window, including the buttons
                 webBrowser.CoreWebView2.ContainsFullScreenElementChanged += (s, a) =>
@@ -105,6 +108,9 @@ namespace AmbiBack
             catch (Exception ex)
             {
                 CGlobals.DebugOutput(ex);
+                // Closed by the user meanwhile: nothing to fall back to
+                if (IsDisposed || Disposing)
+                    return;
                 OpenInBrowser("https://www.youtube.com/playlist?list=" + listId);
                 Close();
             }

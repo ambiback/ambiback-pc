@@ -47,6 +47,8 @@ namespace AmbiBack
         private byte sequence;
         private byte[] target = new byte[8];
         private byte[] savedState;          // LightState payload before the start, restored on stop
+        private bool restorePending;        // savedState was read before a stream and is not restored yet
+        private bool stateReadAttempted;    // the state was asked for in this run, successfully or not
         private byte[] zonePayload;
 
         #region Stored settings
@@ -124,8 +126,16 @@ namespace AmbiBack
         {
             base.Connect(ip);
             target = MacTarget(this.InternalNetworkMAC);
-            // State to restore on stop
-            savedState = Request(MsgGetColor, new byte[0], MsgLightState);
+            // The state to restore is not read here: a monitor off/on on a connected lamp starts the next stream
+            // without a new Connect, so the read lives in OnStreamStart
+        }
+
+        protected override void OnDeviceStopped()
+        {
+            // The device really ended: the next start reads the lamp again, it may have been changed meanwhile
+            restorePending = false;
+            stateReadAttempted = false;
+            savedState = null;
         }
 
         /// <summary>Sends a message that asks for an answer and waits for that answer; null after the timeout.</summary>
@@ -151,20 +161,43 @@ namespace AmbiBack
 
         protected override void OnStreamStart()
         {
+            // State to restore on stop. Runs before the first frame of every stream, also after a pause on a
+            // connected lamp and after a reconnect. The lamp shows the stream color after a lost connection, also
+            // when the stream was paused without a restore, so it is only read while no restore is pending. It is
+            // asked for once per stream: a failed read leaves nothing pending (no restore for that stream) and is
+            // not repeated on a reconnect, when the lamp may already show the stream color. The flag is reset when
+            // the stream ends while connected and a restore was sent (OnStreamStop), and when the device thread
+            // ends (OnDeviceStopped)
+            if (!stateReadAttempted && !restorePending)
+            {
+                stateReadAttempted = true;
+                byte[] state = Request(MsgGetColor, new byte[0], MsgLightState);
+                if (state != null && state.Length >= 12)
+                {
+                    savedState = state;
+                    restorePending = true;
+                }
+            }
             Send(MsgSetLightPower, PowerPayload(true, 0));
         }
 
         protected override void OnStreamStop()
         {
             // Back to the color and power before the start
-            if (savedState == null || savedState.Length < 12)
+            if (!restorePending || savedState == null || savedState.Length < 12)
                 return;
+            // The stream ended while connected and the restore goes out now: the next start asks the lamp again.
+            // Not reset when no restore was pending (the read failed): the lamp may still show the stream color,
+            // so reading it again on the next start would save that color and restore it later
+            stateReadAttempted = false;
             byte[] color = new byte[13];
             Buffer.BlockCopy(savedState, 0, color, 1, 8);
             WriteUInt32(color, 9, 500);
             Send(MsgSetColor, color);
             bool wasOn = BitConverter.ToUInt16(savedState, 10) > 0;
             Send(MsgSetLightPower, PowerPayload(wasOn, 500));
+            // Only after the restore was sent; if the connection is gone the pending state stays for the reconnect
+            restorePending = false;
         }
 
         protected override void SendFrame(byte[] colors, int bytes)

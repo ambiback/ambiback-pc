@@ -273,8 +273,9 @@ namespace AmbiBack
                         }
                         else
                         {
-                            if (!this.bInitDone)
-                                InitHelpers();
+                            // No frame from the capture yet (monitor waking, capture restarting): try again
+                            if (!this.bInitDone && !InitHelpers())
+                                continue;
                             count = Math.Min(brPixels.Length, HueStreamMessage.MaxChannels);
                             if (this.rectScanPixels != null)
                                 this.CalcColorsFromFrame(count, this.brPixels, this.UpdateScanAreas);
@@ -307,14 +308,31 @@ namespace AmbiBack
                     catch (ThreadInterruptedException)
                     {
                         DoDebugOutput("CDeviceHueEntertainment|HandleThread|Interrupted");
-                        session?.Stop();
+                        try
+                        {
+                            session?.Stop();
+                        }
+                        catch (ThreadInterruptedException)
+                        {
+                            // SleepThread() called again while Stop() sleeps (it sends black): the extra interrupt
+                            // must not leave this catch, the thread goes on into the wait below
+                        }
                         if (PcGroup)
                         {
                             session = null;
                             pcVersion = -1;     // set the area up again on Start
                         }
+                        // SleepThread() can interrupt again during the wait; that must not end the thread
                         while (bSleepThread && !bAbortThread)
-                            Thread.Sleep(10);
+                        {
+                            try
+                            {
+                                Thread.Sleep(10);
+                            }
+                            catch (ThreadInterruptedException)
+                            {
+                            }
+                        }
                     }
 
                     if (StreamStatus != lastStatus)
@@ -359,7 +377,10 @@ namespace AmbiBack
             {
                 this.SetAbortThread(false);
                 this.SetSleepThread(false);
-                if (myThread != null && myThread.ThreadState == System.Threading.ThreadState.Stopped)
+                // A finished thread (stopped, or aborted by AbortThread) cannot start again, use a new one
+                if (myThread != null &&
+                    (myThread.ThreadState == System.Threading.ThreadState.Stopped ||
+                     myThread.ThreadState == System.Threading.ThreadState.Aborted))
                     myThread = null;
                 CreateThread();
                 if (myThread.ThreadState == System.Threading.ThreadState.Unstarted)
@@ -573,16 +594,11 @@ namespace AmbiBack
             return Color.FromArgb(255, Math.Min(255, r), Math.Min(255, g), Math.Min(255, b));
         }
 
-        private void InitHelpers()
+        /// <summary>Allocates the buffers once the capture delivers a frame; false when there is none after 30 s (the caller retries).</summary>
+        private bool InitHelpers()
         {
-            int iWait = 0;
-            while ((this.Frame == null || this.Frame.Pixels == null) && iWait <= 300 && !bAbortThread)
-            {
-                Thread.Sleep(100);
-                iWait++;
-            }
-            if (this.Frame == null || this.Frame.Pixels == null)
-                throw new Exception("ERROR COULD NOT GRAB SCREENSHOT");
+            if (!WaitForFrame())
+                return false;
 
             int width, height;
             lock (this.Frame.Sync)
@@ -596,6 +612,7 @@ namespace AmbiBack
             lColorsFrameNumber = -1;
             UpdateScanAreas(width, height);
             bInitDone = true;
+            return true;
         }
 
         private void UpdateScanAreas(int width, int height)
