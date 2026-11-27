@@ -187,7 +187,7 @@ namespace AmbiBack
                     if (myDevice.GetDeviceType() == DeviceType.PhilipsHueColorLight)
                     {
                         CDevicePhilipsHueLight myHueDevice = (CDevicePhilipsHueLight)myDevice;
-                        if (hueLight.UniqueID == myHueDevice.HueUniqueID)
+                        if (CGlobals.HueLights.Find(myHueDevice.HueUniqueID) == hueLight)
                         {
                             newDevice = myHueDevice;
                             break; 

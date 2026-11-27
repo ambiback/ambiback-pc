@@ -1041,6 +1041,9 @@ namespace AmbiBack
                 Configuration.Username = szHueUsername;
                 Configuration.ClientKey = HueSecrets.Unprotect(Properties.Settings.Default.szHueClientKey);
                 Configuration.BridgeId = Properties.Settings.Default.szHueBridgeId;
+                Configuration.UsesHttp = false;
+                Configuration.AllowHttpFallback = Configuration.HttpFallbackAllowed(
+                    Properties.Settings.Default.bHueHttpOnly, Properties.Settings.Default.szHueBridgeId);
 
                 // Git list of Hue Lights
                 CGlobals.HueLights = new LightCollection();
@@ -1061,6 +1064,9 @@ namespace AmbiBack
 
                 // Pairings from older versions: keep the bridge id learned on the first HTTPS connection
                 SaveHueBridgeId();
+                // Confirmed over HTTPS now: no HTTP from here on
+                Configuration.AllowHttpFallback = Configuration.HttpFallbackAllowed(
+                    Properties.Settings.Default.bHueHttpOnly, Properties.Settings.Default.szHueBridgeId);
 
                 // If we reach this point, we had success
                 bReturn = true; 
@@ -1079,16 +1085,8 @@ namespace AmbiBack
 
         static public Light GetHueLightByUniqueID(string szUniqueId)
         {
-            if (szUniqueId != null && szUniqueId.Length > 0 && CGlobals.HueLights != null) {
-                foreach (Light myLight in CGlobals.HueLights)
-                {
-                    if (myLight.UniqueID == szUniqueId)
-                        return myLight;
-                }
-            }
-
-            // null if not found
-            return null; 
+            // Also matches ids saved with the old API ("<mac>-0b"); null if not found
+            return CGlobals.HueLights?.Find(szUniqueId);
         }
         #endregion
 

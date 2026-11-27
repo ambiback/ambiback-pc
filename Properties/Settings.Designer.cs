@@ -120,6 +120,18 @@ namespace AmbiBack.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool bHueHttpOnly {
+            get {
+                return ((bool)(this["bHueHttpOnly"]));
+            }
+            set {
+                this["bHueHttpOnly"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("127.0.0.1")]
         public string DebugSyslogServer {
             get {

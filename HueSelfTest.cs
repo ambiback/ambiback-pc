@@ -1,3 +1,4 @@
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -45,6 +46,8 @@ namespace AmbiBack.PhilipsHue
                 Test("Bridge certificate: CN matches the stored bridge id", TestBridgeCertMatch),
                 Test("Bridge certificate: CN mismatch is refused", TestBridgeCertMismatch),
                 Test("Bridge certificate: no stored id keeps working (trust on first use)", TestBridgeCertNoStoredId),
+                Test("Light list from CLIP v2, old saved ids still match", TestClipLights),
+                Test("HTTP fallback only for bridges without HTTPS", TestHttpFallback),
                 Test("Entertainment device XML round trip", TestDeviceXml),
                 Test("New area: light positions", TestNewAreaPositions),
                 Test("Only color lights are listed", TestColorLight),
@@ -399,6 +402,58 @@ namespace AmbiBack.PhilipsHue
             True(stored.StartsWith("dpapi:", StringComparison.Ordinal) && !stored.Contains(secret), "secret stored in plain text");
             Equal(secret, HueSecrets.Unprotect(stored));
             True(HueSecrets.Unprotect(secret) == null, "plain value must not be accepted");
+        }
+
+        private static void TestHttpFallback()
+        {
+            // Old pairing never confirmed over HTTPS (no id): may still be a first generation bridge
+            True(Configuration.HttpFallbackAllowed(false, ""), "old pairing without id: no fallback");
+            True(Configuration.HttpFallbackAllowed(false, null), "old pairing without id: no fallback");
+            // Paired over HTTP: stays on HTTP
+            True(Configuration.HttpFallbackAllowed(true, "001788fffe23bfc2"), "HTTP pairing: no fallback");
+            // HTTPS confirmed or discovered id with HTTPS pairing: never HTTP again
+            True(!Configuration.HttpFallbackAllowed(false, "001788fffe23bfc2"), "HTTPS pairing falls back to HTTP");
+            // Only a closed port counts, never a refused certificate or a timeout
+            True(Configuration.IsNoHttps(WebExceptionStatus.ConnectFailure), "connection refused not detected");
+            True(!Configuration.IsNoHttps(WebExceptionStatus.TrustFailure), "certificate error treated as no HTTPS");
+            True(!Configuration.IsNoHttps(WebExceptionStatus.SecureChannelFailure), "TLS error treated as no HTTPS");
+            True(!Configuration.IsNoHttps(WebExceptionStatus.Timeout), "timeout treated as no HTTPS");
+        }
+
+        private static void TestClipLights()
+        {
+            JToken lights = JToken.Parse(@"{""data"":[
+                {""id"":""l1"",""id_v1"":""/lights/3"",""owner"":{""rid"":""d1""},""metadata"":{""name"":""Lamp left""},
+                 ""dimming"":{},""color_temperature"":{},""color"":{}},
+                {""id"":""l2"",""id_v1"":""/lights/4"",""owner"":{""rid"":""d2""},""metadata"":{""name"":""Desk""},""dimming"":{}},
+                {""id"":""l3"",""id_v1"":""/lights/5"",""owner"":{""rid"":""d3""},""metadata"":{""name"":""Strip A""},""color"":{}},
+                {""id"":""l4"",""id_v1"":""/lights/6"",""owner"":{""rid"":""d3""},""metadata"":{""name"":""Strip B""},""color"":{}}]}");
+            JToken devices = JToken.Parse(@"{""data"":[{""id"":""d1"",""product_data"":{""model_id"":""LCT015""}},
+                {""id"":""d2"",""product_data"":{""model_id"":""LWB010""}},{""id"":""d3"",""product_data"":{""model_id"":""X""}}]}");
+            JToken zigbee = JToken.Parse(@"{""data"":[{""owner"":{""rid"":""d1""},""mac_address"":""00:17:88:01:10:5C:AD:6B""},
+                {""owner"":{""rid"":""d3""},""mac_address"":""00:17:88:01:00:00:00:01""}]}");
+            List<Light> list = LightCollection.Parse(lights, devices, zigbee);
+            Equal(4, list.Count);
+            Light left = list[0];
+            Equal("3", left.ID);
+            Equal("Lamp left", left.Name);
+            Equal("Extended color light", left.Type);
+            Equal("LCT015", left.ModelID);
+            Equal("00:17:88:01:10:5c:ad:6b", left.UniqueID);
+            True(left.IsColorLight, "color light not detected");
+            Equal("Dimmable light", list[1].Type);
+            True(!list[1].IsColorLight, "white light listed as color light");
+            Equal("clip:l2", list[1].UniqueID);
+            Equal("Color light", list[2].Type);
+            Equal("00:17:88:01:00:00:00:01#5", list[2].UniqueID);
+
+            var collection = new LightCollection(list);
+            True(collection.Find("00:17:88:01:10:5c:ad:6b") == left, "new id not found");
+            True(collection.Find("00:17:88:01:10:5c:ad:6b-0b") == left, "old API id not found");
+            True(collection.Find("00:17:88:01:00:00:00:01#6") == list[3], "multi light id not found");
+            True(collection.Find("00:17:88:01:00:00:00:01-0b") == null, "ambiguous old id matched");
+            True(collection.Find("00:17:88:01:ff:ff:ff:ff-0b") == null, "unknown id matched");
+            True(collection.Find(null) == null, "empty id matched");
         }
 
         private static void TestBridgeCertMatch()

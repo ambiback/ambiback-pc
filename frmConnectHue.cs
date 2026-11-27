@@ -36,6 +36,9 @@ namespace AmbiBack
                 Configuration.AppID = CGlobals.szHueAppID;
                 // A new pairing starts a new pin: the id from discovery, or learned on the first HTTPS connection
                 Configuration.BridgeId = DiscoveredBridgeId(Configuration.DeviceIP);
+                // Pairing over HTTPS; HTTP only when the bridge has no HTTPS (first generation)
+                Configuration.AllowHttpFallback = true;
+                Configuration.UsesHttp = false;
 
                 if (Configuration.RegisterNewUser())
                 {
@@ -44,6 +47,7 @@ namespace AmbiBack
                     Properties.Settings.Default.szHueUsername = Configuration.Username;
                     Properties.Settings.Default.szHueClientKey = HueSecrets.Protect(Configuration.ClientKey);
                     Properties.Settings.Default.szHueBridgeId = Configuration.BridgeId ?? "";
+                    Properties.Settings.Default.bHueHttpOnly = Configuration.UsesHttp;
                     Properties.Settings.Default.Save();
                 }
 
