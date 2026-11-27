@@ -750,7 +750,9 @@ namespace AmbiBack
                     this.bReinitSharpDX = true;
                 }
             }
-            catch (Exception ex)
+            // Abort (app exit, device removed) and interrupt (Stop) are not capture errors: let HandleThread handle
+            // them, so they are not logged as an interrupted capture
+            catch (Exception ex) when (!(ex is ThreadAbortException) && !(ex is ThreadInterruptedException))
             {
                 CGlobals.DebugOutput("screenhelper:GetImageFromSharpDX:Exception:" + ex.ToString());
                 this.SetCaptureLost(ex.GetType().Name + ": " + ex.Message);
